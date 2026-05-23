@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AutoServ Je-Pro — Bengkel Service Mobil</title>
+<title>AutoServ Pro — Bengkel Service Mobil</title>
 <meta name="theme-color" content="#0f0f0f"/>
 <link rel="manifest" id="manifest-link"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -595,7 +595,7 @@ select.form-input option{background:var(--bg3)}
 // SUPABASE CONFIG — Ganti dengan credential Supabase Anda
 // ============================================================
 const SUPABASE_URL = 'https://kfatqgqcfqdsjwfnfdlr.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmYXRxZ3FjZnFkc2p3Zm5mZGxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc3MzUsImV4cCI6MjA5NTAwMzczNX0.UtS_1IZucej-zkEjzZEz9KWtzAyDx267wpVtHWP1yWE';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmYXRxZ3FjZnFkc2p3Zm5mZGxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc3MzUsImV4cCI6MjA5NTAwMzczNX0.UtS_1IZucej-zkEjzZEz9KWtzAyDx267wpVtHWP1yW';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -631,10 +631,6 @@ const NAV = [
   { id: 'service', label: 'Service / WO', icon: 'ti-engine' },
   { id: 'retur-jual', label: 'Retur Penjualan', icon: 'ti-arrow-forward-up' },
   { id: 'bayar-piutang', label: 'Bayar Piutang', icon: 'ti-coin' },
-  { group: 'Pengeluaran' },
-  { id: 'pengeluaran-op', label: 'Pengeluaran', icon: 'ti-cash' },
-  { id: 'kategori-keluar', label: 'Kategori', icon: 'ti-tags' },
-  { id: 'lap-pengeluaran', label: 'Lap. Pengeluaran', icon: 'ti-receipt-2' },
   { group: 'Laporan' },
   { id: 'lap-master', label: 'Laporan Master', icon: 'ti-table' },
   { id: 'lap-beli', label: 'Lap. Pembelian', icon: 'ti-trending-down' },
@@ -642,7 +638,6 @@ const NAV = [
   { id: 'lap-gudang', label: 'Lap. Gudang', icon: 'ti-box' },
   { id: 'lap-laba', label: 'Laba Rugi', icon: 'ti-chart-pie' },
   { id: 'lap-mekanik', label: 'Lap. Mekanik', icon: 'ti-chart-bar' },
-  { id: 'lap-laba-bersih', label: 'Laba Bersih', icon: 'ti-trending-up' },
   { group: 'Pengaturan' },
   { id: 'pengaturan', label: 'Pengaturan', icon: 'ti-settings' },
 ];
@@ -945,11 +940,6 @@ window.init_dashboard = async function() {
     const { data: hutang } = await db.from('pembelian').select('sisa_hutang').gt('sisa_hutang',0);
     const totalHutang = (hutang||[]).reduce((a,r)=>a+Number(r.sisa_hutang),0);
     if (totalHutang > 0) alerts.push({type:'info',icon:'ti-truck',text:'Hutang ke supplier',val:fmt(totalHutang)});
-    // Pengeluaran bulan ini
-    const m1 = today().slice(0,7)+'-01';
-    const { data: opex } = await db.from('pengeluaran').select('nominal').gte('tanggal',m1).lte('tanggal',today());
-    const totalOpex = (opex||[]).reduce((a,r)=>a+Number(r.nominal),0);
-    if (totalOpex > 0) alerts.push({type:'warn',icon:'ti-cash',text:'Pengeluaran bulan ini',val:fmt(totalOpex)});
     const alertHtml = alerts.length ? alerts.map(a=>`
       <div class="alert-item ${a.type}">
         <i class="ti ${a.icon} alert-icon"></i>
@@ -1737,9 +1727,8 @@ async function loadWO(statusFilter='semua'){
     <td><span class="badge ${w.status==='selesai'?'badge-green':w.status==='proses'?'badge-orange':'badge-gray'}">${w.status}</span></td>
     <td><span class="badge ${w.status_bayar==='lunas'?'badge-green':w.status_bayar==='sebagian'?'badge-yellow':'badge-red'}">${w.status_bayar}</span></td>
     <td><div style="display:flex;gap:3px">
-      <button class="btn btn-outline btn-sm" title="Ubah Status" onclick="ubahStatusWO('${w.id}','${w.no_wo}','${w.status}')"><i class="ti ti-edit"></i></button>
-      <button class="btn btn-outline btn-sm" title="Cetak Nota" onclick="cetakWOById('${w.id}')"><i class="ti ti-printer"></i></button>
-      <button class="btn btn-danger btn-sm" title="Hapus" onclick="delWO('${w.id}','${w.no_wo}')"><i class="ti ti-trash"></i></button>
+      <button class="btn btn-outline btn-sm" title="Cetak" onclick="cetakWOById('${w.id}')"><i class="ti ti-printer"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="delWO('${w.id}','${w.no_wo}')"><i class="ti ti-trash"></i></button>
     </div></td>
   </tr>`).join(''):'<tr><td colspan="10" class="table-empty"><i class="ti ti-engine-off"></i>Tidak ada work order</td></tr>';
 }
@@ -1751,91 +1740,6 @@ function filterWO(status,el){
 }
 
 async function delWO(id,no){if(!confirm2(`Hapus WO ${no}?`))return;showLoading(true);try{await dbOp('work_order','DELETE',{id});showToast('WO dihapus');await loadWO();}catch(e){showToast('Gagal','error');}showLoading(false);}
-
-// ── Ubah Status WO ────────────────────────────────────────────
-function ubahStatusWO(id, no, statusSaat) {
-  if (!document.getElementById('modal-status-wo')) {
-    const div = document.createElement('div');
-    div.innerHTML = `
-    <div class="modal-overlay" id="modal-status-wo" onclick="if(event.target===this)closeModal('modal-status-wo')">
-      <div class="modal" style="max-width:400px">
-        <div class="modal-header">
-          <span class="modal-title">Ubah Status Work Order</span>
-          <div class="modal-close" onclick="closeModal('modal-status-wo')"><i class="ti ti-x"></i></div>
-        </div>
-        <div class="modal-body">
-          <div style="margin-bottom:12px">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">No. WO</div>
-            <div id="sw-no" style="font-family:var(--font-display);font-size:16px;font-weight:700;color:var(--orange)"></div>
-          </div>
-          <div style="margin-bottom:14px">
-            <div style="font-size:12px;color:var(--text3);margin-bottom:4px">Status Saat Ini</div>
-            <div id="sw-current"></div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Pilih Status Baru:</label>
-            <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px" id="sw-options"></div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-outline" onclick="closeModal('modal-status-wo')">Batal</button>
-          <button class="btn btn-primary" onclick="simpanStatusWO()"><i class="ti ti-check"></i>Simpan Status</button>
-        </div>
-      </div>
-    </div>`;
-    document.body.appendChild(div.firstElementChild);
-  }
-
-  window._swId = id;
-  document.getElementById('sw-no').textContent = no;
-
-  const badgeMap = {
-    antri:   { cls: 'badge-gray',   label: 'Antri' },
-    proses:  { cls: 'badge-orange', label: 'Proses' },
-    selesai: { cls: 'badge-green',  label: 'Selesai' },
-    batal:   { cls: 'badge-red',    label: 'Batal' }
-  };
-  const cur = badgeMap[statusSaat] || { cls: 'badge-gray', label: statusSaat };
-  document.getElementById('sw-current').innerHTML =
-    '<span class="badge ' + cur.cls + '" style="font-size:13px;padding:4px 12px">' + cur.label + '</span>';
-
-  const statusList = [
-    { val: 'antri',   label: 'Antri',   cls: 'badge-gray',   desc: 'Kendaraan menunggu pengerjaan' },
-    { val: 'proses',  label: 'Proses',  cls: 'badge-orange', desc: 'Sedang dikerjakan mekanik' },
-    { val: 'selesai', label: 'Selesai', cls: 'badge-green',  desc: 'Service selesai, siap diserahkan' },
-    { val: 'batal',   label: 'Batal',   cls: 'badge-red',    desc: 'Work order dibatalkan' },
-  ];
-
-  document.getElementById('sw-options').innerHTML = statusList.map(s =>
-    '<label style="display:flex;align-items:center;gap:10px;padding:10px 12px;' +
-    'background:' + (s.val===statusSaat?'var(--orange-dim)':'var(--bg3)') + ';' +
-    'border:1px solid ' + (s.val===statusSaat?'var(--orange)':'var(--border2)') + ';' +
-    'border-radius:var(--radius-sm);cursor:pointer">' +
-    '<input type="radio" name="sw-status" value="' + s.val + '" ' + (s.val===statusSaat?'checked':'') + ' style="accent-color:var(--orange)"/>' +
-    '<span class="badge ' + s.cls + '" style="min-width:64px;justify-content:center">' + s.label + '</span>' +
-    '<span style="font-size:12px;color:var(--text2)">' + s.desc + '</span>' +
-    '</label>'
-  ).join('');
-
-  openModal('modal-status-wo');
-}
-
-async function simpanStatusWO() {
-  const sel = document.querySelector('input[name="sw-status"]:checked');
-  if (!sel) { showToast('Pilih status terlebih dahulu', 'error'); return; }
-  const newStatus = sel.value;
-  const id = window._swId;
-  showLoading(true);
-  try {
-    await dbOp('work_order', 'UPDATE', { id, payload: { status: newStatus } });
-    closeModal('modal-status-wo');
-    showToast('Status WO diubah ke "' + newStatus + '"');
-    await loadWO();
-  } catch(e) {
-    showToast('Gagal menyimpan status', 'error');
-  }
-  showLoading(false);
-}
 
 // ============================================================
 // CETAK NOTA
@@ -3218,419 +3122,6 @@ async function loadLapMekanik(){
     <td style="color:var(--orange)">${fmt(m.nilaiWO)}</td>
     <td style="color:var(--text2)">${fmt(m.avg)}</td>
   </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Tidak ada data pada periode ini</td></tr>';
-
-// ============================================================
-// PAGE: KATEGORI PENGELUARAN
-// ============================================================
-pages['kategori-keluar'] = () => `
-<div class="section-hdr"><h2><i class="ti ti-tags"></i>Kategori Pengeluaran</h2>
-  <div class="section-hdr-actions">
-    <button class="btn btn-primary" onclick="openModalKatKeluar()"><i class="ti ti-plus"></i>Tambah Kategori</button>
-  </div>
-</div>
-<div class="table-wrap">
-  <table><thead><tr><th>Nama Kategori</th><th>Status</th><th>Aksi</th></tr></thead>
-  <tbody id="body-kat-keluar"><tr><td colspan="3" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
-</div>
-${modalHtml('modal-kat-keluar','Tambah / Edit Kategori Pengeluaran',\`
-<div class="form-grid">
-  <div class="form-group form-full"><label class="form-label">Nama Kategori <span class="req">*</span></label>
-    <input id="f-kk-nama" class="form-input" placeholder="Misal: Gaji, Listrik, Sewa..."/>
-  </div>
-  <div class="form-group"><label class="form-label">Status</label>
-    <select id="f-kk-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
-  </div>
-</div>
-<input type="hidden" id="f-kk-id"/>\`,
-'',\`
-<button class="btn btn-outline" onclick="closeModal('modal-kat-keluar')">Batal</button>
-<button class="btn btn-primary" onclick="saveKatKeluar()"><i class="ti ti-device-floppy"></i>Simpan</button>\`)}`;
-
-window.init_kategori_keluar = async function(){ await loadKatKeluar(); };
-
-async function loadKatKeluar(){
-  const data = await loadTable('kategori_pengeluaran',{order:'nama'});
-  document.getElementById('body-kat-keluar').innerHTML = data.length ? data.map(k=>`<tr>
-    <td><div style="display:flex;align-items:center;gap:8px">
-      <i class="ti ${k.ikon||'ti-cash'}" style="font-size:17px;color:${k.warna||'var(--orange)'}"></i>
-      <span style="font-weight:500;color:var(--text)">${k.nama}</span>
-    </div></td>
-    <td>${k.aktif?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Nonaktif</span>'}</td>
-    <td><div style="display:flex;gap:4px">
-      <button class="btn btn-outline btn-sm" onclick='editKatKeluar(${JSON.stringify(k)})'><i class="ti ti-edit"></i></button>
-      <button class="btn btn-danger btn-sm" onclick="delKatKeluar('${k.id}','${k.nama}')"><i class="ti ti-trash"></i></button>
-    </div></td>
-  </tr>`).join('') : '<tr><td colspan="3" class="table-empty">Belum ada kategori</td></tr>';
-}
-
-function openModalKatKeluar(){
-  document.getElementById('f-kk-id').value='';
-  document.getElementById('f-kk-nama').value='';
-  document.getElementById('f-kk-aktif').value='true';
-  openModal('modal-kat-keluar');
-}
-
-function editKatKeluar(k){
-  document.getElementById('f-kk-id').value=k.id;
-  document.getElementById('f-kk-nama').value=k.nama;
-  document.getElementById('f-kk-aktif').value=String(k.aktif);
-  openModal('modal-kat-keluar');
-}
-
-async function saveKatKeluar(){
-  const id = document.getElementById('f-kk-id').value;
-  const nama = document.getElementById('f-kk-nama').value.trim();
-  if(!nama){showToast('Nama kategori wajib diisi','error');return;}
-  const payload = {nama, aktif: document.getElementById('f-kk-aktif').value==='true'};
-  showLoading(true);
-  try{
-    if(id) await dbOp('kategori_pengeluaran','UPDATE',{id,payload});
-    else await dbOp('kategori_pengeluaran','INSERT',{id:uid(),...payload,ikon:'ti-cash',warna:'#ff6a00'});
-    closeModal('modal-kat-keluar');
-    showToast(id?'Kategori diperbarui':'Kategori ditambahkan');
-    await loadKatKeluar();
-  }catch(e){showToast('Gagal: '+e.message,'error');}
-  showLoading(false);
-}
-
-async function delKatKeluar(id,nama){
-  if(!confirm2('Hapus kategori "'+nama+'"?'))return;
-  showLoading(true);
-  try{ await dbOp('kategori_pengeluaran','DELETE',{id}); showToast('Kategori dihapus'); await loadKatKeluar(); }
-  catch(e){showToast('Gagal','error');}
-  showLoading(false);
-}
-
-// ============================================================
-// PAGE: PENGELUARAN OPERASIONAL
-// ============================================================
-pages['pengeluaran-op'] = () => `
-<div class="section-hdr"><h2><i class="ti ti-cash"></i>Pengeluaran Operasional</h2>
-  <div class="section-hdr-actions">
-    <button class="btn btn-primary" onclick="openModalPengeluaran()"><i class="ti ti-plus"></i>Tambah Pengeluaran</button>
-  </div>
-</div>
-<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap" id="po-stats-row"></div>
-<div class="table-wrap">
-  <div class="table-toolbar">
-    <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari keterangan..." oninput="filterTable('tbl-pkeluar',this.value,[2])"/></div>
-    <select id="f-po-kat-filter" class="form-input" style="width:auto" onchange="loadPengeluaran()"><option value="">Semua Kategori</option></select>
-    <input type="date" id="f-po-dari" class="form-input" style="width:140px" value="${today().slice(0,7)+'-01'}" onchange="loadPengeluaran()"/>
-    <input type="date" id="f-po-sampai" class="form-input" style="width:140px" value="${today()}" onchange="loadPengeluaran()"/>
-  </div>
-  <table id="tbl-pkeluar"><thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Metode</th><th>Nominal</th><th>Aksi</th></tr></thead>
-  <tbody id="body-pkeluar"><tr><td colspan="6" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
-</div>
-${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',\`
-<div class="form-grid">
-  <div class="form-group"><label class="form-label">Tanggal <span class="req">*</span></label>
-    <input id="f-po-tgl" class="form-input" type="date" value="\${today()}"/>
-  </div>
-  <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
-    <select id="f-po-kat" class="form-input"><option value="">-- Pilih Kategori --</option></select>
-  </div>
-  <div class="form-group"><label class="form-label">Nominal <span class="req">*</span></label>
-    <input id="f-po-nominal" class="form-input" type="number" min="0" placeholder="0"/>
-  </div>
-  <div class="form-group"><label class="form-label">Metode Bayar</label>
-    <select id="f-po-metode" class="form-input">
-      <option value="tunai">Tunai</option>
-      <option value="transfer">Transfer</option>
-      <option value="debit">Debit / Kartu</option>
-      <option value="lainnya">Lainnya</option>
-    </select>
-  </div>
-  <div class="form-group form-full"><label class="form-label">Keterangan</label>
-    <textarea id="f-po-ket" class="form-input" rows="2" placeholder="Detail pengeluaran..."></textarea>
-  </div>
-</div>
-<input type="hidden" id="f-po-id"/>
-<input type="hidden" id="f-po-kat-nama"/>\`,
-'',\`
-<button class="btn btn-outline" onclick="closeModal('modal-pengeluaran')">Batal</button>
-<button class="btn btn-primary" onclick="savePengeluaran()"><i class="ti ti-device-floppy"></i>Simpan</button>\`)}`;
-
-window.init_pengeluaran_op = async function(){ await loadPengeluaranInit(); };
-
-async function loadPengeluaranInit(){
-  // Load kategori ke filter dan form
-  const kats = await loadTable('kategori_pengeluaran',{eq:{aktif:true},order:'nama'});
-  const filterSel = document.getElementById('f-po-kat-filter');
-  if(filterSel){
-    filterSel.innerHTML = '<option value="">Semua Kategori</option>' +
-      kats.map(k=>`<option value="${k.id}">${k.nama}</option>`).join('');
-  }
-  window._katKeluar = kats;
-  await loadPengeluaran();
-}
-
-async function openModalPengeluaran(data){
-  if(!window._katKeluar) window._katKeluar = await loadTable('kategori_pengeluaran',{eq:{aktif:true},order:'nama'});
-  const kats = window._katKeluar;
-  document.getElementById('f-po-kat').innerHTML =
-    '<option value="">-- Pilih Kategori --</option>' +
-    kats.map(k=>`<option value="${k.id}" data-nama="${k.nama}">${k.nama}</option>`).join('');
-  document.getElementById('f-po-id').value = data?data.id:'';
-  document.getElementById('f-po-tgl').value = data?data.tanggal:today();
-  document.getElementById('f-po-kat').value = data?data.kategori_id:'';
-  document.getElementById('f-po-nominal').value = data?data.nominal:'';
-  document.getElementById('f-po-metode').value = data?data.metode:'tunai';
-  document.getElementById('f-po-ket').value = data?data.keterangan:'';
-  openModal('modal-pengeluaran');
-}
-
-async function savePengeluaran(){
-  const id = document.getElementById('f-po-id').value;
-  const katId = document.getElementById('f-po-kat').value;
-  const nominal = Number(document.getElementById('f-po-nominal').value);
-  if(!katId){showToast('Pilih kategori','error');return;}
-  if(!nominal||nominal<=0){showToast('Isi nominal pengeluaran','error');return;}
-  const katOpt = document.getElementById('f-po-kat').selectedOptions[0];
-  const payload = {
-    tanggal: document.getElementById('f-po-tgl').value,
-    kategori_id: katId,
-    nama_kategori: katOpt?katOpt.dataset.nama:'',
-    nominal,
-    metode: document.getElementById('f-po-metode').value,
-    keterangan: document.getElementById('f-po-ket').value
-  };
-  showLoading(true);
-  try{
-    if(id) await dbOp('pengeluaran','UPDATE',{id,payload});
-    else await dbOp('pengeluaran','INSERT',{id:uid(),...payload});
-    closeModal('modal-pengeluaran');
-    showToast(id?'Pengeluaran diperbarui':'Pengeluaran disimpan');
-    await loadPengeluaran();
-  }catch(e){showToast('Gagal: '+e.message,'error');}
-  showLoading(false);
-}
-
-async function loadPengeluaran(){
-  const dari = document.getElementById('f-po-dari')?document.getElementById('f-po-dari').value:'';
-  const sampai = document.getElementById('f-po-sampai')?document.getElementById('f-po-sampai').value:'';
-  const kat = document.getElementById('f-po-kat-filter')?document.getElementById('f-po-kat-filter').value:'';
-  let q = db.from('pengeluaran').select('*').order('tanggal',{ascending:false});
-  if(dari) q=q.gte('tanggal',dari);
-  if(sampai) q=q.lte('tanggal',sampai);
-  if(kat) q=q.eq('kategori_id',kat);
-  const {data} = await q;
-  const total = (data||[]).reduce((a,r)=>a+Number(r.nominal),0);
-
-  // Stats per kategori
-  const byKat = {};
-  (data||[]).forEach(r=>{
-    const k = r.nama_kategori||'Lain-lain';
-    byKat[k] = (byKat[k]||0)+Number(r.nominal);
-  });
-  const topKat = Object.entries(byKat).sort((a,b)=>b[1]-a[1]).slice(0,4);
-
-  const statsEl = document.getElementById('po-stats-row');
-  if(statsEl){
-    statsEl.innerHTML =
-      `<div class="status-badge" style="border-color:rgba(255,106,0,0.3)">
-        <i class="ti ti-cash" style="color:var(--orange);font-size:14px"></i>
-        <span style="font-size:12px">Total: </span>
-        <strong style="color:var(--orange)">${fmt(total)}</strong>
-      </div>` +
-      topKat.map(([k,v])=>
-        `<div class="status-badge">
-          <span style="font-size:12px">${k}: </span>
-          <strong style="color:var(--text)">${fmt(v)}</strong>
-        </div>`
-      ).join('');
-  }
-
-  document.getElementById('body-pkeluar').innerHTML = (data||[]).length ?
-    (data||[]).map(r=>`<tr>
-      <td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
-      <td><span style="display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:500">
-        <i class="ti ${r.ikon||'ti-cash'}" style="font-size:14px;color:var(--orange)"></i>
-        ${r.nama_kategori||'-'}
-      </span></td>
-      <td style="font-size:12px;color:var(--text2)">${r.keterangan||'-'}</td>
-      <td style="font-size:12px">${r.metode}</td>
-      <td style="font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--red)">${fmt(r.nominal)}</td>
-      <td><div style="display:flex;gap:4px">
-        <button class="btn btn-outline btn-sm" onclick='openModalPengeluaran(${JSON.stringify(r)})'><i class="ti ti-edit"></i></button>
-        <button class="btn btn-danger btn-sm" onclick="delPengeluaran('${r.id}')"><i class="ti ti-trash"></i></button>
-      </div></td>
-    </tr>`).join('') :
-    '<tr><td colspan="6" class="table-empty"><i class="ti ti-cash-off"></i>Belum ada pengeluaran</td></tr>';
-}
-
-async function delPengeluaran(id){
-  if(!confirm2('Hapus pengeluaran ini?'))return;
-  showLoading(true);
-  try{ await dbOp('pengeluaran','DELETE',{id}); showToast('Pengeluaran dihapus'); await loadPengeluaran(); }
-  catch(e){showToast('Gagal','error');}
-  showLoading(false);
-}
-
-// ============================================================
-// PAGE: LAPORAN PENGELUARAN
-// ============================================================
-pages['lap-pengeluaran'] = () => `
-<div class="section-hdr"><h2><i class="ti ti-receipt-2"></i>Laporan Pengeluaran</h2>
-  <div class="section-hdr-actions">
-    <input type="date" id="lpe-dari" class="form-input" style="width:145px" value="${today().slice(0,7)+'-01'}"/>
-    <input type="date" id="lpe-sampai" class="form-input" style="width:145px" value="${today()}"/>
-    <button class="btn btn-primary" onclick="loadLapPengeluaran()"><i class="ti ti-search"></i>Tampilkan</button>
-    <button class="btn btn-outline" onclick="printSection('lap-pe-content')"><i class="ti ti-printer"></i>Cetak</button>
-  </div>
-</div>
-<div id="lap-pe-content">
-  <div class="stats-grid" id="lpe-stats"></div>
-  <div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:14px" id="lpe-grid">
-    <div class="table-wrap">
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text)">Per Kategori</div>
-      <table><thead><tr><th>Kategori</th><th>Jumlah Transaksi</th><th>Total</th><th>%</th></tr></thead>
-      <tbody id="body-lpe-kat"><tr><td colspan="4" class="table-empty">Klik Tampilkan</td></tr></tbody></table>
-    </div>
-    <div class="table-wrap">
-      <div style="padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px;font-weight:600;color:var(--text)">Detail Transaksi</div>
-      <table><thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Nominal</th></tr></thead>
-      <tbody id="body-lpe-detail"><tr><td colspan="4" class="table-empty">Klik Tampilkan</td></tr></tbody></table>
-    </div>
-  </div>
-</div>`;
-
-window.init_lap_pengeluaran = function(){};
-
-async function loadLapPengeluaran(){
-  const dari = document.getElementById('lpe-dari').value;
-  const sampai = document.getElementById('lpe-sampai').value;
-  let q = db.from('pengeluaran').select('*').order('tanggal',{ascending:false});
-  if(dari) q=q.gte('tanggal',dari);
-  if(sampai) q=q.lte('tanggal',sampai);
-  const {data} = await q;
-  const d = data||[];
-  const total = d.reduce((a,r)=>a+Number(r.nominal),0);
-
-  // Per kategori
-  const byKat = {};
-  d.forEach(r=>{
-    const k = r.nama_kategori||'Lain-lain';
-    if(!byKat[k]) byKat[k]={total:0,count:0};
-    byKat[k].total += Number(r.nominal);
-    byKat[k].count++;
-  });
-  const katRows = Object.entries(byKat).sort((a,b)=>b[1].total-a[1].total);
-
-  document.getElementById('lpe-stats').innerHTML = `
-    <div class="stat-card" style="border-color:rgba(239,68,68,0.3)">
-      <i class="ti ti-cash stat-icon" style="color:var(--red)"></i>
-      <div class="stat-label">Total Pengeluaran</div>
-      <div class="stat-value" style="color:var(--red)">${fmt(total)}</div>
-      <div class="stat-sub">${d.length} transaksi</div>
-    </div>
-    <div class="stat-card orange">
-      <i class="ti ti-tags stat-icon"></i>
-      <div class="stat-label">Kategori Terbesar</div>
-      <div class="stat-value" style="font-size:16px">${katRows.length?katRows[0][0]:'-'}</div>
-      <div class="stat-sub">${katRows.length?fmt(katRows[0][1].total):'-'}</div>
-    </div>
-    <div class="stat-card blue">
-      <i class="ti ti-calculator stat-icon"></i>
-      <div class="stat-label">Rata-rata per Transaksi</div>
-      <div class="stat-value">${d.length?fmt(Math.round(total/d.length)):'Rp 0'}</div>
-    </div>`;
-
-  document.getElementById('body-lpe-kat').innerHTML = katRows.length ?
-    katRows.map(([k,v])=>`<tr>
-      <td style="font-weight:500">${k}</td>
-      <td style="text-align:center">${v.count}</td>
-      <td style="font-family:var(--font-display);color:var(--red)">${fmt(v.total)}</td>
-      <td style="color:var(--text3);font-size:12px">${total>0?Math.round(v.total/total*100):0}%</td>
-    </tr>`).join('') : '<tr><td colspan="4" class="table-empty">Tidak ada data</td></tr>';
-
-  document.getElementById('body-lpe-detail').innerHTML = d.length ?
-    d.map(r=>`<tr>
-      <td style="font-size:12px">${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
-      <td style="font-size:12px">${r.nama_kategori||'-'}</td>
-      <td style="font-size:11px;color:var(--text3)">${r.keterangan||'-'}</td>
-      <td style="font-family:var(--font-display);color:var(--red)">${fmt(r.nominal)}</td>
-    </tr>`).join('') : '<tr><td colspan="4" class="table-empty">Tidak ada data</td></tr>';
-}
-
-// ============================================================
-// PAGE: LABA BERSIH (Laba Rugi + Pengeluaran Operasional)
-// ============================================================
-pages['lap-laba-bersih'] = () => `
-<div class="section-hdr"><h2><i class="ti ti-trending-up"></i>Laba Bersih</h2>
-  <div class="section-hdr-actions">
-    <select id="llb-tahun" class="form-input" style="width:auto">
-      ${[0,1,2].map(i=>{const y=new Date().getFullYear()-i;return \`<option value="\${y}" \${i===0?'selected':''}>\${y}</option>\`;}).join('')}
-    </select>
-    <button class="btn btn-primary" onclick="loadLabaBersih()"><i class="ti ti-search"></i>Tampilkan</button>
-    <button class="btn btn-outline" onclick="printSection('lap-lb-content')"><i class="ti ti-printer"></i>Cetak</button>
-  </div>
-</div>
-<div id="lap-lb-content">
-  <div class="stats-grid" id="llb-stats"></div>
-  <div class="table-wrap" style="margin-top:14px">
-    <table><thead><tr>
-      <th>Bulan</th>
-      <th style="color:var(--green)">Pendapatan</th>
-      <th style="color:var(--red)">HPP (Beli)</th>
-      <th style="color:var(--yellow)">Pengeluaran Op.</th>
-      <th>Laba Kotor</th>
-      <th>Laba Bersih</th>
-    </tr></thead>
-    <tbody id="body-lb"><tr><td colspan="6" class="table-empty">Klik Tampilkan</td></tr></tbody></table>
-  </div>
-</div>`;
-
-window.init_lap_laba_bersih = function(){};
-
-async function loadLabaBersih(){
-  const tahun = document.getElementById('llb-tahun').value;
-  const bln = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
-  let totPend=0, totHPP=0, totOpex=0;
-  const rows = [];
-  for(let m=1;m<=12;m++){
-    const dari = tahun+'-'+String(m).padStart(2,'0')+'-01';
-    const akhir = new Date(tahun,m,0).toISOString().slice(0,10);
-    const [pj,wo,beli,opex] = await Promise.all([
-      db.from('penjualan').select('total').gte('tanggal',dari).lte('tanggal',akhir),
-      db.from('work_order').select('total').gte('tanggal',dari).lte('tanggal',akhir),
-      db.from('pembelian').select('total').gte('tanggal',dari).lte('tanggal',akhir),
-      db.from('pengeluaran').select('nominal').gte('tanggal',dari).lte('tanggal',akhir)
-    ]);
-    const pend = (pj.data||[]).reduce((a,r)=>a+Number(r.total),0) +
-                 (wo.data||[]).reduce((a,r)=>a+Number(r.total),0);
-    const hpp  = (beli.data||[]).reduce((a,r)=>a+Number(r.total),0);
-    const op   = (opex.data||[]).reduce((a,r)=>a+Number(r.nominal),0);
-    const labaKotor = pend-hpp;
-    const labaBersih = labaKotor-op;
-    totPend+=pend; totHPP+=hpp; totOpex+=op;
-    rows.push({bulan:bln[m-1],pend,hpp,op,labaKotor,labaBersih});
-  }
-  const totLabaKotor = totPend-totHPP;
-  const totLabaBersih = totLabaKotor-totOpex;
-
-  document.getElementById('llb-stats').innerHTML = `
-    <div class="stat-card green"><i class="ti ti-trending-up stat-icon"></i>
-      <div class="stat-label">Total Pendapatan</div><div class="stat-value">${fmt(totPend)}</div></div>
-    <div class="stat-card orange"><i class="ti ti-trending-down stat-icon"></i>
-      <div class="stat-label">HPP + Operasional</div><div class="stat-value">${fmt(totHPP+totOpex)}</div></div>
-    <div class="stat-card" style="border-color:rgba(245,158,11,0.3)"><i class="ti ti-cash stat-icon" style="color:var(--yellow)"></i>
-      <div class="stat-label">Total Pengeluaran Op.</div><div class="stat-value" style="color:var(--yellow)">${fmt(totOpex)}</div></div>
-    <div class="stat-card ${totLabaBersih>=0?'green':''}">
-      <i class="ti ti-${totLabaBersih>=0?'arrow-up-right':'arrow-down-right'} stat-icon" style="color:${totLabaBersih>=0?'var(--green)':'var(--red)'}"></i>
-      <div class="stat-label">Laba Bersih ${tahun}</div>
-      <div class="stat-value" style="color:${totLabaBersih>=0?'var(--green)':'var(--red)'}">${fmt(totLabaBersih)}</div>
-    </div>`;
-
-  document.getElementById('body-lb').innerHTML = rows.map(r=>`<tr>
-    <td style="font-weight:600">${r.bulan}</td>
-    <td style="color:var(--green)">${fmt(r.pend)}</td>
-    <td style="color:var(--red)">${fmt(r.hpp)}</td>
-    <td style="color:var(--yellow)">${fmt(r.op)}</td>
-    <td style="font-family:var(--font-display);color:${r.labaKotor>=0?'var(--text2)':'var(--red)'}">${fmt(r.labaKotor)}</td>
-    <td style="font-family:var(--font-display);font-weight:700;color:${r.labaBersih>=0?'var(--green)':'var(--red)'}">${fmt(r.labaBersih)}</td>
-  </tr>`).join('');
-}
-
 }
 
 
