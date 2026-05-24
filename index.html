@@ -1,31 +1,3 @@
-<!--
-=================================================================
-  AUTOSERV PRO — Bengkel Service Mobil
-  Versi: 1.0.0
-=================================================================
-
-CARA SETUP (3 langkah):
-
-1. SUPABASE:
-   a. Buat akun di https://supabase.com (gratis)
-   b. Buat project baru
-   c. Buka SQL Editor → jalankan file: supabase_schema.sql
-   d. Salin Project URL dan anon key dari Settings > API
-
-2. KONFIGURASI (edit 2 baris di bawah ini):
-   Cari: const SUPABASE_URL = 'https://YOUR_PROJECT.supabase.co'
-   Ganti YOUR_PROJECT dengan ID project Supabase Anda
-   
-   Cari: const SUPABASE_ANON_KEY = 'YOUR_ANON_KEY'
-   Ganti YOUR_ANON_KEY dengan anon key dari Supabase
-
-3. DEPLOY:
-   a. Upload file ini ke GitHub repository (nama file: index.html)
-   b. Buka https://vercel.com → Import dari GitHub
-   c. Deploy! Selesai.
-
-=================================================================
--->
 <!DOCTYPE html>
 <html lang="id">
 <head>
@@ -560,13 +532,71 @@ select.form-input option{background:var(--bg3)}
   #content{padding:12px}
 }
 </style>
+
+<script>
+// ============================================================
+// SERVICE WORKER REGISTRATION (PWA offline cache)
+// ============================================================
+if ('serviceWorker' in navigator) {
+  // Generate SW as blob URL so it works from single HTML file
+  const swCode = `
+const CACHE = 'autoserv-v1';
+const ASSETS = [self.location.href.replace('/sw-blob','')];
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{})
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  // Only cache GET requests
+  if (e.request.method !== 'GET') return;
+  // Don't cache supabase API calls
+  if (e.request.url.includes('supabase.co')) return;
+  
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      const network = fetch(e.request).then(resp => {
+        if (resp.ok) {
+          caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
+        }
+        return resp;
+      }).catch(() => cached);
+      return cached || network;
+    })
+  );
+});
+`;
+  const swBlob = new Blob([swCode], {type:'application/javascript'});
+  const swUrl = URL.createObjectURL(swBlob);
+  navigator.serviceWorker.register(swUrl, {scope:'/'})
+    .then(reg => {
+      console.log('SW registered');
+      // Check for updates every 30 minutes
+      setInterval(()=>reg.update(), 30*60*1000);
+    })
+    .catch(e => console.warn('SW registration failed:', e));
+}
+</script>
 </head>
 <body>
 
 <!-- OFFLINE BAR -->
 <div id="offline-bar">
-  <i class="ti ti-wifi-off"></i>
-  Mode Offline — Data tersimpan lokal dan akan disinkronkan saat koneksi pulih
+  <i class="ti ti-wifi-off" style="font-size:15px"></i>
+  <span>Mode Offline — Input data tetap berjalan, akan otomatis sync saat internet pulih</span>
+  <span id="offline-pending" style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px;display:none"></span>
 </div>
 
 <!-- APP -->
@@ -756,14 +786,20 @@ function confirm2(msg) { return window.confirm(msg); }
 let idbDb;
 function openIDB() {
   return new Promise((res,rej)=>{
-    const req = indexedDB.open('autoserv_offline',1);
+    const req = indexedDB.open('autoserv_offline',2);
     req.onupgradeneeded = e => {
       const d = e.target.result;
+      const oldVer = e.oldVersion;
       if (!d.objectStoreNames.contains('queue')) {
         d.createObjectStore('queue',{keyPath:'id'});
       }
       if (!d.objectStoreNames.contains('cache')) {
         d.createObjectStore('cache',{keyPath:'key'});
+      }
+      // v2: offline data cache per table
+      if (!d.objectStoreNames.contains('tbl_cache')) {
+        const tblStore = d.createObjectStore('tbl_cache',{keyPath:'key'});
+        tblStore.createIndex('tbl','tbl',{unique:false});
       }
     };
     req.onsuccess = e => { idbDb = e.target.result; res(idbDb); };
@@ -802,6 +838,17 @@ async function queueOp(tabel, operasi, data) {
     id: uid(), tabel, operasi, data,
     status:'pending', created_at: nowTs()
   });
+  // Update offline pending count display
+  try {
+    const queue = await idbGetAll('queue');
+    const pending = queue.filter(q=>q.status==='pending').length;
+    const el = document.getElementById('offline-pending');
+    if(el) {
+      el.style.display = pending>0 ? 'inline' : 'none';
+      el.textContent = pending + ' data pending';
+    }
+    updateSyncBadge();
+  } catch(e){}
 }
 
 // Supabase call with offline fallback
@@ -830,22 +877,66 @@ async function syncOfflineData() {
   if (!isOnline) { showToast('Tidak ada koneksi internet','error'); return; }
   const queue = await idbGetAll('queue');
   const pending = queue.filter(q=>q.status==='pending');
-  if (!pending.length) { showToast('Tidak ada data yang perlu disinkronkan','info'); return; }
-  showLoading(true);
+  if (!pending.length) return; // Silent if nothing to sync
+  
+  // Animate sync button
+  const syncIcon = document.getElementById('sync-btn')?.querySelector('i');
+  if(syncIcon) syncIcon.style.animation='spin 0.7s linear infinite';
+  
   let ok=0, fail=0;
   for (const q of pending) {
     try {
-      if (q.operasi==='INSERT') await db.from(q.tabel).upsert(q.data);
-      else if (q.operasi==='UPDATE') await db.from(q.tabel).update(q.data.payload).eq('id',q.data.id);
-      else if (q.operasi==='DELETE') await db.from(q.tabel).delete().eq('id',q.data.id);
+      if (q.operasi==='INSERT') {
+        const {error} = await db.from(q.tabel).upsert(q.data, {onConflict:'id',ignoreDuplicates:false});
+        if(error) throw error;
+      } else if (q.operasi==='UPDATE') {
+        const {error} = await db.from(q.tabel).update(q.data.payload).eq('id',q.data.id);
+        if(error) throw error;
+      } else if (q.operasi==='DELETE') {
+        const {error} = await db.from(q.tabel).delete().eq('id',q.data.id);
+        if(error) throw error;
+      }
       await idbDelete('queue', q.id);
       ok++;
-    } catch(e) { fail++; }
+    } catch(e) {
+      fail++;
+      console.warn('Sync failed for', q.tabel, e.message);
+    }
   }
-  showLoading(false);
-  showToast(`Sinkronisasi selesai: ${ok} berhasil${fail?', '+fail+' gagal':''}`, fail?'error':'success');
-  document.getElementById('sync-btn').querySelector('i').style.animation='spin 0.7s linear';
-  setTimeout(()=>document.getElementById('sync-btn').querySelector('i').style.animation='',800);
+  
+  if(syncIcon) syncIcon.style.animation='';
+  
+  if(ok>0) {
+    showToast(`✓ ${ok} data tersinkronisasi ke server`, 'success');
+    // Refresh current page after sync
+    if(window[`init_${currentPage.replace(/-/g,'_')}`]) {
+      setTimeout(()=>{ try{ window[`init_${currentPage.replace(/-/g,'_')}`](); } catch(e){} }, 500);
+    }
+  }
+  if(fail>0) showToast(`${fail} data gagal sync — akan dicoba ulang`, 'error');
+  
+  // Update pending count badge
+  updateSyncBadge();
+}
+
+async function updateSyncBadge() {
+  try {
+    const queue = await idbGetAll('queue');
+    const pending = queue.filter(q=>q.status==='pending').length;
+    const btn = document.getElementById('sync-btn');
+    if(!btn) return;
+    // Remove old badge
+    const old = btn.querySelector('.sync-badge');
+    if(old) old.remove();
+    if(pending > 0) {
+      const badge = document.createElement('span');
+      badge.className = 'sync-badge';
+      badge.style.cssText = 'position:absolute;top:-4px;right:-4px;background:var(--orange);color:#fff;font-size:9px;font-weight:700;border-radius:50%;width:16px;height:16px;display:flex;align-items:center;justify-content:center;';
+      badge.textContent = pending > 9 ? '9+' : pending;
+      btn.style.position = 'relative';
+      btn.appendChild(badge);
+    }
+  } catch(e){}
 }
 
 // Online/offline detection
@@ -854,22 +945,62 @@ function updateStatus() {
   document.getElementById('status-dot').className = `status-dot ${isOnline?'online':'offline'}`;
   document.getElementById('status-text').textContent = isOnline ? 'Online' : 'Offline';
   document.getElementById('offline-bar').classList.toggle('show', !isOnline);
-  if (isOnline) syncOfflineData();
+  if (isOnline) {
+    // Delay slightly to ensure connection is stable
+    setTimeout(async ()=>{
+      await syncOfflineData();
+      await updateSyncBadge();
+    }, 1200);
+  } else {
+    updateSyncBadge();
+  }
 }
 window.addEventListener('online', updateStatus);
 window.addEventListener('offline', updateStatus);
+
+// Also check sync badge on app start
+window.addEventListener('DOMContentLoaded', ()=>{
+  setTimeout(updateSyncBadge, 2000);
+});
 
 // ============================================================
 // CRUD HELPERS
 // ============================================================
 async function loadTable(table, opts={}) {
-  let q = db.from(table).select(opts.select||'*');
-  if (opts.eq) Object.entries(opts.eq).forEach(([k,v])=>{ q=q.eq(k,v); });
-  if (opts.order) q = q.order(opts.order, {ascending: opts.asc!==false});
-  if (opts.limit) q = q.limit(opts.limit);
-  const { data, error } = await q;
-  if (error) throw error;
-  return data||[];
+  const cacheKey = table+'_'+JSON.stringify(opts);
+  if (isOnline) {
+    try {
+      let q = db.from(table).select(opts.select||'*');
+      if (opts.eq) Object.entries(opts.eq).forEach(([k,v])=>{ q=q.eq(k,v); });
+      if (opts.order) q = q.order(opts.order, {ascending: opts.asc!==false});
+      if (opts.limit) q = q.limit(opts.limit);
+      const { data, error } = await q;
+      if (error) throw error;
+      const result = data||[];
+      // Cache to IDB for offline use
+      try { await idbAdd('tbl_cache',{key:cacheKey,tbl:table,data:result,ts:Date.now()}); } catch(e){}
+      return result;
+    } catch(e) {
+      // Online but query failed - try cache
+      return await idbGetTblCache(cacheKey) || [];
+    }
+  } else {
+    // Offline - serve from cache
+    const cached = await idbGetTblCache(cacheKey);
+    if (cached) return cached;
+    return [];
+  }
+}
+
+async function idbGetTblCache(key) {
+  try {
+    return new Promise((res,rej)=>{
+      const tx = idbDb.transaction('tbl_cache','readonly');
+      const req = tx.objectStore('tbl_cache').get(key);
+      req.onsuccess = ()=> res(req.result ? req.result.data : null);
+      req.onerror = ()=> res(null);
+    });
+  } catch(e) { return null; }
 }
 
 // ============================================================
@@ -933,17 +1064,21 @@ pages['dashboard'] = () => `
 </div>`;
 
 window.init_dashboard = async function() {
+  // ── Penjualan hari ini ──────────────────────────────────────
   try {
     const td = today();
-    // Stats penjualan
     const { data: pj } = await db.from('penjualan').select('total').gte('tanggal',td);
     const totalPj = (pj||[]).reduce((a,r)=>a+Number(r.total),0);
     document.getElementById('d-penjualan').textContent = fmt(totalPj);
     document.getElementById('d-penjualan-sub').textContent = `${(pj||[]).length} transaksi`;
+  } catch(e) { console.error('dash-penjualan:',e); }
 
-    // WO hari ini
+  // ── Antrian WO ─────────────────────────────────────────────
+  try {
+    const td = today();
     const { data: wo } = await db.from('work_order').select('*,kendaraan(no_plat),mekanik(nama)').gte('tanggal',td).in('status',['antri','proses']);
     document.getElementById('d-service').textContent = (wo||[]).length;
+    document.getElementById('d-service-sub').textContent = 'Work Order';
     const woHtml = (wo||[]).length ? (wo||[]).map(w=>`
       <div class="wo-item" onclick="showPage('service')">
         <span class="wo-no">${w.no_wo}</span>
@@ -954,30 +1089,46 @@ window.init_dashboard = async function() {
         <span class="badge ${w.status==='proses'?'badge-orange':'badge-gray'}">${w.status}</span>
       </div>`).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Tidak ada antrian service</div>';
     document.getElementById('wo-antrian').innerHTML = woHtml;
+  } catch(e) { console.error('dash-wo:',e); }
 
-    // Stok menipis
-    const { data: stok, count: stokC } = await db.from('barang').select('*',{count:'exact'}).lte('stok','stok_minimum');
-    document.getElementById('d-stok').textContent = stokC||0;
+  // ── Stok menipis ───────────────────────────────────────────
+  try {
+    const { data: allBrg } = await db.from('barang').select('stok,stok_minimum');
+    const stokC = (allBrg||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum)).length;
+    document.getElementById('d-stok').textContent = stokC;
+  } catch(e) { console.error('dash-stok:',e); }
 
-    // Piutang
+  // ── Piutang ────────────────────────────────────────────────
+  try {
     const { data: piut } = await db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0);
     const { data: piutWo } = await db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0);
     const totalPiut = [...(piut||[]),...(piutWo||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
     document.getElementById('d-piutang').textContent = fmt(totalPiut);
+  } catch(e) { console.error('dash-piutang:',e); }
 
-    // Alerts
+  // ── Alert panel ────────────────────────────────────────────
+  try {
     const alerts = [];
-    if (stokC > 0) alerts.push({type:'danger',icon:'ti-alert-triangle',text:'Stok menipis',val:`${stokC} item`});
-    if (totalPiut > 0) alerts.push({type:'warn',icon:'ti-coin',text:'Piutang belum lunas',val:fmt(totalPiut)});
-    // Hutang
+    // Stok menipis
+    const { data: allBrg2 } = await db.from('barang').select('stok,stok_minimum,nama');
+    const stokLow = (allBrg2||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum));
+    if(stokLow.length>0) alerts.push({type:'danger',icon:'ti-alert-triangle',text:'Stok menipis',val:`${stokLow.length} item`});
+    // Piutang
+    const { data: piut2 } = await db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0);
+    const { data: piutWo2 } = await db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0);
+    const totalPiut2 = [...(piut2||[]),...(piutWo2||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
+    if(totalPiut2>0) alerts.push({type:'warn',icon:'ti-coin',text:'Piutang belum lunas',val:fmt(totalPiut2)});
+    // Hutang supplier
     const { data: hutang } = await db.from('pembelian').select('sisa_hutang').gt('sisa_hutang',0);
     const totalHutang = (hutang||[]).reduce((a,r)=>a+Number(r.sisa_hutang),0);
-    if (totalHutang > 0) alerts.push({type:'info',icon:'ti-truck',text:'Hutang ke supplier',val:fmt(totalHutang)});
-    // Pengeluaran bulan ini
-    const m1 = today().slice(0,7)+'-01';
-    const { data: opex } = await db.from('pengeluaran').select('nominal').gte('tanggal',m1).lte('tanggal',today());
-    const totalOpex = (opex||[]).reduce((a,r)=>a+Number(r.nominal),0);
-    if (totalOpex > 0) alerts.push({type:'warn',icon:'ti-cash',text:'Pengeluaran bulan ini',val:fmt(totalOpex)});
+    if(totalHutang>0) alerts.push({type:'info',icon:'ti-truck',text:'Hutang ke supplier',val:fmt(totalHutang)});
+    // Pengeluaran bulan ini (opsional - tabel mungkin belum ada)
+    try {
+      const m1 = today().slice(0,7)+'-01';
+      const { data: opex } = await db.from('pengeluaran').select('nominal').gte('tanggal',m1).lte('tanggal',today());
+      const totalOpex = (opex||[]).reduce((a,r)=>a+Number(r.nominal),0);
+      if(totalOpex>0) alerts.push({type:'warn',icon:'ti-cash',text:'Pengeluaran bulan ini',val:fmt(totalOpex)});
+    } catch(e2) { /* tabel belum ada, skip */ }
     const alertHtml = alerts.length ? alerts.map(a=>`
       <div class="alert-item ${a.type}">
         <i class="ti ${a.icon} alert-icon"></i>
@@ -985,7 +1136,7 @@ window.init_dashboard = async function() {
         <span class="alert-val">${a.val}</span>
       </div>`).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="ti ti-check" style="font-size:24px;display:block;margin-bottom:6px;color:var(--green)"></i>Semua baik-baik saja!</div>';
     document.getElementById('dash-alerts').innerHTML = alertHtml;
-  } catch(e) { console.error(e); }
+  } catch(e) { console.error('dash-alerts:',e); }
 };
 
 // ============================================================
@@ -3260,7 +3411,7 @@ pages['kategori-keluar'] = () => `
   <table><thead><tr><th>Nama Kategori</th><th>Status</th><th>Aksi</th></tr></thead>
   <tbody id="body-kat-keluar"><tr><td colspan="3" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
-${modalHtml('modal-kat-keluar','Tambah / Edit Kategori Pengeluaran',\`
+${modalHtml('modal-kat-keluar','Tambah / Edit Kategori Pengeluaran',`
 <div class="form-grid">
   <div class="form-group form-full"><label class="form-label">Nama Kategori <span class="req">*</span></label>
     <input id="f-kk-nama" class="form-input" placeholder="Misal: Gaji, Listrik, Sewa..."/>
@@ -3269,10 +3420,10 @@ ${modalHtml('modal-kat-keluar','Tambah / Edit Kategori Pengeluaran',\`
     <select id="f-kk-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
   </div>
 </div>
-<input type="hidden" id="f-kk-id"/>\`,
-'',\`
+<input type="hidden" id="f-kk-id"/>`,
+'',`
 <button class="btn btn-outline" onclick="closeModal('modal-kat-keluar')">Batal</button>
-<button class="btn btn-primary" onclick="saveKatKeluar()"><i class="ti ti-device-floppy"></i>Simpan</button>\`)}`;
+<button class="btn btn-primary" onclick="saveKatKeluar()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
 
 window.init_kategori_keluar = async function(){ await loadKatKeluar(); };
 
@@ -3349,10 +3500,10 @@ pages['pengeluaran-op'] = () => `
   <table id="tbl-pkeluar"><thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Metode</th><th>Nominal</th><th>Aksi</th></tr></thead>
   <tbody id="body-pkeluar"><tr><td colspan="6" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
-${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',\`
+${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',`
 <div class="form-grid">
   <div class="form-group"><label class="form-label">Tanggal <span class="req">*</span></label>
-    <input id="f-po-tgl" class="form-input" type="date" value="\${today()}"/>
+    <input id="f-po-tgl" class="form-input" type="date" value="${today()}"/>
   </div>
   <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
     <select id="f-po-kat" class="form-input"><option value="">-- Pilih Kategori --</option></select>
@@ -3373,10 +3524,10 @@ ${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',\`
   </div>
 </div>
 <input type="hidden" id="f-po-id"/>
-<input type="hidden" id="f-po-kat-nama"/>\`,
-'',\`
+<input type="hidden" id="f-po-kat-nama"/>`,
+'',`
 <button class="btn btn-outline" onclick="closeModal('modal-pengeluaran')">Batal</button>
-<button class="btn btn-primary" onclick="savePengeluaran()"><i class="ti ti-device-floppy"></i>Simpan</button>\`)}`;
+<button class="btn btn-primary" onclick="savePengeluaran()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
 
 window.init_pengeluaran_op = async function(){ await loadPengeluaranInit(); };
 
@@ -3587,7 +3738,7 @@ pages['lap-laba-bersih'] = () => `
 <div class="section-hdr"><h2><i class="ti ti-trending-up"></i>Laba Bersih</h2>
   <div class="section-hdr-actions">
     <select id="llb-tahun" class="form-input" style="width:auto">
-      ${[0,1,2].map(i=>{const y=new Date().getFullYear()-i;return \`<option value="\${y}" \${i===0?'selected':''}>\${y}</option>\`;}).join('')}
+      ${[0,1,2].map(i=>{const y=new Date().getFullYear()-i;return '<option value="'+y+'" '+(i===0?'selected':'')+'>'+y+'</option>';}).join('')}
     </select>
     <button class="btn btn-primary" onclick="loadLabaBersih()"><i class="ti ti-search"></i>Tampilkan</button>
     <button class="btn btn-outline" onclick="printSection('lap-lb-content')"><i class="ti ti-printer"></i>Cetak</button>
