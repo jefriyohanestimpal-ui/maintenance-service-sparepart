@@ -1473,7 +1473,7 @@ pages['mekanik'] = () => `
     <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari nama mekanik..." oninput="filterTable('tbl-mek',this.value,[0,1])"/></div>
     <div style="font-size:12px;color:var(--text3)" id="count-mek"></div>
   </div>
-  <table id="tbl-mek"><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Biaya Jasa</th><th>Telepon</th><th>Status</th><th>Aksi</th></tr></thead>
+  <table id="tbl-mek"><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Telepon</th><th>Status</th><th>Aksi</th></tr></thead>
   <tbody id="body-mek"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
 ${modalHtml('modal-mekanik','Tambah / Edit Mekanik',`
@@ -1481,7 +1481,6 @@ ${modalHtml('modal-mekanik','Tambah / Edit Mekanik',`
   <div class="form-group"><label class="form-label">Kode</label><input id="f-mek-kode" class="form-input" placeholder="Otomatis"/></div>
   <div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-mek-nama" class="form-input"/></div>
   <div class="form-group"><label class="form-label">Spesialisasi</label><input id="f-mek-spek" class="form-input" placeholder="Mesin, Kelistrikan..."/></div>
-  <div class="form-group"><label class="form-label">Biaya Jasa (per service)</label><input id="f-mek-biaya" class="form-input" type="number" min="0" placeholder="0"/></div>
   <div class="form-group"><label class="form-label">Telepon</label><input id="f-mek-telp" class="form-input" type="tel"/></div>
   <div class="form-group"><label class="form-label">Status</label><select id="f-mek-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
 </div><input type="hidden" id="f-mek-id"/>`,
@@ -1495,19 +1494,19 @@ async function loadMek(){
   document.getElementById('body-mek').innerHTML=data.length?data.map(m=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${m.kode}</code></td>
     <td style="font-weight:500;color:var(--text)">${m.nama}</td>
-    <td>${m.spesialisasi||'-'}</td><td>${fmt(m.biaya_jasa)}</td><td>${m.telepon||'-'}</td>
+    <td>${m.spesialisasi||'-'}</td><td>${m.telepon||'-'}</td>
     <td>${m.aktif?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Nonaktif</span>'}</td>
     <td><div style="display:flex;gap:4px">
       <button class="btn btn-outline btn-sm" onclick='editMek(${JSON.stringify(m)})'><i class="ti ti-edit"></i></button>
       <button class="btn btn-danger btn-sm" onclick="delMek('${m.id}','${m.nama}')"><i class="ti ti-trash"></i></button>
-    </div></td></tr>`).join(''):'<tr><td colspan="7" class="table-empty"><i class="ti ti-tool-off"></i>Belum ada mekanik</td></tr>';
+    </div></td></tr>`).join(''):'<tr><td colspan="6" class="table-empty"><i class="ti ti-tool-off"></i>Belum ada mekanik</td></tr>';
 }
-function resetFormMek(){['f-mek-id','f-mek-kode','f-mek-nama','f-mek-spek','f-mek-telp'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});document.getElementById('f-mek-biaya').value='0';}
-function editMek(m){document.getElementById('f-mek-id').value=m.id;document.getElementById('f-mek-kode').value=m.kode;document.getElementById('f-mek-nama').value=m.nama;document.getElementById('f-mek-spek').value=m.spesialisasi||'';document.getElementById('f-mek-biaya').value=m.biaya_jasa||0;document.getElementById('f-mek-telp').value=m.telepon||'';document.getElementById('f-mek-aktif').value=String(m.aktif);openModal('modal-mekanik');}
+function resetFormMek(){['f-mek-id','f-mek-kode','f-mek-nama','f-mek-spek','f-mek-telp'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});}
+function editMek(m){document.getElementById('f-mek-id').value=m.id;document.getElementById('f-mek-kode').value=m.kode;document.getElementById('f-mek-nama').value=m.nama;document.getElementById('f-mek-spek').value=m.spesialisasi||'';document.getElementById('f-mek-telp').value=m.telepon||'';document.getElementById('f-mek-aktif').value=String(m.aktif);openModal('modal-mekanik');}
 async function saveMek(){
   const id=document.getElementById('f-mek-id').value;const nama=document.getElementById('f-mek-nama').value.trim();if(!nama){showToast('Nama wajib','error');return;}
   let kode=document.getElementById('f-mek-kode').value.trim();if(!kode){const{count}=await db.from('mekanik').select('*',{count:'exact',head:true});kode='MEK'+pad((count||0)+1,3);}
-  const payload={kode,nama,spesialisasi:document.getElementById('f-mek-spek').value,biaya_jasa:Number(document.getElementById('f-mek-biaya').value)||0,telepon:document.getElementById('f-mek-telp').value,aktif:document.getElementById('f-mek-aktif').value==='true'};
+  const payload={kode,nama,spesialisasi:document.getElementById('f-mek-spek').value,telepon:document.getElementById('f-mek-telp').value,aktif:document.getElementById('f-mek-aktif').value==='true'};
   showLoading(true);try{if(id)await dbOp('mekanik','UPDATE',{id,payload});else await dbOp('mekanik','INSERT',{id:uid(),...payload});closeModal('modal-mekanik');showToast(id?'Mekanik diperbarui':'Mekanik ditambahkan');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);
 }
 async function delMek(id,nama){if(!confirm2(`Hapus mekanik "${nama}"?`))return;showLoading(true);try{await dbOp('mekanik','DELETE',{id});showToast('Mekanik dihapus');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);}
@@ -1744,7 +1743,7 @@ async function openModalWO(wo=null){
   ]);
 
   document.getElementById('f-wo-pel').innerHTML='<option value="">-- Tanpa Pelanggan --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
-  document.getElementById('f-wo-mek').innerHTML='<option value="">-- Pilih Mekanik --</option>'+meks.map(m=>`<option value="${m.id}" data-biaya="${m.biaya_jasa}">${m.nama}</option>`).join('');
+  document.getElementById('f-wo-mek').innerHTML='<option value="">-- Pilih Mekanik --</option>'+meks.map(m=>`<option value="${m.id}">${m.nama}</option>`).join('');
 
   window._allKend = kends;
   document.getElementById('f-wo-kend').innerHTML='<option value="">-- Pilih Kendaraan --</option>'+kends.map(k=>`<option value="${k.id}">${k.no_plat} - ${k.merk||''} ${k.tipe||''}</option>`).join('');
@@ -1752,13 +1751,6 @@ async function openModalWO(wo=null){
   if(!wo){ const no = await autoNo('WO',`work_order`,'no_wo'); document.getElementById('f-wo-no').value=no; }
   renderWOParts();
   hitungTotalWO();
-
-  // Mekanik auto-fill biaya jasa
-  document.getElementById('f-wo-mek').addEventListener('change',function(){
-    const opt=this.selectedOptions[0];
-    if(opt&&opt.dataset.biaya) document.getElementById('f-wo-jasa').value=opt.dataset.biaya;
-    hitungTotalWO();
-  });
 
   openModal('modal-wo');
 }
@@ -2453,7 +2445,7 @@ async function lapMasterTab(tipe,el){
   if(tipe==='barang') html=`<table><thead><tr><th>Kode</th><th>Nama</th><th>Kategori</th><th>Satuan</th><th>H.Beli</th><th>H.Jual</th><th>Stok</th></tr></thead><tbody>${data.map(b=>`<tr><td><code>${b.kode}</code></td><td>${b.nama}</td><td>${b.kategori||'-'}</td><td>${b.satuan}</td><td>${fmt(b.harga_beli)}</td><td>${fmt(b.harga_jual)}</td><td>${b.stok}</td></tr>`).join('')||'<tr><td colspan="7" class="table-empty">Kosong</td></tr>'}</tbody></table>`;
   else if(tipe==='pelanggan') html=`<table><thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Saldo Piutang</th></tr></thead><tbody>${data.map(p=>`<tr><td><code>${p.kode}</code></td><td>${p.nama}</td><td>${p.telepon||'-'}</td><td>${fmt(p.saldo_piutang)}</td></tr>`).join('')||'<tr><td colspan="4" class="table-empty">Kosong</td></tr>'}</tbody></table>`;
   else if(tipe==='supplier') html=`<table><thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Saldo Hutang</th></tr></thead><tbody>${data.map(s=>`<tr><td><code>${s.kode}</code></td><td>${s.nama}</td><td>${s.telepon||'-'}</td><td>${fmt(s.saldo_hutang)}</td></tr>`).join('')||'<tr><td colspan="4" class="table-empty">Kosong</td></tr>'}</tbody></table>`;
-  else if(tipe==='mekanik') html=`<table><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Biaya Jasa</th><th>Status</th></tr></thead><tbody>${data.map(m=>`<tr><td><code>${m.kode}</code></td><td>${m.nama}</td><td>${m.spesialisasi||'-'}</td><td>${fmt(m.biaya_jasa)}</td><td>${m.aktif?'Aktif':'Nonaktif'}</td></tr>`).join('')||'<tr><td colspan="5" class="table-empty">Kosong</td></tr>'}</tbody></table>`;
+  else if(tipe==='mekanik') html=`<table><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Telepon</th><th>Status</th></tr></thead><tbody>${data.map(m=>`<tr><td><code>${m.kode}</code></td><td>${m.nama}</td><td>${m.spesialisasi||'-'}</td><td>${m.telepon||'-'}</td><td>${m.aktif?'Aktif':'Nonaktif'}</td></tr>`).join('')||'<tr><td colspan="5" class="table-empty">Kosong</td></tr>'}</tbody></table>`;
   document.getElementById('lap-master-content').innerHTML=`<div class="table-wrap">${html}</div>`;
 }
 
@@ -3362,7 +3354,7 @@ pages['lap-mekanik'] = () => `
 <div id="lap-mek-content">
 <div class="stats-grid" id="lm-stats"></div>
 <div class="table-wrap" style="margin-top:14px">
-  <table><thead><tr><th>Mekanik</th><th>Spesialisasi</th><th>Jml WO</th><th>Total Biaya Jasa</th><th>Total Nilai WO</th><th>Rata-rata/WO</th></tr></thead>
+  <table><thead><tr><th>Mekanik</th><th>Spesialisasi</th><th>Jml WO</th><th>Total Nilai WO</th><th>Rata-rata/WO</th></tr></thead>
   <tbody id="body-lmek"><tr><td colspan="6" class="table-empty">Klik Tampilkan</td></tr></tbody></table>
 </div>
 </div>`;
@@ -3388,7 +3380,7 @@ async function loadLapMekanik(){
   document.getElementById('lm-stats').innerHTML=`
     <div class="stat-card orange"><i class="ti ti-tool stat-icon"></i><div class="stat-label">Mekanik Aktif</div><div class="stat-value">${rows.length}</div></div>
     <div class="stat-card green"><i class="ti ti-engine stat-icon"></i><div class="stat-label">Total WO</div><div class="stat-value">${totalWO}</div></div>
-    <div class="stat-card blue"><i class="ti ti-coin stat-icon"></i><div class="stat-label">Total Biaya Jasa</div><div class="stat-value">${fmt(totalJasa)}</div></div>`;
+`;
   document.getElementById('body-lmek').innerHTML=rows.length?rows.map(m=>`<tr>
     <td style="font-weight:600;color:var(--text)">${m.nama}</td>
     <td style="color:var(--text3)">${m.spesialisasi||'-'}</td>
@@ -3396,7 +3388,7 @@ async function loadLapMekanik(){
     <td style="color:var(--green)">${fmt(m.jasa)}</td>
     <td style="color:var(--orange)">${fmt(m.nilaiWO)}</td>
     <td style="color:var(--text2)">${fmt(m.avg)}</td>
-  </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Tidak ada data pada periode ini</td></tr>';
+  </tr>`).join(''):'<tr><td colspan="5" class="table-empty">Tidak ada data pada periode ini</td></tr>';
 
 // ============================================================
 // PAGE: KATEGORI PENGELUARAN
@@ -3493,9 +3485,9 @@ pages['pengeluaran-op'] = () => `
 <div class="table-wrap">
   <div class="table-toolbar">
     <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari keterangan..." oninput="filterTable('tbl-pkeluar',this.value,[2])"/></div>
-    <select id="f-po-kat-filter" class="form-input" style="width:auto" onchange="loadPengeluaran()"><option value="">Semua Kategori</option></select>
-    <input type="date" id="f-po-dari" class="form-input" style="width:140px" value="${today().slice(0,7)+'-01'}" onchange="loadPengeluaran()"/>
-    <input type="date" id="f-po-sampai" class="form-input" style="width:140px" value="${today()}" onchange="loadPengeluaran()"/>
+    <select id="f-pke-kat-filter" class="form-input" style="width:auto" onchange="loadPengeluaran()"><option value="">Semua Kategori</option></select>
+    <input type="date" id="f-pke-dari" class="form-input" style="width:140px" value="${today().slice(0,7)+'-01'}" onchange="loadPengeluaran()"/>
+    <input type="date" id="f-pke-sampai" class="form-input" style="width:140px" value="${today()}" onchange="loadPengeluaran()"/>
   </div>
   <table id="tbl-pkeluar"><thead><tr><th>Tanggal</th><th>Kategori</th><th>Keterangan</th><th>Metode</th><th>Nominal</th><th>Aksi</th></tr></thead>
   <tbody id="body-pkeluar"><tr><td colspan="6" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
@@ -3503,16 +3495,16 @@ pages['pengeluaran-op'] = () => `
 ${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',`
 <div class="form-grid">
   <div class="form-group"><label class="form-label">Tanggal <span class="req">*</span></label>
-    <input id="f-po-tgl" class="form-input" type="date" value="${today()}"/>
+    <input id="f-pke-tgl" class="form-input" type="date" value="${today()}"/>
   </div>
   <div class="form-group"><label class="form-label">Kategori <span class="req">*</span></label>
-    <select id="f-po-kat" class="form-input"><option value="">-- Pilih Kategori --</option></select>
+    <select id="f-pke-kat" class="form-input"><option value="">-- Pilih Kategori --</option></select>
   </div>
   <div class="form-group"><label class="form-label">Nominal <span class="req">*</span></label>
-    <input id="f-po-nominal" class="form-input" type="number" min="0" placeholder="0"/>
+    <input id="f-pke-nominal" class="form-input" type="number" min="0" placeholder="0"/>
   </div>
   <div class="form-group"><label class="form-label">Metode Bayar</label>
-    <select id="f-po-metode" class="form-input">
+    <select id="f-pke-metode" class="form-input">
       <option value="tunai">Tunai</option>
       <option value="transfer">Transfer</option>
       <option value="debit">Debit / Kartu</option>
@@ -3520,11 +3512,11 @@ ${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',`
     </select>
   </div>
   <div class="form-group form-full"><label class="form-label">Keterangan</label>
-    <textarea id="f-po-ket" class="form-input" rows="2" placeholder="Detail pengeluaran..."></textarea>
+    <textarea id="f-pke-ket" class="form-input" rows="2" placeholder="Detail pengeluaran..."></textarea>
   </div>
 </div>
-<input type="hidden" id="f-po-id"/>
-<input type="hidden" id="f-po-kat-nama"/>`,
+<input type="hidden" id="f-pke-id"/>
+<input type="hidden" id="f-pke-kat-nama"/>`,
 '',`
 <button class="btn btn-outline" onclick="closeModal('modal-pengeluaran')">Batal</button>
 <button class="btn btn-primary" onclick="savePengeluaran()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
@@ -3534,7 +3526,7 @@ window.init_pengeluaran_op = async function(){ await loadPengeluaranInit(); };
 async function loadPengeluaranInit(){
   // Load kategori ke filter dan form
   const kats = await loadTable('kategori_pengeluaran',{eq:{aktif:true},order:'nama'});
-  const filterSel = document.getElementById('f-po-kat-filter');
+  const filterSel = document.getElementById('f-pke-kat-filter');
   if(filterSel){
     filterSel.innerHTML = '<option value="">Semua Kategori</option>' +
       kats.map(k=>`<option value="${k.id}">${k.nama}</option>`).join('');
@@ -3546,32 +3538,32 @@ async function loadPengeluaranInit(){
 async function openModalPengeluaran(data){
   if(!window._katKeluar) window._katKeluar = await loadTable('kategori_pengeluaran',{eq:{aktif:true},order:'nama'});
   const kats = window._katKeluar;
-  document.getElementById('f-po-kat').innerHTML =
+  document.getElementById('f-pke-kat').innerHTML =
     '<option value="">-- Pilih Kategori --</option>' +
     kats.map(k=>`<option value="${k.id}" data-nama="${k.nama}">${k.nama}</option>`).join('');
-  document.getElementById('f-po-id').value = data?data.id:'';
-  document.getElementById('f-po-tgl').value = data?data.tanggal:today();
-  document.getElementById('f-po-kat').value = data?data.kategori_id:'';
-  document.getElementById('f-po-nominal').value = data?data.nominal:'';
-  document.getElementById('f-po-metode').value = data?data.metode:'tunai';
-  document.getElementById('f-po-ket').value = data?data.keterangan:'';
+  document.getElementById('f-pke-id').value = data?data.id:'';
+  document.getElementById('f-pke-tgl').value = data?data.tanggal:today();
+  document.getElementById('f-pke-kat').value = data?data.kategori_id:'';
+  document.getElementById('f-pke-nominal').value = data?data.nominal:'';
+  document.getElementById('f-pke-metode').value = data?data.metode:'tunai';
+  document.getElementById('f-pke-ket').value = data?data.keterangan:'';
   openModal('modal-pengeluaran');
 }
 
 async function savePengeluaran(){
-  const id = document.getElementById('f-po-id').value;
-  const katId = document.getElementById('f-po-kat').value;
-  const nominal = Number(document.getElementById('f-po-nominal').value);
+  const id = document.getElementById('f-pke-id').value;
+  const katId = document.getElementById('f-pke-kat').value;
+  const nominal = Number(document.getElementById('f-pke-nominal').value);
   if(!katId){showToast('Pilih kategori','error');return;}
   if(!nominal||nominal<=0){showToast('Isi nominal pengeluaran','error');return;}
-  const katOpt = document.getElementById('f-po-kat').selectedOptions[0];
+  const katOpt = document.getElementById('f-pke-kat').selectedOptions[0];
   const payload = {
-    tanggal: document.getElementById('f-po-tgl').value,
+    tanggal: document.getElementById('f-pke-tgl').value,
     kategori_id: katId,
     nama_kategori: katOpt?katOpt.dataset.nama:'',
     nominal,
-    metode: document.getElementById('f-po-metode').value,
-    keterangan: document.getElementById('f-po-ket').value
+    metode: document.getElementById('f-pke-metode').value,
+    keterangan: document.getElementById('f-pke-ket').value
   };
   showLoading(true);
   try{
@@ -3585,9 +3577,9 @@ async function savePengeluaran(){
 }
 
 async function loadPengeluaran(){
-  const dari = document.getElementById('f-po-dari')?document.getElementById('f-po-dari').value:'';
-  const sampai = document.getElementById('f-po-sampai')?document.getElementById('f-po-sampai').value:'';
-  const kat = document.getElementById('f-po-kat-filter')?document.getElementById('f-po-kat-filter').value:'';
+  const dari = document.getElementById('f-pke-dari')?document.getElementById('f-pke-dari').value:'';
+  const sampai = document.getElementById('f-pke-sampai')?document.getElementById('f-pke-sampai').value:'';
+  const kat = document.getElementById('f-pke-kat-filter')?document.getElementById('f-pke-kat-filter').value:'';
   let q = db.from('pengeluaran').select('*').order('tanggal',{ascending:false});
   if(dari) q=q.gte('tanggal',dari);
   if(sampai) q=q.lte('tanggal',sampai);
