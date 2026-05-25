@@ -2690,25 +2690,47 @@ async function isiDariPO(){
   const{data:details}=await db.from('detail_pesanan_beli').select('*').eq('pesanan_beli_id',poId);
   const{data:po}=await db.from('pesanan_beli').select('*').eq('id',poId).single();
   if(po)document.getElementById('f-bl-sup').value=po.supplier_id;
-  _beliItems=(details||[]).map(d=>({rowId:'bi_'+Date.now()+Math.random(),barang_id:d.barang_id,nama_barang:d.nama_barang,satuan:d.satuan,jumlah:d.jumlah,harga_beli:d.harga_beli,subtotal:d.subtotal}));
+  _beliItems=(details||[]).map(d=>({
+    rowId:'bi_'+Date.now()+Math.random(),
+    barang_id:d.barang_id||'',
+    nama_barang:d.nama_barang||'',
+    satuan:d.satuan||'pcs',
+    jumlah:d.jumlah||1,
+    harga_beli:d.harga_beli||0,
+    subtotal:d.subtotal||0,
+    is_manual:!d.barang_id || d.is_manual===true
+  }));
   renderBeliItems();hitungTotalBeli();
 }
 
 async function addBeliItem(){
   if(!window._brg)window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
-  _beliItems.push({rowId:'bi_'+Date.now(),barang_id:'',nama_barang:'',satuan:'pcs',jumlah:1,harga_beli:0,subtotal:0});
+  _beliItems.push({rowId:'bi_'+Date.now(),barang_id:'',nama_barang:'',satuan:'pcs',jumlah:1,harga_beli:0,subtotal:0,is_manual:false});
   renderBeliItems();
 }
 
 function renderBeliItems(){
   const tbody=document.getElementById('body-beli-items');
   const brg=window._brg||[];
-  if(!_beliItems.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Belum ada item</td></tr>`;return;}
+  if(!_beliItems.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Belum ada item — klik "+ Tambah" atau load dari PO</td></tr>`;return;}
   tbody.innerHTML=_beliItems.map(p=>`<tr id="brow-${p.rowId}">
-    <td><select class="form-input" style="font-size:12px" onchange="selectBeliItem(this,'${p.rowId}')">
-      <option value="">-- Pilih Barang --</option>
-      ${brg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan}" data-harga="${b.harga_beli}" ${b.id===p.barang_id?'selected':''}>${b.nama}</option>`).join('')}
-    </select></td>
+    <td>
+      ${p.is_manual
+        ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
+             <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px;white-space:nowrap">✏️ Manual</span>
+             <button class="btn btn-outline btn-sm" style="padding:2px 6px;font-size:10px" onclick="gantiKeGudang('${p.rowId}')">Ganti ke Gudang</button>
+           </div>
+           <input type="text" class="form-input" id="bnm-${p.rowId}" placeholder="Nama barang..." value="${p.nama_barang.replace(/"/g,'&quot;')}" oninput="updateBeliItem('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
+        : `<select class="form-input" style="font-size:12px" onchange="selectBeliItem(this,'${p.rowId}')">
+             <option value="">-- Pilih Barang --</option>
+             <option value="__manual__" style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
+             <optgroup label="── Barang Gudang ──">
+             ${brg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan}" data-harga="${b.harga_beli}" ${b.id===p.barang_id?'selected':''}>${b.nama}</option>`).join('')}
+             </optgroup>
+           </select>
+           ${p.nama_barang&&!p.is_manual?`<div style="font-size:10px;color:var(--text3);padding:2px 2px 0">📦 ${p.nama_barang}</div>`:''}`
+      }
+    </td>
     <td><input type="text" class="form-input" id="bsat-${p.rowId}" value="${p.satuan}" oninput="updateBeliItem('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
     <td><input type="number" min="1" class="form-input" value="${p.jumlah}" oninput="updateBeliItem('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
     <td><input type="number" min="0" class="form-input" id="bhb-${p.rowId}" value="${p.harga_beli}" oninput="updateBeliItem('${p.rowId}','harga_beli',Number(this.value))" style="font-size:12px"/></td>
@@ -2716,7 +2738,31 @@ function renderBeliItems(){
     <td><button class="btn btn-danger btn-sm" onclick="removeBeliItem('${p.rowId}')"><i class="ti ti-x"></i></button></td>
   </tr>`).join('');
 }
-function selectBeliItem(sel,rowId){const p=_beliItems.find(x=>x.rowId===rowId);if(!p||!sel.value)return;const opt=sel.selectedOptions[0];p.barang_id=sel.value;p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan;p.harga_beli=Number(opt.dataset.harga);document.getElementById('bsat-'+rowId).value=p.satuan;document.getElementById('bhb-'+rowId).value=p.harga_beli;hitungSubBeli(rowId);}
+
+function selectBeliItem(sel,rowId){
+  const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;
+  if(sel.value==='__manual__'){
+    p.barang_id='';p.nama_barang='';p.satuan='pcs';p.harga_beli=0;p.subtotal=0;p.is_manual=true;
+    renderBeliItems();
+    const nm=document.getElementById('bnm-'+rowId);if(nm){nm.focus();}
+  } else if(sel.value){
+    const opt=sel.selectedOptions[0];
+    p.barang_id=sel.value;p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan;p.harga_beli=Number(opt.dataset.harga);p.is_manual=false;
+    document.getElementById('bsat-'+rowId).value=p.satuan;
+    document.getElementById('bhb-'+rowId).value=p.harga_beli;
+    hitungSubBeli(rowId);
+    renderBeliItems();
+  } else {
+    p.barang_id='';p.nama_barang='';p.is_manual=false;
+    renderBeliItems();
+  }
+}
+
+function gantiKeGudang(rowId){
+  const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;
+  p.is_manual=false;p.barang_id='';p.nama_barang='';
+  renderBeliItems();
+}
 function updateBeliItem(rowId,field,val){const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;p[field]=val;hitungSubBeli(rowId);}
 function hitungSubBeli(rowId){const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;p.subtotal=p.jumlah*p.harga_beli;const el=document.getElementById('bsub-'+rowId);if(el)el.textContent=fmt(p.subtotal);hitungTotalBeli();}
 function removeBeliItem(rowId){_beliItems=_beliItems.filter(x=>x.rowId!==rowId);renderBeliItems();hitungTotalBeli();}
@@ -2734,6 +2780,9 @@ function hitungTotalBeli(){
 async function saveBeli(){
   const supId=document.getElementById('f-bl-sup').value;if(!supId){showToast('Pilih supplier','error');return;}
   if(!_beliItems.length){showToast('Tambah minimal 1 item','error');return;}
+  // Validasi: semua item harus punya nama
+  const invalid=_beliItems.find(p=>!p.nama_barang&&!p.barang_id);
+  if(invalid){showToast('Semua item harus diisi nama barang','error');return;}
   const id=uid();
   const sub=_beliItems.reduce((a,p)=>a+p.subtotal,0);
   const dis=Number(document.getElementById('f-bl-diskon').value)||0;
@@ -2747,12 +2796,16 @@ async function saveBeli(){
   try{
     await dbOp('pembelian','INSERT',{id,...payload});
     for(const p of _beliItems){
-      if(!p.barang_id)continue;
-      await dbOp('detail_pembelian','INSERT',{id:uid(),pembelian_id:id,barang_id:p.barang_id,nama_barang:p.nama_barang,satuan:p.satuan,jumlah:p.jumlah,harga_beli:p.harga_beli,subtotal:p.subtotal});
-      const{data:br}=await db.from('barang').select('stok').eq('id',p.barang_id).single();
-      const stokBaru=(br?.stok||0)+p.jumlah;
-      await dbOp('barang','UPDATE',{id:p.barang_id,payload:{stok:stokBaru,harga_beli:p.harga_beli}});
-      await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:p.barang_id,jenis:'masuk',jumlah:p.jumlah,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'pembelian',referensi_id:id,referensi_no:no,keterangan:'Pembelian '+no});
+      if(!p.nama_barang&&!p.barang_id)continue;
+      // Simpan detail pembelian (baik barang gudang maupun manual)
+      await dbOp('detail_pembelian','INSERT',{id:uid(),pembelian_id:id,barang_id:p.barang_id||null,nama_barang:p.nama_barang,satuan:p.satuan,jumlah:p.jumlah,harga_beli:p.harga_beli,subtotal:p.subtotal});
+      // Update stok hanya untuk barang gudang (yang punya barang_id)
+      if(p.barang_id){
+        const{data:br}=await db.from('barang').select('stok').eq('id',p.barang_id).single();
+        const stokBaru=(br?.stok||0)+p.jumlah;
+        await dbOp('barang','UPDATE',{id:p.barang_id,payload:{stok:stokBaru,harga_beli:p.harga_beli}});
+        await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:p.barang_id,jenis:'masuk',jumlah:p.jumlah,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'pembelian',referensi_id:id,referensi_no:no,keterangan:'Pembelian '+no});
+      }
     }
     if(sisa>0){const{data:sp}=await db.from('supplier').select('saldo_hutang').eq('id',supId).single();await dbOp('supplier','UPDATE',{id:supId,payload:{saldo_hutang:(sp?.saldo_hutang||0)+sisa}});}
     closeModal('modal-beli');showToast('Pembelian disimpan & stok diperbarui');await loadBeli();
