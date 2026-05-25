@@ -2687,20 +2687,32 @@ async function openModalBeli(fromPoId=null){
 
 async function isiDariPO(){
   const poId=document.getElementById('f-bl-po').value;if(!poId)return;
-  const{data:details}=await db.from('detail_pesanan_beli').select('*').eq('pesanan_beli_id',poId);
-  const{data:po}=await db.from('pesanan_beli').select('*').eq('id',poId).single();
-  if(po)document.getElementById('f-bl-sup').value=po.supplier_id;
-  _beliItems=(details||[]).map(d=>({
-    rowId:'bi_'+Date.now()+Math.random(),
-    barang_id:d.barang_id||'',
-    nama_barang:d.nama_barang||'',
-    satuan:d.satuan||'pcs',
-    jumlah:d.jumlah||1,
-    harga_beli:d.harga_beli||0,
-    subtotal:d.subtotal||0,
-    is_manual:!d.barang_id || d.is_manual===true
-  }));
-  renderBeliItems();hitungTotalBeli();
+  showLoading(true);
+  try{
+    const[{data:details},{data:po}]=await Promise.all([
+      db.from('detail_pesanan_beli').select('*').eq('pesanan_beli_id',poId),
+      db.from('pesanan_beli').select('*').eq('id',poId).single()
+    ]);
+    // Pastikan data barang gudang sudah loaded
+    if(!window._brg) window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
+    if(po) document.getElementById('f-bl-sup').value=po.supplier_id;
+    _beliItems=(details||[]).map(d=>{
+      const sub = d.subtotal||((d.jumlah||1)*(d.harga_beli||0));
+      return {
+        rowId:'bi_'+Date.now()+Math.random(),
+        barang_id: d.barang_id||'',
+        nama_barang: d.nama_barang||'',
+        satuan: d.satuan||'pcs',
+        jumlah: d.jumlah||1,
+        harga_beli: d.harga_beli||0,
+        subtotal: sub,
+        is_manual: !d.barang_id
+      };
+    });
+    renderBeliItems();
+    hitungTotalBeli();
+  }catch(e){showToast('Gagal load data PO: '+e.message,'error');}
+  showLoading(false);
 }
 
 async function addBeliItem(){
@@ -2712,31 +2724,44 @@ async function addBeliItem(){
 function renderBeliItems(){
   const tbody=document.getElementById('body-beli-items');
   const brg=window._brg||[];
-  if(!_beliItems.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Belum ada item — klik "+ Tambah" atau load dari PO</td></tr>`;return;}
-  tbody.innerHTML=_beliItems.map(p=>`<tr id="brow-${p.rowId}">
-    <td>
-      ${p.is_manual
-        ? `<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px">
-             <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px;white-space:nowrap">✏️ Manual</span>
-             <button class="btn btn-outline btn-sm" style="padding:2px 6px;font-size:10px" onclick="gantiKeGudang('${p.rowId}')">Ganti ke Gudang</button>
-           </div>
-           <input type="text" class="form-input" id="bnm-${p.rowId}" placeholder="Nama barang..." value="${p.nama_barang.replace(/"/g,'&quot;')}" oninput="updateBeliItem('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
-        : `<select class="form-input" style="font-size:12px" onchange="selectBeliItem(this,'${p.rowId}')">
-             <option value="">-- Pilih Barang --</option>
-             <option value="__manual__" style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
-             <optgroup label="── Barang Gudang ──">
-             ${brg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan}" data-harga="${b.harga_beli}" ${b.id===p.barang_id?'selected':''}>${b.nama}</option>`).join('')}
-             </optgroup>
-           </select>
-           ${p.nama_barang&&!p.is_manual?`<div style="font-size:10px;color:var(--text3);padding:2px 2px 0">📦 ${p.nama_barang}</div>`:''}`
-      }
-    </td>
-    <td><input type="text" class="form-input" id="bsat-${p.rowId}" value="${p.satuan}" oninput="updateBeliItem('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
-    <td><input type="number" min="1" class="form-input" value="${p.jumlah}" oninput="updateBeliItem('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
-    <td><input type="number" min="0" class="form-input" id="bhb-${p.rowId}" value="${p.harga_beli}" oninput="updateBeliItem('${p.rowId}','harga_beli',Number(this.value))" style="font-size:12px"/></td>
-    <td style="font-size:12px;color:var(--orange)" id="bsub-${p.rowId}">${fmt(p.subtotal)}</td>
-    <td><button class="btn btn-danger btn-sm" onclick="removeBeliItem('${p.rowId}')"><i class="ti ti-x"></i></button></td>
-  </tr>`).join('');
+  if(!_beliItems.length){
+    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><i class="ti ti-inbox" style="font-size:24px;display:block;margin-bottom:6px"></i>Belum ada item — klik "+ Tambah" atau load dari PO</td></tr>`;
+    return;
+  }
+  tbody.innerHTML=_beliItems.map(p=>{
+    const isManual = p.is_manual || !p.barang_id;
+    // Cek apakah barang_id ada di daftar gudang
+    const adaDiGudang = p.barang_id && brg.some(b=>b.id===p.barang_id);
+    const tampilManual = isManual && !adaDiGudang;
+
+    const kolomBarang = tampilManual
+      ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+           <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0">✏️ Manual</span>
+           <button class="btn btn-outline btn-sm" style="padding:1px 7px;font-size:10px;flex-shrink:0" onclick="gantiKeGudangBeli('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:11px"></i> Ganti Gudang</button>
+         </div>
+         <input type="text" class="form-input" id="bnm-${p.rowId}"
+           placeholder="Nama barang manual..."
+           value="${(p.nama_barang||'').replace(/"/g,'&quot;')}"
+           oninput="updateBeliItem('${p.rowId}','nama_barang',this.value)"
+           style="font-size:12px"/>`
+      : `<select class="form-input" style="font-size:12px" onchange="selectBeliItem(this,'${p.rowId}')">
+           <option value="">-- Pilih Barang --</option>
+           <option value="__manual__" style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
+           <optgroup label="── Barang Gudang ──">
+           ${brg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan||'pcs'}" data-harga="${b.harga_beli||0}" ${b.id===p.barang_id?'selected':''}>${b.nama}</option>`).join('')}
+           </optgroup>
+         </select>
+         ${p.nama_barang&&adaDiGudang?`<div style="font-size:10px;color:var(--text3);padding:2px 2px 0">📦 ${p.nama_barang}</div>`:''}`;
+
+    return `<tr id="brow-${p.rowId}">
+      <td>${kolomBarang}</td>
+      <td><input type="text" class="form-input" id="bsat-${p.rowId}" value="${p.satuan||'pcs'}" oninput="updateBeliItem('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
+      <td><input type="number" min="1" class="form-input" value="${p.jumlah||1}" oninput="updateBeliItem('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
+      <td><input type="number" min="0" class="form-input" id="bhb-${p.rowId}" value="${p.harga_beli||0}" oninput="updateBeliItem('${p.rowId}','harga_beli',Number(this.value))" style="font-size:12px"/></td>
+      <td style="font-size:12px;color:var(--orange);white-space:nowrap" id="bsub-${p.rowId}">${fmt(p.subtotal||0)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeBeliItem('${p.rowId}')"><i class="ti ti-x"></i></button></td>
+    </tr>`;
+  }).join('');
 }
 
 function selectBeliItem(sel,rowId){
@@ -2744,13 +2769,14 @@ function selectBeliItem(sel,rowId){
   if(sel.value==='__manual__'){
     p.barang_id='';p.nama_barang='';p.satuan='pcs';p.harga_beli=0;p.subtotal=0;p.is_manual=true;
     renderBeliItems();
-    const nm=document.getElementById('bnm-'+rowId);if(nm){nm.focus();}
+    const nm=document.getElementById('bnm-'+rowId);if(nm)setTimeout(()=>nm.focus(),50);
   } else if(sel.value){
     const opt=sel.selectedOptions[0];
-    p.barang_id=sel.value;p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan;p.harga_beli=Number(opt.dataset.harga);p.is_manual=false;
-    document.getElementById('bsat-'+rowId).value=p.satuan;
-    document.getElementById('bhb-'+rowId).value=p.harga_beli;
+    p.barang_id=sel.value;p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan||'pcs';p.harga_beli=Number(opt.dataset.harga)||0;p.is_manual=false;
+    const satEl=document.getElementById('bsat-'+rowId);if(satEl)satEl.value=p.satuan;
+    const hbEl=document.getElementById('bhb-'+rowId);if(hbEl)hbEl.value=p.harga_beli;
     hitungSubBeli(rowId);
+    // Re-render agar nama barang tampil di bawah dropdown
     renderBeliItems();
   } else {
     p.barang_id='';p.nama_barang='';p.is_manual=false;
@@ -2758,7 +2784,7 @@ function selectBeliItem(sel,rowId){
   }
 }
 
-function gantiKeGudang(rowId){
+function gantiKeGudangBeli(rowId){
   const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;
   p.is_manual=false;p.barang_id='';p.nama_barang='';
   renderBeliItems();
