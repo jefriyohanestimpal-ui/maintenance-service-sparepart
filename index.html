@@ -1408,58 +1408,106 @@ async function delPelanggan(id,nama){if(!confirm2(`Hapus "${nama}"?`))return;sho
 // ============================================================
 pages['kendaraan'] = () => `
 <div class="section-hdr"><h2><i class="ti ti-car"></i>Data Kendaraan</h2>
-  <div class="section-hdr-actions"><button class="btn btn-primary" onclick="openModalKend()"><i class="ti ti-plus"></i>Tambah Kendaraan</button></div>
+<div class="section-hdr-actions"><button class="btn btn-primary" onclick="openModalKend()"><i class="ti ti-plus"></i>Tambah Kendaraan</button></div>
 </div>
 <div class="table-wrap">
-  <div class="table-toolbar">
-    <div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari plat/merk/pemilik..." oninput="filterTable('tbl-kend',this.value,[0,1,2,7])"/></div>
-    <div style="font-size:12px;color:var(--text3)" id="count-kend"></div>
-  </div>
-  <table id="tbl-kend"><thead><tr><th>No. Plat</th><th>Merk</th><th>Tipe</th><th>Tahun</th><th>Warna</th><th>Pemilik</th><th>Aksi</th></tr></thead>
-  <tbody id="body-kend"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
+<div class="table-toolbar">
+<div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari plat/merk/pemilik..." oninput="filterTable('tbl-kend',this.value,[0,1,2,9])"/></div>
+<div style="font-size:12px;color:var(--text3)" id="count-kend"></div>
+</div>
+<table id="tbl-kend"><thead><tr><th>No. Plat</th><th>Merk</th><th>Tipe</th><th>Tahun</th><th>Warna</th><th>CC</th><th>Bahan Bakar</th><th>Pemilik</th><th>Aksi</th></tr></thead>
+<tbody id="body-kend"><tr><td colspan="9" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
 ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
 <div class="form-grid">
-  <div class="form-group"><label class="form-label">No. Plat <span class="req">*</span></label><input id="f-kd-plat" class="form-input" placeholder="B 1234 XX" style="text-transform:uppercase"/></div>
-  <div class="form-group"><label class="form-label">Merk</label><input id="f-kd-merk" class="form-input" placeholder="Toyota, Honda..."/></div>
-  <div class="form-group"><label class="form-label">Tipe</label><input id="f-kd-tipe" class="form-input" placeholder="Avanza, Civic..."/></div>
-  <div class="form-group"><label class="form-label">Tahun</label><input id="f-kd-tahun" class="form-input" type="number" min="1990" max="2030"/></div>
-  <div class="form-group"><label class="form-label">Warna</label><input id="f-kd-warna" class="form-input"/></div>
-  <div class="form-group"><label class="form-label">Pemilik (Pelanggan)</label><select id="f-kd-pel" class="form-input"><option value="">-- Pilih Pelanggan --</option></select></div>
-  <div class="form-group form-full"><label class="form-label">Catatan</label><textarea id="f-kd-catatan" class="form-input" rows="2"></textarea></div>
+<div class="form-group"><label class="form-label">No. Plat <span class="req">*</span></label><input id="f-kd-plat" class="form-input" placeholder="B 1234 XX" style="text-transform:uppercase"/></div>
+<div class="form-group"><label class="form-label">Merk</label><input id="f-kd-merk" class="form-input" placeholder="Toyota, Honda..."/></div>
+<div class="form-group"><label class="form-label">Tipe</label><input id="f-kd-tipe" class="form-input" placeholder="Avanza, Civic..."/></div>
+<div class="form-group"><label class="form-label">Tahun</label><input id="f-kd-tahun" class="form-input" type="number" min="1990" max="2030"/></div>
+<div class="form-group"><label class="form-label">Warna</label><input id="f-kd-warna" class="form-input"/></div>
+<div class="form-group"><label class="form-label">CC Kendaraan</label><input id="f-kd-cc" class="form-input" type="number" min="50" max="10000" placeholder="Contoh: 1500"/></div>
+<div class="form-group"><label class="form-label">Bahan Bakar</label>
+<select id="f-kd-bahan" class="form-input">
+<option value="">-- Pilih --</option>
+<option value="Bensin">Bensin</option>
+<option value="Diesel">Diesel</option>
+<option value="Solar">Solar</option>
+<option value="LPG">LPG</option>
+<option value="Listrik">Listrik</option>
+<option value="Hybrid">Hybrid</option>
+<option value="CNG">CNG</option>
+</select>
+</div>
+<div class="form-group"><label class="form-label">Pemilik (Pelanggan)</label><select id="f-kd-pel" class="form-input"><option value="">-- Pilih Pelanggan --</option></select></div>
+<div class="form-group form-full"><label class="form-label">Catatan</label><textarea id="f-kd-catatan" class="form-input" rows="2"></textarea></div>
 </div><input type="hidden" id="f-kd-id"/>`,
 '',`<button class="btn btn-outline" onclick="closeModal('modal-kend')">Batal</button>
 <button class="btn btn-primary" onclick="saveKend()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
 
 window.init_kendaraan = async function(){await loadKend();};
 async function openModalKend(k=null){
-  const pls=await loadTable('pelanggan',{order:'nama'});
-  const sel=document.getElementById('f-kd-pel');
-  sel.innerHTML='<option value="">-- Tanpa Pemilik --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
-  if(k){document.getElementById('f-kd-id').value=k.id;document.getElementById('f-kd-plat').value=k.no_plat;document.getElementById('f-kd-merk').value=k.merk||'';document.getElementById('f-kd-tipe').value=k.tipe||'';document.getElementById('f-kd-tahun').value=k.tahun||'';document.getElementById('f-kd-warna').value=k.warna||'';document.getElementById('f-kd-catatan').value=k.catatan||'';sel.value=k.pelanggan_id||'';}
-  else{['f-kd-id','f-kd-plat','f-kd-merk','f-kd-tipe','f-kd-tahun','f-kd-warna','f-kd-catatan'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); sel.value='';}
-  openModal('modal-kend');
+const pls=await loadTable('pelanggan',{order:'nama'});
+const sel=document.getElementById('f-kd-pel');
+sel.innerHTML='<option value="">-- Tanpa Pemilik --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
+if(k){
+  document.getElementById('f-kd-id').value=k.id;
+  document.getElementById('f-kd-plat').value=k.no_plat;
+  document.getElementById('f-kd-merk').value=k.merk||'';
+  document.getElementById('f-kd-tipe').value=k.tipe||'';
+  document.getElementById('f-kd-tahun').value=k.tahun||'';
+  document.getElementById('f-kd-warna').value=k.warna||'';
+  document.getElementById('f-kd-cc').value=k.cc_kendaraan||'';
+  document.getElementById('f-kd-bahan').value=k.bahan_bakar||'';
+  document.getElementById('f-kd-catatan').value=k.catatan||'';
+  sel.value=k.pelanggan_id||'';
+}else{
+  ['f-kd-id','f-kd-plat','f-kd-merk','f-kd-tipe','f-kd-tahun','f-kd-warna','f-kd-cc','f-kd-bahan','f-kd-catatan'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); 
+  sel.value='';
+}
+openModal('modal-kend');
 }
 async function loadKend(){
-  const data=await loadTable('kendaraan',{select:'*,pelanggan(nama)',order:'no_plat'});
-  document.getElementById('count-kend').textContent=`${data.length} data`;
-  document.getElementById('body-kend').innerHTML=data.length?data.map(k=>`<tr>
-    <td><span style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--orange);background:var(--bg3);padding:3px 8px;border-radius:4px">${k.no_plat}</span></td>
-    <td style="color:var(--text)">${k.merk||'-'}</td><td>${k.tipe||'-'}</td><td>${k.tahun||'-'}</td><td>${k.warna||'-'}</td>
-    <td>${k.pelanggan?.nama||'<span style="color:var(--text3)">Umum</span>'}</td>
-    <td><div style="display:flex;gap:4px">
-      <button class="btn btn-outline btn-sm" onclick='openModalKend(${JSON.stringify(k)})'><i class="ti ti-edit"></i></button>
-      <button class="btn btn-danger btn-sm" onclick="delKend('${k.id}','${k.no_plat}')"><i class="ti ti-trash"></i></button>
-    </div></td></tr>`).join(''):'<tr><td colspan="7" class="table-empty"><i class="ti ti-car-off"></i>Belum ada kendaraan</td></tr>';
+const data=await loadTable('kendaraan',{select:'*,pelanggan(nama)',order:'no_plat'});
+document.getElementById('count-kend').textContent=`${data.length} data`;
+document.getElementById('body-kend').innerHTML=data.length?data.map(k=>`<tr>
+<td><span style="font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--orange);background:var(--bg3);padding:3px 8px;border-radius:4px">${k.no_plat}</span></td>
+<td style="color:var(--text)">${k.merk||'-'}</td>
+<td>${k.tipe||'-'}</td>
+<td>${k.tahun||'-'}</td>
+<td>${k.warna||'-'}</td>
+<td><span style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--blue)">${k.cc_kendaraan?k.cc_kendaraan+' CC':'-'}</span></td>
+<td>${k.bahan_bakar?`<span class="badge badge-blue">${k.bahan_bakar}</span>`:'-'}</td>
+<td>${k.pelanggan?.nama||'<span style="color:var(--text3)">Umum</span>'}</td>
+<td><div style="display:flex;gap:4px">
+<button class="btn btn-outline btn-sm" onclick='openModalKend(${JSON.stringify(k)})'><i class="ti ti-edit"></i></button>
+<button class="btn btn-danger btn-sm" onclick="delKend('${k.id}','${k.no_plat}')"><i class="ti ti-trash"></i></button>
+</div></td></tr>`).join(''):'<tr><td colspan="9" class="table-empty"><i class="ti ti-car-off"></i>Belum ada kendaraan</td></tr>';
 }
 async function saveKend(){
-  const id=document.getElementById('f-kd-id').value;
-  const plat=document.getElementById('f-kd-plat').value.trim().toUpperCase();
-  if(!plat){showToast('No. plat wajib','error');return;}
-  const payload={no_plat:plat,merk:document.getElementById('f-kd-merk').value,tipe:document.getElementById('f-kd-tipe').value,tahun:Number(document.getElementById('f-kd-tahun').value)||null,warna:document.getElementById('f-kd-warna').value,pelanggan_id:document.getElementById('f-kd-pel').value||null,catatan:document.getElementById('f-kd-catatan').value};
-  showLoading(true);try{if(id)await dbOp('kendaraan','UPDATE',{id,payload});else await dbOp('kendaraan','INSERT',{id:uid(),...payload});closeModal('modal-kend');showToast('Kendaraan disimpan');await loadKend();}catch(e){showToast('Gagal','error');}showLoading(false);
+const id=document.getElementById('f-kd-id').value;
+const plat=document.getElementById('f-kd-plat').value.trim().toUpperCase();
+if(!plat){showToast('No. plat wajib','error');return;}
+const payload={
+  no_plat:plat,
+  merk:document.getElementById('f-kd-merk').value,
+  tipe:document.getElementById('f-kd-tipe').value,
+  tahun:Number(document.getElementById('f-kd-tahun').value)||null,
+  warna:document.getElementById('f-kd-warna').value,
+  cc_kendaraan:Number(document.getElementById('f-kd-cc').value)||null,
+  bahan_bakar:document.getElementById('f-kd-bahan').value||null,
+  pelanggan_id:document.getElementById('f-kd-pel').value||null,
+  catatan:document.getElementById('f-kd-catatan').value
+};
+showLoading(true);
+try{
+  if(id)await dbOp('kendaraan','UPDATE',{id,payload});
+  else await dbOp('kendaraan','INSERT',{id:uid(),...payload});
+  closeModal('modal-kend');
+  showToast('Kendaraan disimpan');
+  await loadKend();
+}catch(e){showToast('Gagal','error');}
+showLoading(false);
 }
-async function delKend(id,plat){if(!confirm2(`Hapus kendaraan ${plat}?`))return;showLoading(true);try{await dbOp('kendaraan','DELETE',{id});showToast('Kendaraan dihapus');await loadKend();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
 // ============================================================
 // PAGE: DATA MEKANIK
