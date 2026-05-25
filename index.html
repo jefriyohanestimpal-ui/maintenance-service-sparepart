@@ -3410,25 +3410,25 @@ window.init_lap_mekanik=function(){
   document.getElementById('lm-sampai').value=today();
 };
 async function loadLapMekanik(){
-  const dari=document.getElementById('lm-dari').value;const sampai=document.getElementById('lm-sampai').value;
-  const meks=await loadTable('mekanik',{order:'nama'});
-  let q=db.from('work_order').select('mekanik_id,biaya_jasa,total,status').neq('status','batal');
-  if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
-  const{data:wos}=await q;
-  const rows=meks.map(m=>{
-    const myWO=(wos||[]).filter(w=>w.mekanik_id===m.id);
-    const jasa=myWO.reduce((a,w)=>a+Number(w.biaya_jasa),0);
-    const nilaiWO=myWO.reduce((a,w)=>a+Number(w.total),0);
-    const avg=myWO.length?nilaiWO/myWO.length:0;
-    return{...m,jmlWO:myWO.length,jasa,nilaiWO,avg};
-  }).filter(m=>m.jmlWO>0).sort((a,b)=>b.nilaiWO-a.nilaiWO);
-  const totalJasa=rows.reduce((a,m)=>a+m.jasa,0);
-  const totalWO=rows.reduce((a,m)=>a+m.jmlWO,0);
-  document.getElementById('lm-stats').innerHTML=`
-    <div class="stat-card orange"><i class="ti ti-tool stat-icon"></i><div class="stat-label">Mekanik Aktif</div><div class="stat-value">${rows.length}</div></div>
-    <div class="stat-card green"><i class="ti ti-engine stat-icon"></i><div class="stat-label">Total WO</div><div class="stat-value">${totalWO}</div></div>
+const dari=document.getElementById('lm-dari').value;const sampai=document.getElementById('lm-sampai').value;
+const meks=await loadTable('mekanik',{order:'nama'});
+let q=db.from('work_order').select('mekanik_id,biaya_jasa,total,status').neq('status','batal');
+if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
+const{data:wos}=await q;
+const rows=meks.map(m=>{
+const myWO=(wos||[]).filter(w=>w.mekanik_id===m.id);
+const jasa=myWO.reduce((a,w)=>a+Number(w.biaya_jasa),0);
+const nilaiWO=myWO.reduce((a,w)=>a+Number(w.total),0);
+const avg=myWO.length?nilaiWO/myWO.length:0;
+return{...m,jmlWO:myWO.length,jasa,nilaiWO,avg};
+}).filter(m=>m.jmlWO>0).sort((a,b)=>b.nilaiWO-a.nilaiWO);
+const totalJasa=rows.reduce((a,m)=>a+m.jasa,0);
+const totalWO=rows.reduce((a,m)=>a+m.jmlWO,0);
+document.getElementById('lm-stats').innerHTML=`
+<div class="stat-card orange"><i class="ti ti-tool stat-icon"></i><div class="stat-label">Mekanik Aktif</div><div class="stat-value">${rows.length}</div></div>
+<div class="stat-card green"><i class="ti ti-engine stat-icon"></i><div class="stat-label">Total WO</div><div class="stat-value">${totalWO}</div></div>
 `;
-   document.getElementById('body-lmek').innerHTML=rows.length?rows.map(m=>`<tr>
+document.getElementById('body-lmek').innerHTML=rows.length?rows.map(m=>`<tr>
 <td style="font-weight:600;color:var(--text)">${m.nama}</td>
 <td style="color:var(--text3)">${m.spesialisasi||'-'}</td>
 <td><span style="font-family:var(--font-display);font-size:18px;font-weight:700;color:var(--orange)">${m.jmlWO}</span></td>
@@ -3436,6 +3436,7 @@ async function loadLapMekanik(){
 <td style="color:var(--orange)">${fmt(m.nilaiWO)}</td>
 <td style="color:var(--text2)">${fmt(m.avg)}</td>
 </tr>`).join(''):'<tr><td colspan="5" class="table-empty">Tidak ada data pada periode ini</td></tr>';
+}
 // ============================================================
 // PAGE: KATEGORI PENGELUARAN
 // ============================================================
@@ -3554,7 +3555,8 @@ ${modalHtml('modal-pengeluaran','Tambah / Edit Pengeluaran',`
 <textarea id="f-pke-ket" class="form-input" rows="2" placeholder="Detail pengeluaran..."></textarea>
 </div>
 </div>
-<input type="hidden" id="f-pke-id"/>`,
+<input type="hidden" id="f-pke-id"/>
+<input type="hidden" id="f-pke-kat-nama"/>`,
 '',`
 <button class="btn btn-outline" onclick="closeModal('modal-pengeluaran')">Batal</button>
 <button class="btn btn-primary" onclick="savePengeluaran()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
@@ -3742,7 +3744,7 @@ d.map(r=>`<tr>
 </tr>`).join('') : '<tr><td colspan="4" class="table-empty">Tidak ada data</td></tr>';
 }
 // ============================================================
-// PAGE: LABA BERSIH (Laba Rugi + Pengeluaran Operasional)
+// PAGE: LABA BERSIH
 // ============================================================
 pages['lap-laba-bersih'] = () => `
 <div class="section-hdr"><h2><i class="ti ti-trending-up"></i>Laba Bersih</h2>
