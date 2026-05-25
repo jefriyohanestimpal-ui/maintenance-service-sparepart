@@ -3428,7 +3428,7 @@ async function loadLapMekanik(){
     <div class="stat-card orange"><i class="ti ti-tool stat-icon"></i><div class="stat-label">Mekanik Aktif</div><div class="stat-value">${rows.length}</div></div>
     <div class="stat-card green"><i class="ti ti-engine stat-icon"></i><div class="stat-label">Total WO</div><div class="stat-value">${totalWO}</div></div>
 `;
-}
+
    document.getElementById('body-lmek').innerHTML=rows.length?rows.map(m=>`<tr>
 <td style="font-weight:600;color:var(--text)">${m.nama}</td>
 <td style="color:var(--text3)">${m.spesialisasi||'-'}</td>
@@ -3437,7 +3437,7 @@ async function loadLapMekanik(){
 <td style="color:var(--orange)">${fmt(m.nilaiWO)}</td>
 <td style="color:var(--text2)">${fmt(m.avg)}</td>
 </tr>`).join(''):'<tr><td colspan="5" class="table-empty">Tidak ada data pada periode ini</td></tr>';
-
+}
 // ============================================================
 // PAGE: KATEGORI PENGELUARAN
 // ============================================================
