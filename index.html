@@ -9,9 +9,12 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css"/>
+<!-- Supabase CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-/* [Semua CSS tetap sama seperti file asli Anda - tidak ada perubahan] */
+/* ============================================================
+VARIABLES & RESET
+============================================================ */
 :root {
 --bg: #0a0a0a;
 --bg2: #111111;
@@ -50,42 +53,120 @@ input,select,textarea{font-family:var(--font-body);outline:none}
 ::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px}
 ::-webkit-scrollbar-thumb:hover{background:var(--orange)}
 ::selection{background:var(--orange-dim);color:var(--orange)}
+/* ============================================================
+LAYOUT
+============================================================ */
 #app{display:flex;height:100vh;overflow:hidden}
-#sidebar{width:var(--sidebar-w);flex-shrink:0;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;transition:width var(--transition);position:relative;z-index:100}
+/* SIDEBAR */
+#sidebar{
+width:var(--sidebar-w);flex-shrink:0;
+background:var(--bg2);
+border-right:1px solid var(--border);
+display:flex;flex-direction:column;
+overflow:hidden;transition:width var(--transition);
+position:relative;z-index:100;
+}
 #sidebar.collapsed{width:56px}
-.sidebar-header{height:var(--header-h);display:flex;align-items:center;gap:10px;padding:0 14px;border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden}
-.sidebar-logo{width:32px;height:32px;border-radius:8px;flex-shrink:0;background:linear-gradient(135deg,var(--orange),var(--orange2));display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff}
-.sidebar-title{font-family:var(--font-display);font-size:17px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;background:linear-gradient(90deg,var(--orange),var(--orange2),var(--text));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-#sidebar.collapsed .sidebar-title,#sidebar.collapsed .nav-label,#sidebar.collapsed .nav-group-label{display:none}
+.sidebar-header{
+height:var(--header-h);
+display:flex;align-items:center;gap:10px;
+padding:0 14px;border-bottom:1px solid var(--border);
+flex-shrink:0;overflow:hidden;
+}
+.sidebar-logo{
+width:32px;height:32px;border-radius:8px;flex-shrink:0;
+background:linear-gradient(135deg,var(--orange),var(--orange2));
+display:flex;align-items:center;justify-content:center;
+font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;
+}
+.sidebar-title{
+font-family:var(--font-display);font-size:17px;font-weight:700;
+color:var(--text);white-space:nowrap;overflow:hidden;
+background:linear-gradient(90deg,var(--orange),var(--orange2),var(--text));
+-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+#sidebar.collapsed .sidebar-title,
+#sidebar.collapsed .nav-label,
+#sidebar.collapsed .nav-group-label{display:none}
 .sidebar-nav{flex:1;overflow-y:auto;padding:8px 0}
-.nav-group-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.08em;padding:12px 16px 4px;white-space:nowrap;overflow:hidden}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 14px;cursor:pointer;border-radius:0;transition:background var(--transition);position:relative;overflow:hidden;border-left:3px solid transparent;white-space:nowrap}
+.nav-group-label{
+font-size:10px;font-weight:600;color:var(--text3);
+text-transform:uppercase;letter-spacing:0.08em;
+padding:12px 16px 4px;white-space:nowrap;overflow:hidden;
+}
+.nav-item{
+display:flex;align-items:center;gap:10px;
+padding:9px 14px;cursor:pointer;
+border-radius:0;transition:background var(--transition);
+position:relative;overflow:hidden;
+border-left:3px solid transparent;
+white-space:nowrap;
+}
 .nav-item:hover{background:var(--bg3);border-left-color:var(--border2)}
-.nav-item.active{background:var(--orange-dim);border-left-color:var(--orange)}
+.nav-item.active{
+background:var(--orange-dim);border-left-color:var(--orange);
+}
 .nav-item.active .nav-icon{color:var(--orange)}
 .nav-item.active .nav-label{color:var(--orange);font-weight:600}
 .nav-icon{font-size:18px;color:var(--text2);flex-shrink:0;width:24px;text-align:center}
 .nav-label{font-size:13px;color:var(--text2)}
-.sidebar-toggle{padding:12px 14px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:flex-end;cursor:pointer}
+.sidebar-toggle{
+padding:12px 14px;border-top:1px solid var(--border);
+display:flex;align-items:center;justify-content:flex-end;
+cursor:pointer;
+}
 #sidebar.collapsed .sidebar-toggle{justify-content:center}
 .sidebar-toggle i{font-size:18px;color:var(--text3);transition:transform var(--transition)}
 #sidebar.collapsed .sidebar-toggle i{transform:rotate(180deg)}
+/* MAIN */
 #main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
-#topbar{height:var(--header-h);flex-shrink:0;background:var(--bg2);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px;gap:12px}
+/* TOPBAR */
+#topbar{
+height:var(--header-h);flex-shrink:0;
+background:var(--bg2);border-bottom:1px solid var(--border);
+display:flex;align-items:center;justify-content:space-between;
+padding:0 20px;gap:12px;
+}
 .topbar-title{font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--text)}
 .topbar-right{display:flex;align-items:center;gap:10px}
-.status-badge{display:flex;align-items:center;gap:6px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:500;background:var(--bg3);border:1px solid var(--border)}
+.status-badge{
+display:flex;align-items:center;gap:6px;
+padding:5px 10px;border-radius:20px;font-size:12px;font-weight:500;
+background:var(--bg3);border:1px solid var(--border);
+}
 .status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .status-dot.online{background:var(--green);box-shadow:0 0 6px var(--green)}
 .status-dot.offline{background:var(--red);box-shadow:0 0 6px var(--red)}
-.btn-icon{width:34px;height:34px;border-radius:var(--radius-sm);background:var(--bg3);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:18px;transition:all var(--transition)}
+.btn-icon{
+width:34px;height:34px;border-radius:var(--radius-sm);
+background:var(--bg3);border:1px solid var(--border);
+display:flex;align-items:center;justify-content:center;
+color:var(--text2);font-size:18px;transition:all var(--transition);
+}
 .btn-icon:hover{background:var(--bg4);color:var(--orange);border-color:var(--orange-dim)}
+/* CONTENT */
 #content{flex:1;overflow-y:auto;padding:20px}
+/* ============================================================
+PAGES
+============================================================ */
 .page{display:none}
 .page.active{display:block}
+/* ============================================================
+CARDS & STATS
+============================================================ */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:20px}
-.stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:6px;position:relative;overflow:hidden;transition:transform var(--transition),border-color var(--transition)}
-.stat-card::before{content:'';position:absolute;top:0;right:0;width:80px;height:80px;border-radius:50%;opacity:0.06;transform:translate(20px,-20px)}
+.stat-card{
+background:var(--bg2);border:1px solid var(--border);
+border-radius:var(--radius);padding:16px;
+display:flex;flex-direction:column;gap:6px;
+position:relative;overflow:hidden;
+transition:transform var(--transition),border-color var(--transition);
+}
+.stat-card::before{
+content:'';position:absolute;top:0;right:0;
+width:80px;height:80px;border-radius:50%;
+opacity:0.06;transform:translate(20px,-20px);
+}
 .stat-card.orange::before{background:var(--orange)}
 .stat-card.green::before{background:var(--green)}
 .stat-card.blue::before{background:var(--blue)}
@@ -99,73 +180,173 @@ input,select,textarea{font-family:var(--font-body);outline:none}
 .stat-label{font-size:12px;color:var(--text3);font-weight:500}
 .stat-value{font-family:var(--font-display);font-size:22px;font-weight:700;color:var(--text);line-height:1}
 .stat-sub{font-size:11px;color:var(--text3)}
-.section-hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:10px;flex-wrap:wrap}
-.section-hdr h2{font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+/* ============================================================
+SECTION HEADER
+============================================================ */
+.section-hdr{
+display:flex;align-items:center;justify-content:space-between;
+margin-bottom:14px;gap:10px;flex-wrap:wrap;
+}
+.section-hdr h2{
+font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--text);
+display:flex;align-items:center;gap:8px;
+}
 .section-hdr h2 i{color:var(--orange);font-size:20px}
 .section-hdr-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
-.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;transition:all var(--transition);cursor:pointer;border:1px solid transparent;white-space:nowrap}
-.btn-primary{background:linear-gradient(135deg,var(--orange),var(--orange2));color:#fff;border-color:var(--orange)}
+/* ============================================================
+BUTTONS
+============================================================ */
+.btn{
+display:inline-flex;align-items:center;gap:6px;
+padding:8px 16px;border-radius:var(--radius-sm);
+font-size:13px;font-weight:500;transition:all var(--transition);
+cursor:pointer;border:1px solid transparent;white-space:nowrap;
+}
+.btn-primary{
+background:linear-gradient(135deg,var(--orange),var(--orange2));
+color:#fff;border-color:var(--orange);
+}
 .btn-primary:hover{opacity:0.88;transform:translateY(-1px)}
-.btn-outline{background:transparent;color:var(--text2);border-color:var(--border2)}
+.btn-outline{
+background:transparent;color:var(--text2);border-color:var(--border2);
+}
 .btn-outline:hover{background:var(--bg3);color:var(--text);border-color:var(--orange-dim)}
 .btn-danger{background:rgba(239,68,68,0.15);color:var(--red);border-color:rgba(239,68,68,0.3)}
 .btn-danger:hover{background:rgba(239,68,68,0.25)}
 .btn-success{background:rgba(34,197,94,0.15);color:var(--green);border-color:rgba(34,197,94,0.3)}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn i{font-size:15px}
-.table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.table-toolbar{display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid var(--border);gap:10px;flex-wrap:wrap}
-.search-box{display:flex;align-items:center;gap:8px;background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:6px 10px;min-width:200px}
+/* ============================================================
+TABLE
+============================================================ */
+.table-wrap{
+background:var(--bg2);border:1px solid var(--border);
+border-radius:var(--radius);overflow:hidden;
+}
+.table-toolbar{
+display:flex;align-items:center;justify-content:space-between;
+padding:12px 14px;border-bottom:1px solid var(--border);
+gap:10px;flex-wrap:wrap;
+}
+.search-box{
+display:flex;align-items:center;gap:8px;
+background:var(--bg3);border:1px solid var(--border2);
+border-radius:var(--radius-sm);padding:6px 10px;
+min-width:200px;
+}
 .search-box i{color:var(--text3);font-size:15px;flex-shrink:0}
 .search-box input{background:transparent;border:none;color:var(--text);font-size:13px;flex:1;min-width:0}
 .search-box input::placeholder{color:var(--text3)}
 table{width:100%;border-collapse:collapse}
 thead tr{background:var(--bg3)}
-th{padding:10px 12px;text-align:left;font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.05em;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:10px 12px;border-bottom:1px solid var(--border);font-size:13px;color:var(--text2);vertical-align:middle}
+th{
+padding:10px 12px;text-align:left;
+font-size:11px;font-weight:600;color:var(--text3);
+text-transform:uppercase;letter-spacing:0.05em;
+border-bottom:1px solid var(--border);white-space:nowrap;
+}
+td{
+padding:10px 12px;border-bottom:1px solid var(--border);
+font-size:13px;color:var(--text2);vertical-align:middle;
+}
 tbody tr:hover{background:var(--bg3)}
 tbody tr:last-child td{border-bottom:none}
-.table-empty{text-align:center;padding:40px;color:var(--text3);font-size:13px}
+.table-empty{
+text-align:center;padding:40px;
+color:var(--text3);font-size:13px;
+}
 .table-empty i{font-size:36px;display:block;margin-bottom:8px;color:var(--border2)}
-.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.03em}
+/* ============================================================
+BADGES & TAGS
+============================================================ */
+.badge{
+display:inline-flex;align-items:center;gap:4px;
+padding:3px 8px;border-radius:20px;font-size:11px;font-weight:600;
+text-transform:uppercase;letter-spacing:0.03em;
+}
 .badge-orange{background:var(--orange-dim);color:var(--orange);border:1px solid rgba(255,106,0,0.3)}
 .badge-green{background:rgba(34,197,94,0.1);color:var(--green);border:1px solid rgba(34,197,94,0.25)}
 .badge-red{background:rgba(239,68,68,0.1);color:var(--red);border:1px solid rgba(239,68,68,0.25)}
 .badge-blue{background:rgba(59,130,246,0.1);color:var(--blue);border:1px solid rgba(59,130,246,0.25)}
 .badge-yellow{background:rgba(245,158,11,0.1);color:var(--yellow);border:1px solid rgba(245,158,11,0.25)}
 .badge-gray{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.75);z-index:1000;display:none;align-items:center;justify-content:center;padding:20px;backdrop-filter:blur(4px)}
+/* ============================================================
+MODAL
+============================================================ */
+.modal-overlay{
+position:fixed;inset:0;background:rgba(0,0,0,0.75);
+z-index:1000;display:none;align-items:center;justify-content:center;
+padding:20px;backdrop-filter:blur(4px);
+}
 .modal-overlay.active{display:flex}
-.modal{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:var(--shadow);animation:modalIn 0.2s ease}
+.modal{
+background:var(--bg2);border:1px solid var(--border2);
+border-radius:var(--radius);width:100%;max-width:560px;
+max-height:90vh;display:flex;flex-direction:column;
+box-shadow:var(--shadow);animation:modalIn 0.2s ease;
+}
 .modal-lg{max-width:780px}
 .modal-xl{max-width:1000px}
 @keyframes modalIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.modal-header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-header{
+display:flex;align-items:center;justify-content:space-between;
+padding:14px 18px;border-bottom:1px solid var(--border);flex-shrink:0;
+}
 .modal-title{font-family:var(--font-display);font-size:16px;font-weight:600;color:var(--text)}
-.modal-close{width:28px;height:28px;border-radius:var(--radius-sm);background:var(--bg3);color:var(--text2);font-size:16px;display:flex;align-items:center;justify-content:center;transition:all var(--transition);cursor:pointer}
+.modal-close{
+width:28px;height:28px;border-radius:var(--radius-sm);
+background:var(--bg3);color:var(--text2);font-size:16px;
+display:flex;align-items:center;justify-content:center;
+transition:all var(--transition);cursor:pointer;
+}
 .modal-close:hover{background:rgba(239,68,68,0.2);color:var(--red)}
 .modal-body{flex:1;overflow-y:auto;padding:18px}
-.modal-footer{padding:12px 18px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;flex-shrink:0}
+.modal-footer{
+padding:12px 18px;border-top:1px solid var(--border);
+display:flex;justify-content:flex-end;gap:8px;flex-shrink:0;
+}
+/* ============================================================
+FORMS
+============================================================ */
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
 .form-grid-1{display:grid;grid-template-columns:1fr;gap:14px}
 .form-full{grid-column:1/-1}
 .form-group{display:flex;flex-direction:column;gap:5px}
 .form-label{font-size:12px;font-weight:500;color:var(--text2)}
 .form-label .req{color:var(--orange)}
-.form-input{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:8px 10px;color:var(--text);font-size:13px;width:100%;transition:border-color var(--transition)}
+.form-input{
+background:var(--bg3);border:1px solid var(--border2);
+border-radius:var(--radius-sm);padding:8px 10px;
+color:var(--text);font-size:13px;width:100%;
+transition:border-color var(--transition);
+}
 .form-input:focus{border-color:var(--orange);background:var(--bg4)}
 .form-input::placeholder{color:var(--text3)}
 select.form-input option{background:var(--bg3)}
 .form-hint{font-size:11px;color:var(--text3)}
 .form-row{display:flex;gap:10px;align-items:flex-end}
-.form-divider{grid-column:1/-1;border:none;border-top:1px solid var(--border);margin:4px 0}
+.form-divider{
+grid-column:1/-1;border:none;border-top:1px solid var(--border);
+margin:4px 0;
+}
+/* ============================================================
+DASHBOARD
+============================================================ */
 .dash-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
 .dash-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
-.dash-card-hdr{padding:12px 14px;border-bottom:1px solid var(--border);font-family:var(--font-display);font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px;color:var(--text)}
+.dash-card-hdr{
+padding:12px 14px;border-bottom:1px solid var(--border);
+font-family:var(--font-display);font-size:14px;font-weight:600;
+display:flex;align-items:center;gap:8px;color:var(--text);
+}
 .dash-card-hdr i{color:var(--orange)}
 .dash-card-body{padding:14px}
 .alert-list{display:flex;flex-direction:column;gap:8px}
-.alert-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--radius-sm);background:var(--bg3);border-left:3px solid transparent}
+.alert-item{
+display:flex;align-items:center;gap:10px;
+padding:9px 12px;border-radius:var(--radius-sm);
+background:var(--bg3);border-left:3px solid transparent;
+}
 .alert-item.warn{border-left-color:var(--yellow)}
 .alert-item.danger{border-left-color:var(--red)}
 .alert-item.info{border-left-color:var(--blue)}
@@ -175,14 +356,29 @@ select.form-input option{background:var(--bg3)}
 .alert-item.info .alert-icon{color:var(--blue)}
 .alert-text{font-size:12px;color:var(--text2);flex:1}
 .alert-val{font-size:12px;font-weight:600;color:var(--text)}
+/* WO Antrian */
 .wo-list{display:flex;flex-direction:column;gap:8px}
-.wo-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);background:var(--bg3);cursor:pointer;transition:background var(--transition);border:1px solid var(--border)}
+.wo-item{
+display:flex;align-items:center;gap:10px;
+padding:10px 12px;border-radius:var(--radius-sm);
+background:var(--bg3);cursor:pointer;
+transition:background var(--transition);
+border:1px solid var(--border);
+}
 .wo-item:hover{background:var(--bg4);border-color:var(--orange-dim)}
 .wo-no{font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--orange);min-width:90px}
 .wo-info{flex:1;min-width:0}
 .wo-plat{font-size:13px;font-weight:600;color:var(--text)}
 .wo-mekanik{font-size:11px;color:var(--text3)}
-.nota-preview{background:#fff;color:#111;padding:16px;border-radius:var(--radius);font-family:'Courier New',monospace;font-size:12px;max-width:320px;margin:0 auto}
+/* ============================================================
+NOTA PRINT
+============================================================ */
+.nota-preview{
+background:#fff;color:#111;
+padding:16px;border-radius:var(--radius);
+font-family:'Courier New',monospace;font-size:12px;
+max-width:320px;margin:0 auto;
+}
 .nota-header{text-align:center;margin-bottom:10px}
 .nota-header .nama{font-weight:700;font-size:14px}
 .nota-divider{border:none;border-top:1px dashed #aaa;margin:8px 0}
@@ -191,87 +387,241 @@ select.form-input option{background:var(--bg3)}
 .nota-row .val{text-align:right;white-space:nowrap}
 .nota-total{font-weight:700;font-size:12px;border-top:1px dashed #aaa;padding-top:4px;margin-top:4px}
 .nota-footer{text-align:center;margin-top:10px;font-size:10px;color:#666}
-@media print{body * { visibility: hidden !important; } #print-area, #print-area * { visibility: visible !important; } #print-area { position: fixed !important; left: 0; top: 0; width: 80mm; margin: 0; padding: 8px; background: #fff !important; color: #000 !important; } }
-@media print and (min-width: 100mm) { #print-area { width: 210mm; } }
+@media print{
+body * { visibility: hidden !important; }
+#print-area, #print-area * { visibility: visible !important; }
+#print-area {
+position: fixed !important; left: 0; top: 0;
+width: 80mm; margin: 0; padding: 8px;
+background: #fff !important; color: #000 !important;
+}
+}
+@media print and (min-width: 100mm) {
+#print-area { width: 210mm; }
+}
+/* ============================================================
+GUDANG — Stok Cards
+============================================================ */
 .stok-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px}
-.stok-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:12px;transition:border-color var(--transition),transform var(--transition);cursor:pointer}
+.stok-card{
+background:var(--bg2);border:1px solid var(--border);
+border-radius:var(--radius);padding:12px;
+transition:border-color var(--transition),transform var(--transition);
+cursor:pointer;
+}
 .stok-card:hover{border-color:var(--orange-dim);transform:translateY(-2px)}
 .stok-card.low{border-color:rgba(239,68,68,0.4)}
 .stok-card.ok{border-color:var(--border)}
 .stok-nama{font-size:13px;font-weight:500;color:var(--text);margin-bottom:6px;line-height:1.3}
-.stok-num{font-family:var(--font-display);font-size:26px;font-weight:700;line-height:1}
+.stok-num{
+font-family:var(--font-display);font-size:26px;font-weight:700;
+line-height:1;
+}
 .stok-card.low .stok-num{color:var(--red)}
 .stok-card.ok .stok-num{color:var(--green)}
 .stok-satuan{font-size:11px;color:var(--text3)}
 .stok-min{font-size:10px;color:var(--text3);margin-top:4px}
-#toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:8px;pointer-events:none}
-.toast-item{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;color:var(--text);box-shadow:var(--shadow);animation:toastIn 0.2s ease;display:flex;align-items:center;gap:8px;min-width:200px;pointer-events:auto;border-left:3px solid}
+/* ============================================================
+LOADING / TOAST
+============================================================ */
+#toast{
+position:fixed;bottom:24px;right:24px;z-index:9999;
+display:flex;flex-direction:column;gap:8px;pointer-events:none;
+}
+.toast-item{
+background:var(--bg3);border:1px solid var(--border2);
+border-radius:var(--radius-sm);padding:10px 14px;
+font-size:13px;color:var(--text);
+box-shadow:var(--shadow);animation:toastIn 0.2s ease;
+display:flex;align-items:center;gap:8px;min-width:200px;
+pointer-events:auto;border-left:3px solid;
+}
 .toast-item.success{border-left-color:var(--green)}
 .toast-item.error{border-left-color:var(--red)}
 .toast-item.info{border-left-color:var(--blue)}
 @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
-#loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:8000;display:none;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+#loading-overlay{
+position:fixed;inset:0;background:rgba(0,0,0,0.7);
+z-index:8000;display:none;align-items:center;justify-content:center;
+backdrop-filter:blur(2px);
+}
 #loading-overlay.active{display:flex}
-.spinner{width:40px;height:40px;border-radius:50%;border:3px solid var(--border2);border-top-color:var(--orange);animation:spin 0.7s linear infinite}
+.spinner{
+width:40px;height:40px;border-radius:50%;
+border:3px solid var(--border2);border-top-color:var(--orange);
+animation:spin 0.7s linear infinite;
+}
 @keyframes spin{to{transform:rotate(360deg)}}
-#offline-bar{background:linear-gradient(90deg,rgba(239,68,68,0.9),rgba(220,38,38,0.9));color:#fff;font-size:12px;font-weight:500;padding:6px 20px;text-align:center;display:none;align-items:center;justify-content:center;gap:8px}
+/* ============================================================
+OFFLINE INDICATOR
+============================================================ */
+#offline-bar{
+background:linear-gradient(90deg,rgba(239,68,68,0.9),rgba(220,38,38,0.9));
+color:#fff;font-size:12px;font-weight:500;
+padding:6px 20px;text-align:center;display:none;
+align-items:center;justify-content:center;gap:8px;
+}
 #offline-bar.show{display:flex}
+/* ============================================================
+TABS
+============================================================ */
 .tabs{display:flex;gap:0;border-bottom:1px solid var(--border);margin-bottom:16px;overflow-x:auto}
-.tab{padding:9px 16px;font-size:13px;font-weight:500;color:var(--text3);cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;transition:all var(--transition)}
+.tab{
+padding:9px 16px;font-size:13px;font-weight:500;color:var(--text3);
+cursor:pointer;border-bottom:2px solid transparent;
+white-space:nowrap;transition:all var(--transition);
+}
 .tab:hover{color:var(--text2)}
 .tab.active{color:var(--orange);border-bottom-color:var(--orange)}
+/* ============================================================
+TRANSAKSI DETAIL TABLE (input item)
+============================================================ */
 .trx-items{width:100%;margin-bottom:10px}
 .trx-items th{background:var(--bg3);padding:7px 8px;font-size:11px;color:var(--text3);font-weight:600;text-transform:uppercase}
 .trx-items td{padding:5px 4px;vertical-align:middle}
-.trx-items input,.trx-items select{background:var(--bg3);border:1px solid var(--border2);border-radius:var(--radius-sm);padding:5px 7px;color:var(--text);font-size:12px;width:100%}
+.trx-items input,.trx-items select{
+background:var(--bg3);border:1px solid var(--border2);
+border-radius:var(--radius-sm);padding:5px 7px;
+color:var(--text);font-size:12px;width:100%;
+}
 .trx-items input:focus,.trx-items select:focus{border-color:var(--orange)}
-.trx-total-row{display:flex;justify-content:flex-end;gap:20px;background:var(--bg3);padding:10px 12px;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border)}
+.trx-total-row{
+display:flex;justify-content:flex-end;gap:20px;
+background:var(--bg3);padding:10px 12px;border-radius:var(--radius-sm);
+margin-top:8px;border:1px solid var(--border);
+}
 .trx-total-label{font-size:12px;color:var(--text3)}
 .trx-total-val{font-family:var(--font-display);font-size:15px;font-weight:700;color:var(--orange)}
-@media(max-width:768px){:root{--sidebar-w:56px} #sidebar .sidebar-title,#sidebar .nav-label,#sidebar .nav-group-label{display:none} .dash-grid{grid-template-columns:1fr} .stats-grid{grid-template-columns:repeat(2,1fr)} .form-grid{grid-template-columns:1fr} #content{padding:12px}}
+/* ============================================================
+RESPONSIVE
+============================================================ */
+@media(max-width:768px){
+:root{--sidebar-w:56px}
+#sidebar .sidebar-title,#sidebar .nav-label,#sidebar .nav-group-label{display:none}
+.dash-grid{grid-template-columns:1fr}
+.stats-grid{grid-template-columns:repeat(2,1fr)}
+.form-grid{grid-template-columns:1fr}
+#content{padding:12px}
+}
 </style>
+<script>
+// ============================================================
+// SERVICE WORKER REGISTRATION (PWA offline cache)
+// ============================================================
+if ('serviceWorker' in navigator) {
+// Generate SW as blob URL so it works from single HTML file
+const swCode = `
+const CACHE = 'autoserv-v1';
+const ASSETS = [self.location.href.replace('/sw-blob','')];
+self.addEventListener('install', e => {
+e.waitUntil(
+caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{})
+);
+self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+e.waitUntil(
+caches.keys().then(keys =>
+Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
+)
+);
+self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+// Only cache GET requests
+if (e.request.method !== 'GET') return;
+// Don't cache supabase API calls
+if (e.request.url.includes('supabase.co')) return;
+e.respondWith(
+caches.match(e.request).then(cached => {
+const network = fetch(e.request).then(resp => {
+if (resp.ok) {
+caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
+}
+return resp;
+}).catch(() => cached);
+return cached || network;
+})
+);
+});
+`;
+const swBlob = new Blob([swCode], {type:'application/javascript'});
+const swUrl = URL.createObjectURL(swBlob);
+navigator.serviceWorker.register(swUrl, {scope:'/'})
+.then(reg => {
+console.log('SW registered');
+// Check for updates every 30 minutes
+setInterval(()=>reg.update(), 30*60*1000);
+})
+.catch(e => console.warn('SW registration failed:', e));
+}
+</script>
 </head>
 <body>
-<div id="offline-bar"><i class="ti ti-wifi-off" style="font-size:15px"></i><span>Mode Offline — Input data tetap berjalan, akan otomatis sync saat internet pulih</span><span id="offline-pending" style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px;display:none"></span></div>
+<!-- OFFLINE BAR -->
+<div id="offline-bar">
+<i class="ti ti-wifi-off" style="font-size:15px"></i>
+<span>Mode Offline — Input data tetap berjalan, akan otomatis sync saat internet pulih</span>
+<span id="offline-pending" style="background:rgba(255,255,255,0.2);padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;margin-left:6px;display:none"></span>
+</div>
+<!-- APP -->
 <div id="app">
+<!-- SIDEBAR -->
 <nav id="sidebar">
-<div class="sidebar-header"><div class="sidebar-logo">A</div><span class="sidebar-title">AutoServ Pro</span></div>
-<div class="sidebar-nav" id="sidebar-nav"></div>
-<div class="sidebar-toggle" onclick="toggleSidebar()"><i class="ti ti-chevrons-left"></i></div>
+<div class="sidebar-header">
+<div class="sidebar-logo">A</div>
+<span class="sidebar-title">AutoServ Pro</span>
+</div>
+<div class="sidebar-nav" id="sidebar-nav">
+<!-- Generated by JS -->
+</div>
+<div class="sidebar-toggle" onclick="toggleSidebar()">
+<i class="ti ti-chevrons-left"></i>
+</div>
 </nav>
+<!-- MAIN -->
 <div id="main">
 <div id="topbar">
 <div class="topbar-title" id="page-title">Dashboard</div>
 <div class="topbar-right">
-<div class="status-badge" id="status-badge"><span class="status-dot online" id="status-dot"></span><span id="status-text">Online</span></div>
-<button class="btn-icon" title="Pengaturan" onclick="showPage('pengaturan')"><i class="ti ti-settings"></i></button>
-<button class="btn-icon" title="Sinkronisasi" onclick="syncOfflineData()" id="sync-btn"><i class="ti ti-refresh"></i></button>
+<div class="status-badge" id="status-badge">
+<span class="status-dot online" id="status-dot"></span>
+<span id="status-text">Online</span>
+</div>
+<button class="btn-icon" title="Pengaturan" onclick="showPage('pengaturan')">
+<i class="ti ti-settings"></i>
+</button>
+<button class="btn-icon" title="Sinkronisasi" onclick="syncOfflineData()" id="sync-btn">
+<i class="ti ti-refresh"></i>
+</button>
 </div>
 </div>
-<div id="content"></div>
+<div id="content">
+<!-- Pages injected here -->
 </div>
 </div>
+</div>
+<!-- TOAST -->
 <div id="toast"></div>
+<!-- LOADING -->
 <div id="loading-overlay"><div class="spinner"></div></div>
+<!-- PRINT AREA -->
 <div id="print-area" style="display:none"></div>
-
 <script>
 // ============================================================
-// KONFIGURASI SUPABASE — GANTI DENGAN CREDENTIAL ANDA
+// SUPABASE CONFIG — Ganti dengan credential Supabase Anda
 // ============================================================
 const SUPABASE_URL = 'https://kfatqgqcfqdsjwfnfdlr.supabase.co';
 const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtmYXRxZ3FjZnFkc2p3Zm5mZGxyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk0Mjc3MzUsImV4cCI6MjA5NTAwMzczNX0.UtS_1IZucej-zkEjzZEz9KWtzAyDx267wpVtHWP1yWE';
 const { createClient } = supabase;
 const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
 // ============================================================
 // STATE
 // ============================================================
 let isOnline = navigator.onLine;
 let currentPage = 'dashboard';
-
 // ============================================================
-// NAVIGATION
+// NAVIGATION CONFIG
 // ============================================================
 const NAV = [
 { group: 'Utama' },
@@ -311,7 +661,6 @@ const NAV = [
 { group: 'Pengaturan' },
 { id: 'pengaturan', label: 'Pengaturan', icon: 'ti-settings' },
 ];
-
 // ============================================================
 // BUILD SIDEBAR
 // ============================================================
@@ -319,19 +668,19 @@ function buildSidebar() {
 const nav = document.getElementById('sidebar-nav');
 nav.innerHTML = NAV.map(n => {
 if (n.group) return `<div class="nav-group-label">${n.group}</div>`;
-return `<div class="nav-item" id="nav-${n.id}" onclick="showPage('${n.id}')"><i class="ti ${n.icon} nav-icon"></i><span class="nav-label">${n.label}</span></div>`;
+return `<div class="nav-item" id="nav-${n.id}" onclick="showPage('${n.id}')">
+<i class="ti ${n.icon} nav-icon"></i>
+<span class="nav-label">${n.label}</span>
+</div>`;
 }).join('');
 }
-
 function toggleSidebar() {
 document.getElementById('sidebar').classList.toggle('collapsed');
 }
-
 // ============================================================
 // PAGE ROUTER
 // ============================================================
 const pages = {};
-
 function showPage(id) {
 currentPage = id;
 const content = document.getElementById('content');
@@ -340,32 +689,34 @@ document.getElementById('page-title').textContent = navItem ? navItem.label : 'A
 document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 const nav = document.getElementById(`nav-${id}`);
 if (nav) nav.classList.add('active');
-
 if (pages[id]) {
 content.innerHTML = pages[id]();
 if (window[`init_${id.replace(/-/g,'_')}`]) window[`init_${id.replace(/-/g,'_')}`]();
 } else {
-content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3)"><i class="ti ti-tools" style="font-size:40px;display:block;margin-bottom:12px"></i>Halaman <strong>${id}</strong> sedang disiapkan...</div>`;
+content.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text3)">
+<i class="ti ti-tools" style="font-size:40px;display:block;margin-bottom:12px"></i>
+Halaman <strong>${id}</strong> sedang disiapkan...
+</div>`;
 }
 }
-
 // ============================================================
 // UTILITY FUNCTIONS
 // ============================================================
-function fmt(n) { if (!n) return 'Rp 0'; return 'Rp ' + Number(n).toLocaleString('id-ID'); }
+function fmt(n) {
+if (!n) return 'Rp 0';
+return 'Rp ' + Number(n).toLocaleString('id-ID');
+}
 function fmtNum(n) { return Number(n||0).toLocaleString('id-ID'); }
 function today() { return new Date().toISOString().slice(0,10); }
 function nowTs() { return new Date().toISOString(); }
 function uid() { return crypto.randomUUID(); }
 function pad(n,l=4){ return String(n).padStart(l,'0'); }
-
 async function autoNo(prefix, table, col) {
 const y = new Date().getFullYear().toString().slice(2);
 const m = String(new Date().getMonth()+1).padStart(2,'0');
 const { count } = await db.from(table).select('*',{count:'exact',head:true});
 return `${prefix}${y}${m}${pad((count||0)+1)}`;
 }
-
 function showToast(msg, type='success') {
 const el = document.createElement('div');
 el.className = `toast-item ${type}`;
@@ -374,25 +725,27 @@ el.innerHTML = `<i class="ti ${icons[type]||'ti-info-circle'}"></i>${msg}`;
 document.getElementById('toast').appendChild(el);
 setTimeout(()=>el.remove(), 3200);
 }
-
 function showLoading(show=true) {
 document.getElementById('loading-overlay').classList.toggle('active',show);
 }
-
 function confirm2(msg) { return window.confirm(msg); }
-
 // ============================================================
 // OFFLINE / INDEXEDDB
 // ============================================================
 let idbDb;
-
 function openIDB() {
 return new Promise((res,rej)=>{
 const req = indexedDB.open('autoserv_offline',2);
 req.onupgradeneeded = e => {
 const d = e.target.result;
-if (!d.objectStoreNames.contains('queue')) d.createObjectStore('queue',{keyPath:'id'});
-if (!d.objectStoreNames.contains('cache')) d.createObjectStore('cache',{keyPath:'key'});
+const oldVer = e.oldVersion;
+if (!d.objectStoreNames.contains('queue')) {
+d.createObjectStore('queue',{keyPath:'id'});
+}
+if (!d.objectStoreNames.contains('cache')) {
+d.createObjectStore('cache',{keyPath:'key'});
+}
+// v2: offline data cache per table
 if (!d.objectStoreNames.contains('tbl_cache')) {
 const tblStore = d.createObjectStore('tbl_cache',{keyPath:'key'});
 tblStore.createIndex('tbl','tbl',{unique:false});
@@ -402,7 +755,6 @@ req.onsuccess = e => { idbDb = e.target.result; res(idbDb); };
 req.onerror = ()=>rej(req.error);
 });
 }
-
 async function idbAdd(store, data) {
 return new Promise((res,rej)=>{
 const tx = idbDb.transaction(store,'readwrite');
@@ -411,7 +763,6 @@ req.onsuccess = ()=>res(req.result);
 req.onerror = ()=>rej(req.error);
 });
 }
-
 async function idbGetAll(store) {
 return new Promise((res,rej)=>{
 const tx = idbDb.transaction(store,'readonly');
@@ -420,7 +771,6 @@ req.onsuccess = ()=>res(req.result);
 req.onerror = ()=>rej(req.error);
 });
 }
-
 async function idbDelete(store, key) {
 return new Promise((res,rej)=>{
 const tx = idbDb.transaction(store,'readwrite');
@@ -429,18 +779,25 @@ req.onsuccess = ()=>res();
 req.onerror = ()=>rej(req.error);
 });
 }
-
+// Queue offline operation
 async function queueOp(tabel, operasi, data) {
-await idbAdd('queue', { id: uid(), tabel, operasi, data, status:'pending', created_at: nowTs() });
+await idbAdd('queue', {
+id: uid(), tabel, operasi, data,
+status:'pending', created_at: nowTs()
+});
+// Update offline pending count display
 try {
 const queue = await idbGetAll('queue');
 const pending = queue.filter(q=>q.status==='pending').length;
 const el = document.getElementById('offline-pending');
-if(el) { el.style.display = pending>0 ? 'inline' : 'none'; el.textContent = pending + ' data pending'; }
+if(el) {
+el.style.display = pending>0 ? 'inline' : 'none';
+el.textContent = pending + ' data pending';
+}
 updateSyncBadge();
 } catch(e){}
 }
-
+// Supabase call with offline fallback
 async function dbOp(tabel, operasi, data) {
 if (isOnline) {
 try {
@@ -451,6 +808,7 @@ else if (operasi === 'DELETE') res = await db.from(tabel).delete().eq('id',data.
 if (res.error) throw res.error;
 return res.data;
 } catch(e) {
+// fallback to queue
 await queueOp(tabel, operasi, data);
 showToast('Disimpan ke antrian offline','info');
 return data.id ? data : {...data, id: uid()};
@@ -460,42 +818,53 @@ await queueOp(tabel, operasi, data);
 return data.id ? data : {...data, id: uid()};
 }
 }
-
 async function syncOfflineData() {
 if (!isOnline) { showToast('Tidak ada koneksi internet','error'); return; }
 const queue = await idbGetAll('queue');
 const pending = queue.filter(q=>q.status==='pending');
-if (!pending.length) return;
-
+if (!pending.length) return; // Silent if nothing to sync
+// Animate sync button
 const syncIcon = document.getElementById('sync-btn')?.querySelector('i');
 if(syncIcon) syncIcon.style.animation='spin 0.7s linear infinite';
-
 let ok=0, fail=0;
 for (const q of pending) {
 try {
-if (q.operasi==='INSERT') { const {error} = await db.from(q.tabel).upsert(q.data, {onConflict:'id',ignoreDuplicates:false}); if(error) throw error; }
-else if (q.operasi==='UPDATE') { const {error} = await db.from(q.tabel).update(q.data.payload).eq('id',q.data.id); if(error) throw error; }
-else if (q.operasi==='DELETE') { const {error} = await db.from(q.tabel).delete().eq('id',q.data.id); if(error) throw error; }
+if (q.operasi==='INSERT') {
+const {error} = await db.from(q.tabel).upsert(q.data, {onConflict:'id',ignoreDuplicates:false});
+if(error) throw error;
+} else if (q.operasi==='UPDATE') {
+const {error} = await db.from(q.tabel).update(q.data.payload).eq('id',q.data.id);
+if(error) throw error;
+} else if (q.operasi==='DELETE') {
+const {error} = await db.from(q.tabel).delete().eq('id',q.data.id);
+if(error) throw error;
+}
 await idbDelete('queue', q.id);
 ok++;
-} catch(e) { fail++; console.warn('Sync failed for', q.tabel, e.message); }
+} catch(e) {
+fail++;
+console.warn('Sync failed for', q.tabel, e.message);
 }
-
+}
 if(syncIcon) syncIcon.style.animation='';
 if(ok>0) {
 showToast(`✓ ${ok} data tersinkronisasi ke server`, 'success');
-if(window[`init_${currentPage.replace(/-/g,'_')}`]) setTimeout(()=>{ try{ window[`init_${currentPage.replace(/-/g,'_')}`](); } catch(e){} }, 500);
+// Refresh current page after sync
+if(window[`init_${currentPage.replace(/-/g,'_')}`]) {
+setTimeout(()=>{ try{ window[`init_${currentPage.replace(/-/g,'_')}`](); } catch(e){} }, 500);
+}
 }
 if(fail>0) showToast(`${fail} data gagal sync — akan dicoba ulang`, 'error');
+// Update pending count badge
 updateSyncBadge();
 }
-
 async function updateSyncBadge() {
 try {
 const queue = await idbGetAll('queue');
 const pending = queue.filter(q=>q.status==='pending').length;
 const btn = document.getElementById('sync-btn');
 if(!btn) return;
+// Remove old badge
 const old = btn.querySelector('.sync-badge');
 if(old) old.remove();
 if(pending > 0) {
@@ -508,20 +877,28 @@ btn.appendChild(badge);
 }
 } catch(e){}
 }
-
+// Online/offline detection
 function updateStatus() {
 isOnline = navigator.onLine;
 document.getElementById('status-dot').className = `status-dot ${isOnline?'online':'offline'}`;
 document.getElementById('status-text').textContent = isOnline ? 'Online' : 'Offline';
 document.getElementById('offline-bar').classList.toggle('show', !isOnline);
-if (isOnline) { setTimeout(async ()=>{ await syncOfflineData(); await updateSyncBadge(); }, 1200); }
-else { updateSyncBadge(); }
+if (isOnline) {
+// Delay slightly to ensure connection is stable
+setTimeout(async ()=>{
+await syncOfflineData();
+await updateSyncBadge();
+}, 1200);
+} else {
+updateSyncBadge();
 }
-
+}
 window.addEventListener('online', updateStatus);
 window.addEventListener('offline', updateStatus);
-window.addEventListener('DOMContentLoaded', ()=>{ setTimeout(updateSyncBadge, 2000); });
-
+// Also check sync badge on app start
+window.addEventListener('DOMContentLoaded', ()=>{
+setTimeout(updateSyncBadge, 2000);
+});
 // ============================================================
 // CRUD HELPERS
 // ============================================================
@@ -536,16 +913,20 @@ if (opts.limit) q = q.limit(opts.limit);
 const { data, error } = await q;
 if (error) throw error;
 const result = data||[];
+// Cache to IDB for offline use
 try { await idbAdd('tbl_cache',{key:cacheKey,tbl:table,data:result,ts:Date.now()}); } catch(e){}
 return result;
-} catch(e) { return await idbGetTblCache(cacheKey) || []; }
+} catch(e) {
+// Online but query failed - try cache
+return await idbGetTblCache(cacheKey) || [];
+}
 } else {
+// Offline - serve from cache
 const cached = await idbGetTblCache(cacheKey);
 if (cached) return cached;
 return [];
 }
 }
-
 async function idbGetTblCache(key) {
 try {
 return new Promise((res,rej)=>{
@@ -556,33 +937,66 @@ req.onerror = ()=> res(null);
 });
 } catch(e) { return null; }
 }
-
 // ============================================================
 // MODALS HELPER
 // ============================================================
 function openModal(id) { document.getElementById(id).classList.add('active'); }
 function closeModal(id) { document.getElementById(id).classList.remove('active'); }
-
 function modalHtml(id, title, bodyHtml, size='', footerHtml='') {
-return `<div class="modal-overlay" id="${id}" onclick="if(event.target===this)closeModal('${id}')"><div class="modal ${size}"><div class="modal-header"><span class="modal-title">${title}</span><div class="modal-close" onclick="closeModal('${id}')"><i class="ti ti-x"></i></div></div><div class="modal-body">${bodyHtml}</div>${footerHtml?`<div class="modal-footer">${footerHtml}</div>`:''}</div></div>`;
+return `
+<div class="modal-overlay" id="${id}" onclick="if(event.target===this)closeModal('${id}')">
+<div class="modal ${size}">
+<div class="modal-header">
+<span class="modal-title">${title}</span>
+<div class="modal-close" onclick="closeModal('${id}')"><i class="ti ti-x"></i></div>
+</div>
+<div class="modal-body">${bodyHtml}</div>
+${footerHtml?`<div class="modal-footer">${footerHtml}</div>`:''}
+</div>
+</div>`;
 }
-
 // ============================================================
 // PAGE: DASHBOARD
 // ============================================================
 pages['dashboard'] = () => `
 <div class="stats-grid" id="dash-stats">
-<div class="stat-card orange"><i class="ti ti-report-money stat-icon"></i><div class="stat-label">Penjualan Hari Ini</div><div class="stat-value" id="d-penjualan">Rp 0</div><div class="stat-sub" id="d-penjualan-sub">0 transaksi</div></div>
-<div class="stat-card green"><i class="ti ti-engine stat-icon"></i><div class="stat-label">Service Hari Ini</div><div class="stat-value" id="d-service">0</div><div class="stat-sub" id="d-service-sub">Work Order</div></div>
-<div class="stat-card blue"><i class="ti ti-box stat-icon"></i><div class="stat-label">Stok Menipis</div><div class="stat-value" id="d-stok">0</div><div class="stat-sub">item di bawah minimum</div></div>
-<div class="stat-card yellow"><i class="ti ti-coin stat-icon"></i><div class="stat-label">Piutang Belum Lunas</div><div class="stat-value" id="d-piutang">Rp 0</div><div class="stat-sub" id="d-piutang-sub">dari penjualan & service</div></div>
+<div class="stat-card orange">
+<i class="ti ti-report-money stat-icon"></i>
+<div class="stat-label">Penjualan Hari Ini</div>
+<div class="stat-value" id="d-penjualan">Rp 0</div>
+<div class="stat-sub" id="d-penjualan-sub">0 transaksi</div>
+</div>
+<div class="stat-card green">
+<i class="ti ti-engine stat-icon"></i>
+<div class="stat-label">Service Hari Ini</div>
+<div class="stat-value" id="d-service">0</div>
+<div class="stat-sub" id="d-service-sub">Work Order</div>
+</div>
+<div class="stat-card blue">
+<i class="ti ti-box stat-icon"></i>
+<div class="stat-label">Stok Menipis</div>
+<div class="stat-value" id="d-stok">0</div>
+<div class="stat-sub">item di bawah minimum</div>
+</div>
+<div class="stat-card yellow">
+<i class="ti ti-coin stat-icon"></i>
+<div class="stat-label">Piutang Belum Lunas</div>
+<div class="stat-value" id="d-piutang">Rp 0</div>
+<div class="stat-sub" id="d-piutang-sub">dari penjualan & service</div>
+</div>
 </div>
 <div class="dash-grid">
-<div class="dash-card"><div class="dash-card-hdr"><i class="ti ti-engine"></i>Antrian Service</div><div class="dash-card-body"><div class="wo-list" id="wo-antrian"><div style="color:var(--text3);font-size:13px">Memuat...</div></div></div></div>
-<div class="dash-card"><div class="dash-card-hdr"><i class="ti ti-bell"></i>Peringatan & Alert</div><div class="dash-card-body"><div class="alert-list" id="dash-alerts"><div style="color:var(--text3);font-size:13px">Memuat...</div></div></div></div>
+<div class="dash-card">
+<div class="dash-card-hdr"><i class="ti ti-engine"></i>Antrian Service</div>
+<div class="dash-card-body"><div class="wo-list" id="wo-antrian"><div style="color:var(--text3);font-size:13px">Memuat...</div></div></div>
+</div>
+<div class="dash-card">
+<div class="dash-card-hdr"><i class="ti ti-bell"></i>Peringatan & Alert</div>
+<div class="dash-card-body"><div class="alert-list" id="dash-alerts"><div style="color:var(--text3);font-size:13px">Memuat...</div></div></div>
+</div>
 </div>`;
-
 window.init_dashboard = async function() {
+// ── Penjualan hari ini ──────────────────────────────────────
 try {
 const td = today();
 const { data: pj } = await db.from('penjualan').select('total').gte('tanggal',td);
@@ -590,56 +1004,68 @@ const totalPj = (pj||[]).reduce((a,r)=>a+Number(r.total),0);
 document.getElementById('d-penjualan').textContent = fmt(totalPj);
 document.getElementById('d-penjualan-sub').textContent = `${(pj||[]).length} transaksi`;
 } catch(e) { console.error('dash-penjualan:',e); }
-
+// ── Antrian WO ─────────────────────────────────────────────
 try {
 const td = today();
 const { data: wo } = await db.from('work_order').select('*,kendaraan(no_plat),mekanik(nama)').gte('tanggal',td).in('status',['antri','proses']);
 document.getElementById('d-service').textContent = (wo||[]).length;
 document.getElementById('d-service-sub').textContent = 'Work Order';
-const woHtml = (wo||[]).length ? (wo||[]).map(w=>`<div class="wo-item" onclick="showPage('service')"><span class="wo-no">${w.no_wo}</span><div class="wo-info"><div class="wo-plat">${w.kendaraan?.no_plat||'-'}</div><div class="wo-mekanik">${w.mekanik?.nama||'Belum assign'}</div></div><span class="badge ${w.status==='proses'?'badge-orange':'badge-gray'}">${w.status}</span></div>`).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Tidak ada antrian service</div>';
+const woHtml = (wo||[]).length ? (wo||[]).map(w=>`
+<div class="wo-item" onclick="showPage('service')">
+<span class="wo-no">${w.no_wo}</span>
+<div class="wo-info">
+<div class="wo-plat">${w.kendaraan?.no_plat||'-'}</div>
+<div class="wo-mekanik">${w.mekanik?.nama||'Belum assign'}</div>
+</div>
+<span class="badge ${w.status==='proses'?'badge-orange':'badge-gray'}">${w.status}</span>
+</div>`).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px">Tidak ada antrian service</div>';
 document.getElementById('wo-antrian').innerHTML = woHtml;
 } catch(e) { console.error('dash-wo:',e); }
-
+// ── Stok menipis ───────────────────────────────────────────
 try {
 const { data: allBrg } = await db.from('barang').select('stok,stok_minimum');
 const stokC = (allBrg||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum)).length;
 document.getElementById('d-stok').textContent = stokC;
 } catch(e) { console.error('dash-stok:',e); }
-
+// ── Piutang ────────────────────────────────────────────────
 try {
 const { data: piut } = await db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0);
 const { data: piutWo } = await db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0);
 const totalPiut = [...(piut||[]),...(piutWo||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
 document.getElementById('d-piutang').textContent = fmt(totalPiut);
 } catch(e) { console.error('dash-piutang:',e); }
-
+// ── Alert panel ────────────────────────────────────────────
 try {
 const alerts = [];
+// Stok menipis
 const { data: allBrg2 } = await db.from('barang').select('stok,stok_minimum,nama');
 const stokLow = (allBrg2||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum));
 if(stokLow.length>0) alerts.push({type:'danger',icon:'ti-alert-triangle',text:'Stok menipis',val:`${stokLow.length} item`});
-
+// Piutang
 const { data: piut2 } = await db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0);
 const { data: piutWo2 } = await db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0);
 const totalPiut2 = [...(piut2||[]),...(piutWo2||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
 if(totalPiut2>0) alerts.push({type:'warn',icon:'ti-coin',text:'Piutang belum lunas',val:fmt(totalPiut2)});
-
+// Hutang supplier
 const { data: hutang } = await db.from('pembelian').select('sisa_hutang').gt('sisa_hutang',0);
 const totalHutang = (hutang||[]).reduce((a,r)=>a+Number(r.sisa_hutang),0);
 if(totalHutang>0) alerts.push({type:'info',icon:'ti-truck',text:'Hutang ke supplier',val:fmt(totalHutang)});
-
+// Pengeluaran bulan ini (opsional - tabel mungkin belum ada)
 try {
 const m1 = today().slice(0,7)+'-01';
 const { data: opex } = await db.from('pengeluaran').select('nominal').gte('tanggal',m1).lte('tanggal',today());
 const totalOpex = (opex||[]).reduce((a,r)=>a+Number(r.nominal),0);
 if(totalOpex>0) alerts.push({type:'warn',icon:'ti-cash',text:'Pengeluaran bulan ini',val:fmt(totalOpex)});
-} catch(e2) { }
-
-const alertHtml = alerts.length ? alerts.map(a=>`<div class="alert-item ${a.type}"><i class="ti ${a.icon} alert-icon"></i><span class="alert-text">${a.text}</span><span class="alert-val">${a.val}</span></div>`).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="ti ti-check" style="font-size:24px;display:block;margin-bottom:6px;color:var(--green)"></i>Semua baik-baik saja!</div>';
+} catch(e2) { /* tabel belum ada, skip */ }
+const alertHtml = alerts.length ? alerts.map(a=>`
+<div class="alert-item ${a.type}">
+<i class="ti ${a.icon} alert-icon"></i>
+<span class="alert-text">${a.text}</span>
+<span class="alert-val">${a.val}</span>
+</div>`).join('') : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="ti ti-check" style="font-size:24px;display:block;margin-bottom:6px;color:var(--green)"></i>Semua baik-baik saja!</div>';
 document.getElementById('dash-alerts').innerHTML = alertHtml;
 } catch(e) { console.error('dash-alerts:',e); }
 };
-
 // ============================================================
 // PAGE: DATA KENDARAAN — UPDATED dengan CC dan Bahan Bakar
 // ============================================================
@@ -663,14 +1089,24 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
 <div class="form-group"><label class="form-label">Tahun</label><input id="f-kd-tahun" class="form-input" type="number" min="1990" max="2030"/></div>
 <div class="form-group"><label class="form-label">Warna</label><input id="f-kd-warna" class="form-input"/></div>
 <div class="form-group"><label class="form-label">CC Kendaraan</label><input id="f-kd-cc" class="form-input" type="number" min="50" max="10000" placeholder="Contoh: 1500"/></div>
-<div class="form-group"><label class="form-label">Bahan Bakar</label><select id="f-kd-bahan" class="form-input"><option value="">-- Pilih --</option><option value="Bensin">Bensin</option><option value="Diesel">Diesel</option><option value="Solar">Solar</option><option value="LPG">LPG</option><option value="Listrik">Listrik</option><option value="Hybrid">Hybrid</option><option value="CNG">CNG</option></select></div>
+<div class="form-group"><label class="form-label">Bahan Bakar</label>
+<select id="f-kd-bahan" class="form-input">
+<option value="">-- Pilih --</option>
+<option value="Bensin">Bensin</option>
+<option value="Diesel">Diesel</option>
+<option value="Solar">Solar</option>
+<option value="LPG">LPG</option>
+<option value="Listrik">Listrik</option>
+<option value="Hybrid">Hybrid</option>
+<option value="CNG">CNG</option>
+</select>
+</div>
 <div class="form-group"><label class="form-label">Pemilik (Pelanggan)</label><select id="f-kd-pel" class="form-input"><option value="">-- Pilih Pelanggan --</option></select></div>
 <div class="form-group form-full"><label class="form-label">Catatan</label><textarea id="f-kd-catatan" class="form-input" rows="2"></textarea></div>
 </div><input type="hidden" id="f-kd-id"/>`,
-'',`<button class="btn btn-outline" onclick="closeModal('modal-kend')">Batal</button><button class="btn btn-primary" onclick="saveKend()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
-
+'',`<button class="btn btn-outline" onclick="closeModal('modal-kend')">Batal</button>
+<button class="btn btn-primary" onclick="saveKend()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
 window.init_kendaraan = async function(){await loadKend();};
-
 async function openModalKend(k=null){
 const pls=await loadTable('pelanggan',{order:'nama'});
 const sel=document.getElementById('f-kd-pel');
@@ -692,7 +1128,6 @@ if(k){
 }
 openModal('modal-kend');
 }
-
 async function loadKend(){
 const data=await loadTable('kendaraan',{select:'*,pelanggan(nama)',order:'no_plat'});
 document.getElementById('count-kend').textContent=`${data.length} data`;
@@ -710,7 +1145,6 @@ document.getElementById('body-kend').innerHTML=data.length?data.map(k=>`<tr>
 <button class="btn btn-danger btn-sm" onclick="delKend('${k.id}','${k.no_plat}')"><i class="ti ti-trash"></i></button>
 </div></td></tr>`).join(''):'<tr><td colspan="9" class="table-empty"><i class="ti ti-car-off"></i>Belum ada kendaraan</td></tr>';
 }
-
 async function saveKend(){
 const id=document.getElementById('f-kd-id').value;
 const plat=document.getElementById('f-kd-plat').value.trim().toUpperCase();
@@ -736,18 +1170,444 @@ try{
 }catch(e){showToast('Gagal','error');}
 showLoading(false);
 }
-
-async function delKend(id,plat){
-  if(!confirm2(`Hapus kendaraan ${plat}?`))return;
-  showLoading(true);
-  try{
-    await dbOp('kendaraan','DELETE',{id});
-    showToast('Kendaraan dihapus');
-    await loadKend();
-  }catch(e){showToast('Gagal','error');}
-  showLoading(false);
+async function delKend(id,plat){if(!confirm2(`Hapus kendaraan ${plat}?`))return;showLoading(true);try{await dbOp('kendaraan','DELETE',{id});showToast('Kendaraan dihapus');await loadKend();}catch(e){showToast('Gagal','error');}showLoading(false);}
+// ============================================================
+// PAGE: DATA BARANG
+// ============================================================
+pages['barang'] = () => `
+<div class="section-hdr">
+<h2><i class="ti ti-package"></i>Data Barang</h2>
+<div class="section-hdr-actions">
+<button class="btn btn-primary" onclick="openModal('modal-barang');resetFormBarang()"><i class="ti ti-plus"></i>Tambah Barang</button>
+</div>
+</div>
+<div class="table-wrap">
+<div class="table-toolbar">
+<div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari nama/kode barang..." oninput="filterTable('tbl-barang',this.value,[0,1])"/></div>
+<div style="font-size:12px;color:var(--text3)" id="count-barang"></div>
+</div>
+<table id="tbl-barang"><thead><tr>
+<th>Kode</th><th>Nama Barang</th><th>Kategori</th><th>Satuan</th>
+<th>Harga Beli</th><th>Harga Jual</th><th>Stok</th><th>Min</th><th>Status</th><th>Aksi</th>
+</tr></thead><tbody id="body-barang"><tr><td colspan="10" class="table-empty"><i class="ti ti-loader"></i>Memuat data...</td></tr></tbody></table>
+</div>
+${modalHtml('modal-barang','Tambah / Edit Barang',`
+<div class="form-grid">
+<div class="form-group"><label class="form-label">Kode Barang <span class="req">*</span></label><input id="f-br-kode" class="form-input" placeholder="Otomatis jika kosong"/></div>
+<div class="form-group"><label class="form-label">Nama Barang <span class="req">*</span></label><input id="f-br-nama" class="form-input" placeholder="Nama barang/sparepart"/></div>
+<div class="form-group"><label class="form-label">Kategori</label>
+<select id="f-br-kategori" class="form-input">
+<option value="">-- Pilih --</option>
+<option>Oli & Cairan</option><option>Filter</option><option>Rem</option>
+<option>Aki & Kelistrikan</option><option>Mesin</option><option>Bodi</option>
+<option>Ban & Velg</option><option>Jasa</option><option>Lainnya</option>
+</select>
+</div>
+<div class="form-group"><label class="form-label">Satuan <span class="req">*</span></label>
+<select id="f-br-satuan" class="form-input">
+<option>pcs</option><option>liter</option><option>botol</option><option>set</option>
+<option>pasang</option><option>box</option><option>roll</option><option>meter</option><option>kg</option>
+</select>
+</div>
+<div class="form-group"><label class="form-label">Harga Beli</label><input id="f-br-hbeli" class="form-input" type="number" min="0" placeholder="0"/></div>
+<div class="form-group"><label class="form-label">Harga Jual</label><input id="f-br-hjual" class="form-input" type="number" min="0" placeholder="0"/></div>
+<div class="form-group"><label class="form-label">Stok Awal</label><input id="f-br-stok" class="form-input" type="number" min="0" placeholder="0"/></div>
+<div class="form-group"><label class="form-label">Stok Minimum</label><input id="f-br-smin" class="form-input" type="number" min="0" placeholder="5"/></div>
+<div class="form-group"><label class="form-label">Lokasi Gudang</label><input id="f-br-lokasi" class="form-input" placeholder="Rak A1..."/></div>
+<div class="form-group"><label class="form-label">Status</label>
+<select id="f-br-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select>
+</div>
+</div>
+<input type="hidden" id="f-br-id"/>`,
+'',`
+<button class="btn btn-outline" onclick="closeModal('modal-barang')">Batal</button>
+<button class="btn btn-primary" onclick="saveBarang()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
+window.init_barang = async function() {
+await loadBarang();
+};
+async function loadBarang() {
+try {
+const data = await loadTable('barang',{order:'nama'});
+const tbody = document.getElementById('body-barang');
+document.getElementById('count-barang').textContent = `${data.length} data`;
+tbody.innerHTML = data.length ? data.map(b=>`
+<tr>
+<td><code style="color:var(--orange);font-size:12px">${b.kode}</code></td>
+<td style="font-weight:500;color:var(--text)">${b.nama}</td>
+<td>${b.kategori||'-'}</td>
+<td>${b.satuan}</td>
+<td>${fmt(b.harga_beli)}</td>
+<td>${fmt(b.harga_jual)}</td>
+<td><span style="font-family:var(--font-display);font-size:15px;font-weight:700;color:${b.stok<=b.stok_minimum?'var(--red)':'var(--green)'}">${b.stok}</span></td>
+<td style="color:var(--text3)">${b.stok_minimum}</td>
+<td>${b.aktif?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Nonaktif</span>'}</td>
+<td>
+<div style="display:flex;gap:4px">
+<button class="btn btn-outline btn-sm" onclick='editBarang(${JSON.stringify(b)})'><i class="ti ti-edit"></i></button>
+<button class="btn btn-danger btn-sm" onclick="delBarang('${b.id}','${b.nama}')"><i class="ti ti-trash"></i></button>
+</div>
+</td>
+</tr>`).join('') : '<tr><td colspan="10" class="table-empty"><i class="ti ti-package-off"></i>Belum ada data barang</td></tr>';
+} catch(e) { showToast('Gagal memuat data barang','error'); }
 }
-
+function resetFormBarang() {
+['f-br-id','f-br-kode','f-br-nama','f-br-lokasi'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value=''; });
+['f-br-stok','f-br-smin'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value='0'; });
+['f-br-hbeli','f-br-hjual'].forEach(i=>{ const el=document.getElementById(i); if(el) el.value='0'; });
+const kd=document.getElementById('modal-barang'); if(kd) kd.querySelector('.modal-title').textContent='Tambah Barang';
+}
+function editBarang(b) {
+document.getElementById('f-br-id').value = b.id;
+document.getElementById('f-br-kode').value = b.kode;
+document.getElementById('f-br-nama').value = b.nama;
+document.getElementById('f-br-kategori').value = b.kategori||'';
+document.getElementById('f-br-satuan').value = b.satuan;
+document.getElementById('f-br-hbeli').value = b.harga_beli;
+document.getElementById('f-br-hjual').value = b.harga_jual;
+document.getElementById('f-br-stok').value = b.stok;
+document.getElementById('f-br-smin').value = b.stok_minimum;
+document.getElementById('f-br-lokasi').value = b.lokasi_gudang||'';
+document.getElementById('f-br-aktif').value = String(b.aktif);
+document.querySelector('#modal-barang .modal-title').textContent = 'Edit Barang';
+openModal('modal-barang');
+}
+async function saveBarang() {
+const id = document.getElementById('f-br-id').value;
+const nama = document.getElementById('f-br-nama').value.trim();
+if (!nama) { showToast('Nama barang wajib diisi','error'); return; }
+let kode = document.getElementById('f-br-kode').value.trim();
+if (!kode) {
+const {count} = await db.from('barang').select('*',{count:'exact',head:true});
+kode = 'BRG'+pad((count||0)+1,5);
+}
+const payload = {
+kode, nama,
+kategori: document.getElementById('f-br-kategori').value,
+satuan: document.getElementById('f-br-satuan').value,
+harga_beli: Number(document.getElementById('f-br-hbeli').value)||0,
+harga_jual: Number(document.getElementById('f-br-hjual').value)||0,
+stok: Number(document.getElementById('f-br-stok').value)||0,
+stok_minimum: Number(document.getElementById('f-br-smin').value)||5,
+lokasi_gudang: document.getElementById('f-br-lokasi').value,
+aktif: document.getElementById('f-br-aktif').value==='true',
+};
+showLoading(true);
+try {
+if (id) await dbOp('barang','UPDATE',{id,payload});
+else await dbOp('barang','INSERT',{id:uid(),...payload});
+closeModal('modal-barang');
+showToast(id?'Barang diperbarui':'Barang ditambahkan');
+await loadBarang();
+} catch(e) { showToast('Gagal menyimpan: '+e.message,'error'); }
+showLoading(false);
+}
+async function delBarang(id, nama) {
+if (!confirm2(`Hapus barang "${nama}"?`)) return;
+showLoading(true);
+try {
+await dbOp('barang','DELETE',{id});
+showToast('Barang dihapus');
+await loadBarang();
+} catch(e) { showToast('Gagal menghapus','error'); }
+showLoading(false);
+}
+// ============================================================
+// PAGE: DATA SUPPLIER
+// ============================================================
+pages['supplier'] = () => `
+<div class="section-hdr">
+<h2><i class="ti ti-truck"></i>Data Supplier</h2>
+<div class="section-hdr-actions">
+<button class="btn btn-primary" onclick="openModal('modal-supplier');resetFormSupplier()"><i class="ti ti-plus"></i>Tambah Supplier</button>
+</div>
+</div>
+<div class="table-wrap">
+<div class="table-toolbar">
+<div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari nama supplier..." oninput="filterTable('tbl-supplier',this.value,[0,1])"/></div>
+<div style="font-size:12px;color:var(--text3)" id="count-supplier"></div>
+</div>
+<table id="tbl-supplier"><thead><tr>
+<th>Kode</th><th>Nama</th><th>Kontak</th><th>Telepon</th><th>Saldo Hutang</th><th>Status</th><th>Aksi</th>
+</tr></thead><tbody id="body-supplier"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
+</div>
+${modalHtml('modal-supplier','Tambah / Edit Supplier',`
+<div class="form-grid">
+<div class="form-group"><label class="form-label">Kode</label><input id="f-sp-kode" class="form-input" placeholder="Otomatis jika kosong"/></div>
+<div class="form-group"><label class="form-label">Nama Supplier <span class="req">*</span></label><input id="f-sp-nama" class="form-input"/></div>
+<div class="form-group"><label class="form-label">Kontak Person</label><input id="f-sp-kontak" class="form-input"/></div>
+<div class="form-group"><label class="form-label">Telepon</label><input id="f-sp-telp" class="form-input" type="tel"/></div>
+<div class="form-group form-full"><label class="form-label">Alamat</label><textarea id="f-sp-alamat" class="form-input" rows="2"></textarea></div>
+</div><input type="hidden" id="f-sp-id"/>`,
+'',`<button class="btn btn-outline" onclick="closeModal('modal-supplier')">Batal</button>
+<button class="btn btn-primary" onclick="saveSupplier()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
+window.init_supplier = async function() { await loadSupplier(); };
+async function loadSupplier() {
+const data = await loadTable('supplier',{order:'nama'});
+document.getElementById('count-supplier').textContent = `${data.length} data`;
+document.getElementById('body-supplier').innerHTML = data.length ? data.map(s=>`<tr>
+<td><code style="color:var(--orange);font-size:12px">${s.kode}</code></td>
+<td style="font-weight:500;color:var(--text)">${s.nama}</td>
+<td>${s.kontak||'-'}</td><td>${s.telepon||'-'}</td>
+<td style="color:${s.saldo_hutang>0?'var(--red)':'var(--text2)'};font-weight:${s.saldo_hutang>0?'600':'400'}">${fmt(s.saldo_hutang)}</td>
+<td>${s.aktif?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Nonaktif</span>'}</td>
+<td><div style="display:flex;gap:4px">
+<button class="btn btn-outline btn-sm" onclick='editSupplier(${JSON.stringify(s)})'><i class="ti ti-edit"></i></button>
+<button class="btn btn-danger btn-sm" onclick="delSupplier('${s.id}','${s.nama}')"><i class="ti ti-trash"></i></button>
+</div></td>
+</tr>`).join('') : '<tr><td colspan="7" class="table-empty"><i class="ti ti-truck-off"></i>Belum ada supplier</td></tr>';
+}
+function resetFormSupplier(){ ['f-sp-id','f-sp-kode','f-sp-nama','f-sp-kontak','f-sp-telp','f-sp-alamat'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); }
+function editSupplier(s){ document.getElementById('f-sp-id').value=s.id;document.getElementById('f-sp-kode').value=s.kode;document.getElementById('f-sp-nama').value=s.nama;document.getElementById('f-sp-kontak').value=s.kontak||'';document.getElementById('f-sp-telp').value=s.telepon||'';document.getElementById('f-sp-alamat').value=s.alamat||'';openModal('modal-supplier');}
+async function saveSupplier(){
+const id=document.getElementById('f-sp-id').value;
+const nama=document.getElementById('f-sp-nama').value.trim();
+if(!nama){showToast('Nama supplier wajib','error');return;}
+let kode=document.getElementById('f-sp-kode').value.trim();
+if(!kode){const{count}=await db.from('supplier').select('*',{count:'exact',head:true});kode='SUP'+pad((count||0)+1,4);}
+const payload={kode,nama,kontak:document.getElementById('f-sp-kontak').value,telepon:document.getElementById('f-sp-telp').value,alamat:document.getElementById('f-sp-alamat').value};
+showLoading(true);
+try{
+if(id)await dbOp('supplier','UPDATE',{id,payload});else await dbOp('supplier','INSERT',{id:uid(),...payload});
+closeModal('modal-supplier');showToast(id?'Supplier diperbarui':'Supplier ditambahkan');await loadSupplier();
+}catch(e){showToast('Gagal simpan','error');}
+showLoading(false);
+}
+async function delSupplier(id,nama){if(!confirm2(`Hapus supplier "${nama}"?`))return;showLoading(true);try{await dbOp('supplier','DELETE',{id});showToast('Supplier dihapus');await loadSupplier();}catch(e){showToast('Gagal','error');}showLoading(false);}
+// ============================================================
+// PAGE: DATA PELANGGAN
+// ============================================================
+pages['pelanggan'] = () => `
+<div class="section-hdr"><h2><i class="ti ti-users"></i>Data Pelanggan</h2>
+<div class="section-hdr-actions"><button class="btn btn-primary" onclick="openModal('modal-pelanggan');resetFormPelanggan()"><i class="ti ti-plus"></i>Tambah Pelanggan</button></div>
+</div>
+<div class="table-wrap">
+<div class="table-toolbar">
+<div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari nama pelanggan..." oninput="filterTable('tbl-pel',this.value,[0,1])"/></div>
+<div style="font-size:12px;color:var(--text3)" id="count-pel"></div>
+</div>
+<table id="tbl-pel"><thead><tr><th>Kode</th><th>Nama</th><th>Telepon</th><th>Alamat</th><th>Saldo Piutang</th><th>Aksi</th></tr></thead>
+<tbody id="body-pel"><tr><td colspan="6" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
+</div>
+${modalHtml('modal-pelanggan','Tambah / Edit Pelanggan',`
+<div class="form-grid">
+<div class="form-group"><label class="form-label">Kode</label><input id="f-pel-kode" class="form-input" placeholder="Otomatis"/></div>
+<div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-pel-nama" class="form-input"/></div>
+<div class="form-group"><label class="form-label">Telepon</label><input id="f-pel-telp" class="form-input" type="tel"/></div>
+<div class="form-group form-full"><label class="form-label">Alamat</label><textarea id="f-pel-alamat" class="form-input" rows="2"></textarea></div>
+</div><input type="hidden" id="f-pel-id"/>`,
+'',`<button class="btn btn-outline" onclick="closeModal('modal-pelanggan')">Batal</button>
+<button class="btn btn-primary" onclick="savePelanggan()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
+window.init_pelanggan = async function(){await loadPelanggan();};
+async function loadPelanggan(){
+const data=await loadTable('pelanggan',{order:'nama'});
+document.getElementById('count-pel').textContent=`${data.length} data`;
+document.getElementById('body-pel').innerHTML=data.length?data.map(p=>`<tr>
+<td><code style="color:var(--orange);font-size:12px">${p.kode}</code></td>
+<td style="font-weight:500;color:var(--text)">${p.nama}</td>
+<td>${p.telepon||'-'}</td><td style="max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.alamat||'-'}</td>
+<td style="color:${p.saldo_piutang>0?'var(--yellow)':'var(--text2)'};font-weight:${p.saldo_piutang>0?'600':'400'}">${fmt(p.saldo_piutang)}</td>
+<td><div style="display:flex;gap:4px">
+<button class="btn btn-outline btn-sm" onclick='editPelanggan(${JSON.stringify(p)})'><i class="ti ti-edit"></i></button>
+<button class="btn btn-danger btn-sm" onclick="delPelanggan('${p.id}','${p.nama}')"><i class="ti ti-trash"></i></button>
+</div></td></tr>`).join(''):'<tr><td colspan="6" class="table-empty"><i class="ti ti-users-off"></i>Belum ada pelanggan</td></tr>';
+}
+function resetFormPelanggan(){['f-pel-id','f-pel-kode','f-pel-nama','f-pel-telp','f-pel-alamat'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); }
+function editPelanggan(p){document.getElementById('f-pel-id').value=p.id;document.getElementById('f-pel-kode').value=p.kode;document.getElementById('f-pel-nama').value=p.nama;document.getElementById('f-pel-telp').value=p.telepon||'';document.getElementById('f-pel-alamat').value=p.alamat||'';openModal('modal-pelanggan');}
+async function savePelanggan(){
+const id=document.getElementById('f-pel-id').value;const nama=document.getElementById('f-pel-nama').value.trim();
+if(!nama){showToast('Nama wajib','error');return;}
+let kode=document.getElementById('f-pel-kode').value.trim();
+if(!kode){const{count}=await db.from('pelanggan').select('*',{count:'exact',head:true});kode='PLG'+pad((count||0)+1,4);}
+const payload={kode,nama,telepon:document.getElementById('f-pel-telp').value,alamat:document.getElementById('f-pel-alamat').value};
+showLoading(true);
+try{if(id)await dbOp('pelanggan','UPDATE',{id,payload});else await dbOp('pelanggan','INSERT',{id:uid(),...payload});closeModal('modal-pelanggan');showToast(id?'Pelanggan diperbarui':'Pelanggan ditambahkan');await loadPelanggan();}
+catch(e){showToast('Gagal','error');}showLoading(false);
+}
+async function delPelanggan(id,nama){if(!confirm2(`Hapus "${nama}"?`))return;showLoading(true);try{await dbOp('pelanggan','DELETE',{id});showToast('Pelanggan dihapus');await loadPelanggan();}catch(e){showToast('Gagal','error');}showLoading(false);}
+// ============================================================
+// PAGE: DATA MEKANIK
+// ============================================================
+pages['mekanik'] = () => `
+<div class="section-hdr"><h2><i class="ti ti-tool"></i>Data Mekanik</h2>
+<div class="section-hdr-actions"><button class="btn btn-primary" onclick="openModal('modal-mekanik');resetFormMek()"><i class="ti ti-plus"></i>Tambah Mekanik</button></div>
+</div>
+<div class="table-wrap">
+<div class="table-toolbar">
+<div class="search-box"><i class="ti ti-search"></i><input type="text" placeholder="Cari nama mekanik..." oninput="filterTable('tbl-mek',this.value,[0,1])"/></div>
+<div style="font-size:12px;color:var(--text3)" id="count-mek"></div>
+</div>
+<table id="tbl-mek"><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Telepon</th><th>Status</th><th>Aksi</th></tr></thead>
+<tbody id="body-mek"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
+</div>
+${modalHtml('modal-mekanik','Tambah / Edit Mekanik',`
+<div class="form-grid">
+<div class="form-group"><label class="form-label">Kode</label><input id="f-mek-kode" class="form-input" placeholder="Otomatis"/></div>
+<div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-mek-nama" class="form-input"/></div>
+<div class="form-group"><label class="form-label">Spesialisasi</label><input id="f-mek-spek" class="form-input" placeholder="Mesin, Kelistrikan..."/></div>
+<div class="form-group"><label class="form-label">Telepon</label><input id="f-mek-telp" class="form-input" type="tel"/></div>
+<div class="form-group"><label class="form-label">Status</label><select id="f-mek-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+</div><input type="hidden" id="f-mek-id"/>`,
+'',`<button class="btn btn-outline" onclick="closeModal('modal-mekanik')">Batal</button>
+<button class="btn btn-primary" onclick="saveMek()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
+window.init_mekanik=async function(){await loadMek();};
+async function loadMek(){
+const data=await loadTable('mekanik',{order:'nama'});
+document.getElementById('count-mek').textContent=`${data.length} mekanik`;
+document.getElementById('body-mek').innerHTML=data.length?data.map(m=>`<tr>
+<td><code style="color:var(--orange);font-size:12px">${m.kode}</code></td>
+<td style="font-weight:500;color:var(--text)">${m.nama}</td>
+<td>${m.spesialisasi||'-'}</td><td>${m.telepon||'-'}</td>
+<td>${m.aktif?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Nonaktif</span>'}</td>
+<td><div style="display:flex;gap:4px">
+<button class="btn btn-outline btn-sm" onclick='editMek(${JSON.stringify(m)})'><i class="ti ti-edit"></i></button>
+<button class="btn btn-danger btn-sm" onclick="delMek('${m.id}','${m.nama}')"><i class="ti ti-trash"></i></button>
+</div></td></tr>`).join(''):'<tr><td colspan="6" class="table-empty"><i class="ti ti-tool-off"></i>Belum ada mekanik</td></tr>';
+}
+function resetFormMek(){['f-mek-id','f-mek-kode','f-mek-nama','f-mek-spek','f-mek-telp'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});}
+function editMek(m){document.getElementById('f-mek-id').value=m.id;document.getElementById('f-mek-kode').value=m.kode;document.getElementById('f-mek-nama').value=m.nama;document.getElementById('f-mek-spek').value=m.spesialisasi||'';document.getElementById('f-mek-telp').value=m.telepon||'';document.getElementById('f-mek-aktif').value=String(m.aktif);openModal('modal-mekanik');}
+async function saveMek(){
+const id=document.getElementById('f-mek-id').value;const nama=document.getElementById('f-mek-nama').value.trim();if(!nama){showToast('Nama wajib','error');return;}
+let kode=document.getElementById('f-mek-kode').value.trim();if(!kode){const{count}=await db.from('mekanik').select('*',{count:'exact',head:true});kode='MEK'+pad((count||0)+1,3);}
+const payload={kode,nama,spesialisasi:document.getElementById('f-mek-spek').value,telepon:document.getElementById('f-mek-telp').value,aktif:document.getElementById('f-mek-aktif').value==='true'};
+showLoading(true);try{if(id)await dbOp('mekanik','UPDATE',{id,payload});else await dbOp('mekanik','INSERT',{id:uid(),...payload});closeModal('modal-mekanik');showToast(id?'Mekanik diperbarui':'Mekanik ditambahkan');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);
+}
+async function delMek(id,nama){if(!confirm2(`Hapus mekanik "${nama}"?`))return;showLoading(true);try{await dbOp('mekanik','DELETE',{id});showToast('Mekanik dihapus');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);}
+// ============================================================
+// PAGE: GUDANG — STOK
+// ============================================================
+pages['gudang'] = () => `
+<div class="section-hdr"><h2><i class="ti ti-building-warehouse"></i>Stok Gudang</h2>
+<div class="section-hdr-actions">
+<select id="filter-kategori" class="form-input" style="width:auto" onchange="filterGudang()">
+<option value="">Semua Kategori</option>
+<option>Oli & Cairan</option><option>Filter</option><option>Rem</option>
+<option>Aki & Kelistrikan</option><option>Mesin</option><option>Bodi</option>
+<option>Ban & Velg</option><option>Jasa</option><option>Lainnya</option>
+</select>
+<select id="filter-stok" class="form-input" style="width:auto" onchange="filterGudang()">
+<option value="">Semua Stok</option>
+<option value="low">Stok Menipis</option>
+<option value="ok">Stok Aman</option>
+<option value="empty">Stok Habis</option>
+</select>
+<button class="btn btn-outline" onclick="init_gudang()"><i class="ti ti-refresh"></i>Refresh</button>
+<button class="btn btn-primary" onclick="openKoreksiStok()"><i class="ti ti-adjustments"></i>Koreksi Stok</button>
+</div>
+</div>
+<div style="margin-bottom:12px;display:flex;gap:10px;flex-wrap:wrap" id="gudang-summary"></div>
+<div id="gudang-grid" class="stok-grid"></div>
+${modalHtml('modal-koreksi','Koreksi Stok Manual',`
+<div class="form-grid">
+<div class="form-group form-full"><label class="form-label">Barang <span class="req">*</span></label>
+<select id="f-kor-barang" class="form-input"><option value="">-- Pilih Barang --</option></select>
+</div>
+<div class="form-group"><label class="form-label">Jenis Koreksi</label>
+<select id="f-kor-jenis" class="form-input"><option value="masuk">Masuk (+)</option><option value="keluar">Keluar (-)</option></select>
+</div>
+<div class="form-group"><label class="form-label">Jumlah <span class="req">*</span></label><input id="f-kor-jumlah" class="form-input" type="number" min="1" value="1"/></div>
+<div class="form-group form-full"><label class="form-label">Keterangan</label><textarea id="f-kor-ket" class="form-input" rows="2" placeholder="Alasan koreksi..."></textarea></div>
+</div>`,
+'',`<button class="btn btn-outline" onclick="closeModal('modal-koreksi')">Batal</button>
+<button class="btn btn-primary" onclick="saveKoreksi()"><i class="ti ti-device-floppy"></i>Simpan Koreksi</button>`)}`;
+let _gudangData = [];
+window.init_gudang = async function(){
+_gudangData = await loadTable('barang',{order:'nama'});
+renderGudang(_gudangData);
+const tot = _gudangData.length;
+const low = _gudangData.filter(b=>b.stok<=b.stok_minimum&&b.stok>0).length;
+const empty = _gudangData.filter(b=>b.stok<=0).length;
+document.getElementById('gudang-summary').innerHTML = `
+<div class="status-badge"><span class="status-dot" style="background:var(--text3)"></span>${tot} Total Item</div>
+<div class="status-badge" style="border-color:rgba(34,197,94,0.3)"><span class="status-dot" style="background:var(--green)"></span>${tot-low-empty} Stok Aman</div>
+<div class="status-badge" style="border-color:rgba(245,158,11,0.3)"><span class="status-dot" style="background:var(--yellow)"></span>${low} Menipis</div>
+<div class="status-badge" style="border-color:rgba(239,68,68,0.3)"><span class="status-dot" style="background:var(--red)"></span>${empty} Habis</div>`;
+};
+function renderGudang(data){
+document.getElementById('gudang-grid').innerHTML = data.length ? data.map(b=>`
+<div class="stok-card ${b.stok<=0?'low':b.stok<=b.stok_minimum?'low':'ok'}" onclick="lihatMutasi('${b.id}','${b.nama}')">
+<div class="stok-nama">${b.nama}</div>
+<div class="stok-num">${b.stok}</div>
+<div class="stok-satuan">${b.satuan}</div>
+<div class="stok-min">Min: ${b.stok_minimum} · ${b.kategori||'Umum'}</div>
+${b.stok<=0?'<div style="margin-top:6px"><span class="badge badge-red">HABIS</span></div>':b.stok<=b.stok_minimum?'<div style="margin-top:6px"><span class="badge badge-yellow">MENIPIS</span></div>':''}
+</div>`).join('') : '<div style="color:var(--text3);text-align:center;padding:40px;grid-column:1/-1">Tidak ada barang</div>';
+}
+function filterGudang(){
+const kat = document.getElementById('filter-kategori').value;
+const stk = document.getElementById('filter-stok').value;
+let d = [..._gudangData];
+if(kat) d=d.filter(b=>b.kategori===kat);
+if(stk==='low') d=d.filter(b=>b.stok>0&&b.stok<=b.stok_minimum);
+else if(stk==='ok') d=d.filter(b=>b.stok>b.stok_minimum);
+else if(stk==='empty') d=d.filter(b=>b.stok<=0);
+renderGudang(d);
+}
+async function openKoreksiStok(){
+const brg=await loadTable('barang',{order:'nama'});
+document.getElementById('f-kor-barang').innerHTML='<option value="">-- Pilih Barang --</option>'+brg.map(b=>`<option value="${b.id}" data-stok="${b.stok}">${b.nama} (Stok: ${b.stok} ${b.satuan})</option>`).join('');
+openModal('modal-koreksi');
+}
+async function saveKoreksi(){
+const bId=document.getElementById('f-kor-barang').value;
+const jenis=document.getElementById('f-kor-jenis').value;
+const jml=Number(document.getElementById('f-kor-jumlah').value)||0;
+const ket=document.getElementById('f-kor-ket').value;
+if(!bId||!jml){showToast('Lengkapi data koreksi','error');return;}
+showLoading(true);
+try{
+const {data:br}=await db.from('barang').select('stok').eq('id',bId).single();
+const stokBaru=jenis==='masuk'?br.stok+jml:Math.max(0,br.stok-jml);
+await dbOp('barang','UPDATE',{id:bId,payload:{stok:stokBaru}});
+await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:bId,jenis:'koreksi',jumlah:jenis==='masuk'?jml:-jml,stok_sebelum:br.stok,stok_sesudah:stokBaru,referensi_tipe:'manual',keterangan:ket||'Koreksi manual'});
+closeModal('modal-koreksi');showToast('Koreksi stok berhasil');await init_gudang();
+}catch(e){showToast('Gagal koreksi','error');}
+showLoading(false);
+}
+function lihatMutasi(id,nama){ showPage('mutasi'); setTimeout(()=>{ document.getElementById('f-mutasi-barang').value=id; loadMutasi(); },300); }
+// ============================================================
+// PAGE: KARTU STOK / MUTASI
+// ============================================================
+pages['mutasi'] = () => `
+<div class="section-hdr"><h2><i class="ti ti-list-details"></i>Kartu Stok & Mutasi</h2></div>
+<div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+<select id="f-mutasi-barang" class="form-input" style="flex:1;min-width:200px" onchange="loadMutasi()"><option value="">-- Pilih Barang --</option></select>
+<input type="date" id="f-mutasi-dari" class="form-input" style="width:150px" value="${today().slice(0,7)+'-01'}" onchange="loadMutasi()"/>
+<input type="date" id="f-mutasi-sampai" class="form-input" style="width:150px" value="${today()}" onchange="loadMutasi()"/>
+</div>
+<div id="mutasi-stok-info" style="margin-bottom:12px"></div>
+<div class="table-wrap">
+<table><thead><tr><th>Tanggal</th><th>Jenis</th><th>Jumlah</th><th>Stok Sebelum</th><th>Stok Sesudah</th><th>Referensi</th><th>Keterangan</th></tr></thead>
+<tbody id="body-mutasi"><tr><td colspan="7" class="table-empty">Pilih barang untuk melihat mutasi</td></tr></tbody></table>
+</div>`;
+window.init_mutasi = async function(){
+const brg=await loadTable('barang',{order:'nama'});
+document.getElementById('f-mutasi-barang').innerHTML='<option value="">-- Pilih Barang --</option>'+brg.map(b=>`<option value="${b.id}">${b.nama} (${b.stok} ${b.satuan})</option>`).join('');
+};
+async function loadMutasi(){
+const bId=document.getElementById('f-mutasi-barang').value;
+if(!bId)return;
+const dari=document.getElementById('f-mutasi-dari').value;
+const sampai=document.getElementById('f-mutasi-sampai').value;
+let q=db.from('mutasi_stok').select('*').eq('barang_id',bId).order('tanggal',{ascending:false});
+if(dari) q=q.gte('tanggal',dari);
+if(sampai) q=q.lte('tanggal',sampai+'T23:59:59');
+const{data}=await q;
+const jmlMasuk=(data||[]).filter(m=>m.jumlah>0).reduce((a,m)=>a+m.jumlah,0);
+const jmlKeluar=(data||[]).filter(m=>m.jumlah<0).reduce((a,m)=>a+Math.abs(m.jumlah),0);
+document.getElementById('mutasi-stok-info').innerHTML=`
+<div style="display:flex;gap:10px;flex-wrap:wrap">
+<div class="status-badge" style="border-color:rgba(34,197,94,0.3)"><i class="ti ti-arrow-down" style="color:var(--green)"></i> Masuk: <strong style="color:var(--green)">${jmlMasuk}</strong></div>
+<div class="status-badge" style="border-color:rgba(239,68,68,0.3)"><i class="ti ti-arrow-up" style="color:var(--red)"></i> Keluar: <strong style="color:var(--red)">${jmlKeluar}</strong></div>
+</div>`;
+document.getElementById('body-mutasi').innerHTML=(data||[]).length?(data||[]).map(m=>`<tr>
+<td>${new Date(m.tanggal).toLocaleDateString('id-ID')}</td>
+<td><span class="badge ${m.jenis==='masuk'?'badge-green':m.jenis==='keluar'?'badge-red':'badge-blue'}">${m.jenis}</span></td>
+<td style="font-family:var(--font-display);font-size:15px;font-weight:700;color:${m.jumlah>0?'var(--green)':'var(--red)'}">${m.jumlah>0?'+':''}${m.jumlah}</td>
+<td>${m.stok_sebelum}</td><td>${m.stok_sesudah}</td>
+<td><span style="font-size:11px;color:var(--text3)">${m.referensi_tipe||'-'}</span>${m.referensi_no?`<br><code style="font-size:11px;color:var(--orange)">${m.referensi_no}</code>`:''}</td>
+<td style="font-size:12px;color:var(--text3)">${m.keterangan||'-'}</td>
+</tr>`).join('') : '<tr><td colspan="7" class="table-empty">Tidak ada mutasi pada periode ini</td></tr>';
+}
 // ============================================================
 // TABLE FILTER UTILITY
 // ============================================================
@@ -762,7 +1622,37 @@ const match=colIndexes.some(i=>cells[i]&&cells[i].textContent.toLowerCase().incl
 row.style.display=kw?match?'':'none':'';
 });
 }
-
+// ============================================================
+// PRINT SECTION
+// ============================================================
+function printSection(id){
+const el=document.getElementById(id);if(!el)return;
+const pa=document.getElementById('print-area');
+pa.style.display='block';
+pa.innerHTML=`<style>table{width:100%;border-collapse:collapse;font-size:11px}th,td{border:1px solid #ddd;padding:5px 7px;text-align:left}th{background:#f5f5f5;font-weight:600}</style>${el.innerHTML}`;
+setTimeout(()=>{window.print();pa.style.display='none';},300);
+}
+// ============================================================
+// PWA MANIFEST & SERVICE WORKER
+// ============================================================
+(function(){
+// Inline manifest via blob URL
+const manifest = {
+name: "AutoServ Pro",
+short_name: "AutoServ",
+description: "Bengkel Service Mobil",
+start_url: "/",
+display: "standalone",
+background_color: "#0a0a0a",
+theme_color: "#ff6a00",
+icons: [
+{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff6a00'/><text y='.9em' font-size='80' x='10'>🔧</text></svg>", sizes: "192x192", type: "image/svg+xml" }
+]
+};
+const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
+const url = URL.createObjectURL(blob);
+document.getElementById('manifest-link').setAttribute('href', url);
+})();
 // ============================================================
 // INIT APP
 // ============================================================
@@ -772,7 +1662,6 @@ await openIDB();
 updateStatus();
 showPage('dashboard');
 }
-
 initApp();
 </script>
 </body>
