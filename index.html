@@ -534,60 +534,8 @@ select.form-input option{background:var(--bg3)}
 </style>
 
 <script>
-// ============================================================
-// SERVICE WORKER REGISTRATION (PWA offline cache)
-// ============================================================
-if ('serviceWorker' in navigator) {
-  // Generate SW as blob URL so it works from single HTML file
-  const swCode = `
-const CACHE = 'autoserv-v1';
-const ASSETS = [self.location.href.replace('/sw-blob','')];
-
-self.addEventListener('install', e => {
-  e.waitUntil(
-    caches.open(CACHE).then(c => c.addAll(ASSETS)).catch(()=>{})
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', e => {
-  e.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
-    )
-  );
-  self.clients.claim();
-});
-
-self.addEventListener('fetch', e => {
-  // Only cache GET requests
-  if (e.request.method !== 'GET') return;
-  // Don't cache supabase API calls
-  if (e.request.url.includes('supabase.co')) return;
-  
-  e.respondWith(
-    caches.match(e.request).then(cached => {
-      const network = fetch(e.request).then(resp => {
-        if (resp.ok) {
-          caches.open(CACHE).then(c => c.put(e.request, resp.clone()));
-        }
-        return resp;
-      }).catch(() => cached);
-      return cached || network;
-    })
-  );
-});
-`;
-  const swBlob = new Blob([swCode], {type:'application/javascript'});
-  const swUrl = URL.createObjectURL(swBlob);
-  navigator.serviceWorker.register(swUrl, {scope:'/'})
-    .then(reg => {
-      console.log('SW registered');
-      // Check for updates every 30 minutes
-      setInterval(()=>reg.update(), 30*60*1000);
-    })
-    .catch(e => console.warn('SW registration failed:', e));
-}
+// Service Worker tidak digunakan (blob URL tidak didukung browser).
+// Offline support ditangani penuh oleh IndexedDB queue di bawah.
 </script>
 </head>
 <body>
@@ -3427,7 +3375,9 @@ async function loadLapMekanik(){
   document.getElementById('lm-stats').innerHTML=`
     <div class="stat-card orange"><i class="ti ti-tool stat-icon"></i><div class="stat-label">Mekanik Aktif</div><div class="stat-value">${rows.length}</div></div>
     <div class="stat-card green"><i class="ti ti-engine stat-icon"></i><div class="stat-label">Total WO</div><div class="stat-value">${totalWO}</div></div>
+    <div class="stat-card blue"><i class="ti ti-cash stat-icon"></i><div class="stat-label">Total Biaya Jasa</div><div class="stat-value">${fmt(totalJasa)}</div></div>
 `;
+
    document.getElementById('body-lmek').innerHTML=rows.length?rows.map(m=>`<tr>
 <td style="font-weight:600;color:var(--text)">${m.nama}</td>
 <td style="color:var(--text3)">${m.spesialisasi||'-'}</td>
@@ -3436,6 +3386,7 @@ async function loadLapMekanik(){
 <td style="color:var(--orange)">${fmt(m.nilaiWO)}</td>
 <td style="color:var(--text2)">${fmt(m.avg)}</td>
 </tr>`).join(''):'<tr><td colspan="5" class="table-empty">Tidak ada data pada periode ini</td></tr>';
+}
 // ============================================================
 // PAGE: KATEGORI PENGELUARAN
 // ============================================================
@@ -3815,7 +3766,6 @@ document.getElementById('body-lb').innerHTML = rows.map(r=>`<tr>
 <td style="font-family:var(--font-display);font-weight:700;color:${r.labaBersih>=0?'var(--green)':'var(--red)'}">${fmt(r.labaBersih)}</td>
 </tr>`).join('');
 }
-}
 // ============================================================
 // TABLE FILTER UTILITY
 // ============================================================
@@ -3841,24 +3791,26 @@ pa.innerHTML=`<style>table{width:100%;border-collapse:collapse;font-size:11px}th
 setTimeout(()=>{window.print();pa.style.display='none';},300);
 }
 // ============================================================
-// PWA MANIFEST & SERVICE WORKER
+// PWA MANIFEST (data URI — tidak butuh blob)
 // ============================================================
 (function(){
-const manifest = {
-name: "AutoServ Pro",
-short_name: "AutoServ",
-description: "Bengkel Service Mobil",
-start_url: "/",
-display: "standalone",
-background_color: "#0a0a0a",
-theme_color: "#ff6a00",
-icons: [
-{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23ff6a00'/><text y='.9em' font-size='80' x='10'>🔧</text></svg>", sizes: "192x192", type: "image/svg+xml" }
-]
-};
-const blob = new Blob([JSON.stringify(manifest)], {type: 'application/json'});
-const url = URL.createObjectURL(blob);
-document.getElementById('manifest-link').setAttribute('href', url);
+try {
+  const manifest = {
+    name: "AutoServ Pro",
+    short_name: "AutoServ",
+    description: "Bengkel Service Mobil",
+    start_url: "./",
+    display: "standalone",
+    background_color: "#0a0a0a",
+    theme_color: "#ff6a00",
+    icons: [
+      { src: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='20' fill='%23ff6a00'/%3E%3Ctext y='.9em' font-size='80' x='10'%3E%F0%9F%94%A7%3C/text%3E%3C/svg%3E", sizes: "192x192", type: "image/svg+xml" }
+    ]
+  };
+  const dataUrl = 'data:application/json;charset=utf-8,' + encodeURIComponent(JSON.stringify(manifest));
+  const link = document.getElementById('manifest-link');
+  if (link) link.setAttribute('href', dataUrl);
+} catch(e) { /* manifest optional */ }
 })();
 // ============================================================
 // INIT APP
