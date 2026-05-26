@@ -1836,8 +1836,8 @@ async function openModalWO(wo=null){
     // Load parts existing dari database
     const{data:existParts}=await db.from('detail_wo_part').select('*').eq('work_order_id',wo.id);
     _woParts=(existParts||[]).map(p=>({
-      rowId   : 'part_'+Date.now()+Math.random().toString(36).slice(2),
-      id      : p.id,           // simpan id lama untuk keperluan delete
+      rowId         : 'part_'+Date.now()+Math.random().toString(36).slice(2),
+      id            : p.id,
       barang_id     : p.barang_id||'',
       nama_barang   : p.nama_barang||'',
       satuan        : p.satuan||'pcs',
@@ -1845,7 +1845,8 @@ async function openModalWO(wo=null){
       harga_jual    : Number(p.harga_jual)||0,
       subtotal      : Number(p.subtotal)||0,
       is_non_gudang : p.is_non_gudang||!p.barang_id,
-      _fromDB       : true      // flag: sudah ada di DB
+      _isNew        : false,   // sudah ada di DB, bukan item baru
+      _fromDB       : true
     }));
     // Simpan daftar parts original untuk perbandingan stok nanti
     window._woPartsOriginal = JSON.parse(JSON.stringify(_woParts));
@@ -1883,74 +1884,125 @@ function loadKendByPel(){
 }
 
 async function addWOPart(){
-  if(!window._woBrg) window._woBrg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
-  const rowId='part_'+Date.now();
-  _woParts.push({rowId,barang_id:'',nama_barang:'',satuan:'pcs',jumlah:1,harga_jual:0,subtotal:0,is_non_gudang:false});
-  renderWOParts(window._woBrg);
+  if(!window._woBrg) window._woBrg = await loadTable('barang',{eq:{aktif:true},order:'nama'});
+  const rowId = 'part_'+Date.now();
+  _woParts.push({
+    rowId, barang_id:'', nama_barang:'', satuan:'pcs',
+    jumlah:1, harga_jual:0, subtotal:0,
+    is_non_gudang: false,
+    _isNew: true   // ← flag: belum dipilih user, tampilkan dropdown
+  });
+  renderWOParts();
 }
 
-function renderWOParts(brg=null){
-  const tbody=document.getElementById('body-wo-parts');
-  if(!tbody)return;
-  const daftarBrg = brg || window._woBrg || [];
+function renderWOParts(){
+  const tbody = document.getElementById('body-wo-parts');
+  if(!tbody) return;
+  const daftarBrg = window._woBrg || [];
+
   if(!_woParts.length){
-    tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><i class="ti ti-tool" style="font-size:22px;display:block;margin-bottom:6px"></i>Belum ada sparepart — klik Tambah Part</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text3);font-size:12px">
+      <i class="ti ti-tool" style="font-size:22px;display:block;margin-bottom:6px"></i>
+      Belum ada sparepart — klik Tambah Part</td></tr>`;
     return;
   }
-  tbody.innerHTML=_woParts.map((p)=>{
-    const isManual = p.is_non_gudang || !p.barang_id;
-    const adaDiGudang = p.barang_id && daftarBrg.some(b=>b.id===p.barang_id);
 
-    const kolomPart = isManual && !adaDiGudang
+  tbody.innerHTML = _woParts.map(p => {
+    // Tampilkan manual HANYA jika user sudah eksplisit pilih manual
+    // Item baru (_isNew) atau item gudang (barang_id ada) → dropdown
+    const showManual = p.is_non_gudang === true && !p._isNew;
+    const adaDiGudang = p.barang_id && daftarBrg.some(b => b.id === p.barang_id);
+
+    const kolomPart = showManual
       ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-           <span style="font-size:10px;background:rgba(255,165,0,0.15);color:var(--orange);border:1px solid rgba(255,165,0,0.3);border-radius:4px;padding:1px 6px;flex-shrink:0">✏️ Manual</span>
-           <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangWO('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i> Ganti Gudang</button>
+           <span style="font-size:10px;background:rgba(255,165,0,0.15);color:var(--orange);
+             border:1px solid rgba(255,165,0,0.3);border-radius:4px;padding:1px 6px;flex-shrink:0">✏️ Manual</span>
+           <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px"
+             onclick="gantiKeGudangWO('${p.rowId}')">
+             <i class="ti ti-arrow-back-up" style="font-size:10px"></i> Ganti Gudang
+           </button>
          </div>
-         <input type="text" class="form-input" id="nm-${p.rowId}" placeholder="Nama part..." value="${(p.nama_barang||'').replace(/"/g,'&quot;')}"
-           oninput="updateWOPart('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
-      : `<select class="form-input" style="font-size:12px;width:100%" onchange="selectWOPart(this,'${p.rowId}')">
-           <option value="">-- Pilih dari gudang --</option>
+         <input type="text" class="form-input" id="nm-${p.rowId}"
+           placeholder="Ketik nama part/sparepart..."
+           value="${(p.nama_barang||'').replace(/"/g,'&quot;')}"
+           oninput="updateWOPart('${p.rowId}','nama_barang',this.value)"
+           style="font-size:12px"/>`
+      : `<select class="form-input" style="font-size:12px;width:100%"
+           onchange="selectWOPart(this,'${p.rowId}')">
+           <option value="">-- Pilih Sparepart --</option>
            <option value="__manual__" style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
            <optgroup label="── Stok Gudang ──">
-           ${daftarBrg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan}" data-harga="${b.harga_jual}" ${b.id===p.barang_id?'selected':''}>${b.nama} (stok: ${b.stok} ${b.satuan})</option>`).join('')}
+           ${daftarBrg.map(b =>
+             `<option value="${b.id}"
+               data-nama="${b.nama.replace(/"/g,'&quot;')}"
+               data-satuan="${b.satuan||'pcs'}"
+               data-harga="${b.harga_jual||0}"
+               ${b.id === p.barang_id ? 'selected' : ''}>
+               ${b.nama} (stok: ${b.stok} ${b.satuan||'pcs'})
+             </option>`
+           ).join('')}
            </optgroup>
          </select>
-         ${p.nama_barang&&adaDiGudang?`<div style="font-size:10px;color:var(--text3);padding:2px 0 0">📦 ${p.nama_barang}</div>`:''}`;
+         ${p.nama_barang && adaDiGudang
+           ? `<div style="font-size:10px;color:var(--text3);padding:2px 0 0">📦 ${p.nama_barang}</div>`
+           : ''}`;
 
     return `<tr id="row-${p.rowId}">
       <td>${kolomPart}</td>
-      <td><input type="text" class="form-input" id="sat-${p.rowId}" value="${p.satuan||'pcs'}" oninput="updateWOPart('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
-      <td><input type="number" min="1" class="form-input" value="${p.jumlah||1}" oninput="updateWOPart('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
-      <td><input type="number" min="0" class="form-input" value="${p.harga_jual||0}" id="hj-${p.rowId}" oninput="updateWOPart('${p.rowId}','harga_jual',Number(this.value))" style="font-size:12px"/></td>
-      <td style="font-family:var(--font-display);font-size:13px;color:var(--orange);white-space:nowrap" id="sub-${p.rowId}">${fmt(p.subtotal||0)}</td>
-      <td><button class="btn btn-danger btn-sm" onclick="removeWOPart('${p.rowId}')"><i class="ti ti-trash"></i></button></td>
+      <td><input type="text" class="form-input" id="sat-${p.rowId}"
+        value="${p.satuan||'pcs'}" oninput="updateWOPart('${p.rowId}','satuan',this.value)"
+        style="font-size:12px"/></td>
+      <td><input type="number" min="1" class="form-input"
+        value="${p.jumlah||1}" oninput="updateWOPart('${p.rowId}','jumlah',Number(this.value))"
+        style="font-size:12px"/></td>
+      <td><input type="number" min="0" class="form-input" id="hj-${p.rowId}"
+        value="${p.harga_jual||0}" oninput="updateWOPart('${p.rowId}','harga_jual',Number(this.value))"
+        style="font-size:12px"/></td>
+      <td style="font-family:var(--font-display);font-size:13px;color:var(--orange);white-space:nowrap"
+        id="sub-${p.rowId}">${fmt(p.subtotal||0)}</td>
+      <td><button class="btn btn-danger btn-sm" onclick="removeWOPart('${p.rowId}')">
+        <i class="ti ti-trash"></i></button></td>
     </tr>`;
   }).join('');
 }
 
-function selectWOPart(sel,rowId){
-  const p=_woParts.find(x=>x.rowId===rowId);if(!p)return;
-  if(sel.value==='__manual__'){
-    p.barang_id='';p.is_non_gudang=true;p.nama_barang='';p.satuan='pcs';p.harga_jual=0;p.subtotal=0;
+function selectWOPart(sel, rowId){
+  const p = _woParts.find(x => x.rowId === rowId);
+  if(!p) return;
+
+  if(sel.value === '__manual__'){
+    p.barang_id = ''; p.is_non_gudang = true; p._isNew = false;
+    p.nama_barang = ''; p.satuan = 'pcs'; p.harga_jual = 0; p.subtotal = 0;
     renderWOParts();
-    setTimeout(()=>{ const nm=document.getElementById('nm-'+rowId); if(nm)nm.focus(); },50);
+    setTimeout(() => { const nm = document.getElementById('nm-'+rowId); if(nm) nm.focus(); }, 50);
+
   } else if(sel.value){
-    const opt=sel.selectedOptions[0];
-    p.barang_id=sel.value;p.is_non_gudang=false;
-    p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan;p.harga_jual=Number(opt.dataset.harga);
-    document.getElementById('sat-'+rowId).value=p.satuan;
-    document.getElementById('hj-'+rowId).value=p.harga_jual;
+    const opt = sel.selectedOptions[0];
+    p.barang_id    = sel.value;
+    p.is_non_gudang= false;
+    p._isNew       = false;
+    p.nama_barang  = opt.dataset.nama  || '';
+    p.satuan       = opt.dataset.satuan|| 'pcs';
+    p.harga_jual   = Number(opt.dataset.harga) || 0;
+    // Update field satuan & harga langsung (tanpa re-render dulu agar tidak flicker)
+    const satEl = document.getElementById('sat-'+rowId);
+    const hjEl  = document.getElementById('hj-'+rowId);
+    if(satEl) satEl.value = p.satuan;
+    if(hjEl)  hjEl.value  = p.harga_jual;
     hitungSubtotalWO(rowId);
     renderWOParts();
+
   } else {
-    p.barang_id='';p.nama_barang='';p.is_non_gudang=false;
+    // Kembali ke pilih
+    p.barang_id = ''; p.nama_barang = ''; p.is_non_gudang = false; p._isNew = true;
     renderWOParts();
   }
 }
 
 function gantiKeGudangWO(rowId){
-  const p=_woParts.find(x=>x.rowId===rowId);if(!p)return;
-  p.is_non_gudang=false;p.barang_id='';p.nama_barang='';
+  const p = _woParts.find(x => x.rowId === rowId);
+  if(!p) return;
+  p.is_non_gudang = false; p.barang_id = ''; p.nama_barang = ''; p._isNew = true;
   renderWOParts();
 }
 
