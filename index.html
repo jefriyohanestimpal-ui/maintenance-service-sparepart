@@ -412,13 +412,29 @@ select.form-input option{background:var(--bg3)}
   body * { visibility: hidden !important; }
   #print-area, #print-area * { visibility: visible !important; }
   #print-area {
-    position: fixed !important; left: 0; top: 0;
+    position: fixed !important;
+    left: 0 !important; top: 0 !important;
     width: 80mm; margin: 0; padding: 8px;
-    background: #fff !important; color: #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+    z-index: 99999 !important;
   }
 }
 @media print and (min-width: 100mm) {
   #print-area { width: 210mm; }
+}
+
+/* Print area TIDAK PERNAH terlihat di layar — hanya muncul saat dialog print */
+#print-area {
+  position: fixed !important;
+  left: -9999px !important;
+  top: 0 !important;
+  width: 80mm;
+  visibility: hidden;
+  pointer-events: none;
+  background: #fff;
+  color: #000;
+  z-index: -1;
 }
 
 /* ============================================================
@@ -2314,9 +2330,9 @@ async function cetakWO(wo,parts){
     <hr class="nota-divider"/>
     <div class="nota-footer">${s.footer_nota||'Terima kasih!'}</div>`;
   const pa=document.getElementById('print-area');
-  pa.style.display='block';
   pa.innerHTML=`<div class="nota-preview">${html}</div>`;
-  setTimeout(()=>{ window.print(); pa.style.display='none'; },300);
+  // Beri waktu render lalu print — CSS sudah handle agar tidak terlihat di layar
+  requestAnimationFrame(()=>{ setTimeout(()=>window.print(), 100); });
 }
 
 // ============================================================
@@ -2540,9 +2556,8 @@ async function cetakPenjualan(j,items){
     <hr class="nota-divider"/>
     <div class="nota-footer">${s.footer_nota||'Terima kasih!'}</div>`;
   const pa=document.getElementById('print-area');
-  pa.style.display='block';
   pa.innerHTML=`<div class="nota-preview">${html}</div>`;
-  setTimeout(()=>{window.print();pa.style.display='none';},300);
+  requestAnimationFrame(()=>{ setTimeout(()=>window.print(), 100); });
 }
 
 // ============================================================
@@ -4468,7 +4483,6 @@ async function printSection(id){
 const el=document.getElementById(id);if(!el)return;
 const s=await getSettings().catch(()=>({nama_bengkel:'AutoServ Pro',alamat:'',telepon:''}));
 const pa=document.getElementById('print-area');
-pa.style.display='block';
 pa.innerHTML=`<style>
   body{font-family:Arial,sans-serif;font-size:11px;color:#111}
   table{width:100%;border-collapse:collapse;font-size:11px}
@@ -4489,7 +4503,7 @@ pa.innerHTML=`<style>
   <p style="font-size:9px;color:#888">Dicetak: ${new Date().toLocaleString('id-ID')}</p>
 </div>
 ${el.innerHTML}`;
-setTimeout(()=>{window.print();pa.style.display='none';},400);
+requestAnimationFrame(()=>{ setTimeout(()=>window.print(), 100); });
 }
 // ============================================================
 // PWA MANIFEST (data URI — tidak butuh blob)
