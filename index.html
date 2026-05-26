@@ -408,33 +408,41 @@ select.form-input option{background:var(--bg3)}
 .nota-total{font-weight:700;font-size:12px;border-top:1px dashed #aaa;padding-top:4px;margin-top:4px}
 .nota-footer{text-align:center;margin-top:10px;font-size:10px;color:#666}
 
-@media print{
-  body * { visibility: hidden !important; }
-  #print-area, #print-area * { visibility: visible !important; }
-  #print-area {
-    position: fixed !important;
-    left: 0 !important; top: 0 !important;
-    width: 80mm; margin: 0; padding: 8px;
-    background: #fff !important;
-    color: #000 !important;
-    z-index: 99999 !important;
-  }
-}
-@media print and (min-width: 100mm) {
-  #print-area { width: 210mm; }
-}
-
-/* Print area TIDAK PERNAH terlihat di layar — hanya muncul saat dialog print */
+/* Print area — TIDAK terlihat di layar, hanya aktif saat print */
 #print-area {
-  position: fixed !important;
-  left: -9999px !important;
-  top: 0 !important;
+  position: fixed;
+  left: -9999px;
+  top: 0;
   width: 80mm;
-  visibility: hidden;
-  pointer-events: none;
   background: #fff;
   color: #000;
   z-index: -1;
+  pointer-events: none;
+}
+
+@media print {
+  body > * { display: none !important; }
+  #print-area {
+    display: block !important;
+    position: fixed !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 80mm;
+    margin: 0;
+    padding: 8px;
+    background: #fff !important;
+    color: #000 !important;
+    z-index: 99999 !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+  }
+  #print-area * {
+    visibility: visible !important;
+    color: #000 !important;
+  }
+}
+@media print and (min-width: 100mm) {
+  #print-area { width: 210mm !important; }
 }
 
 /* ============================================================
