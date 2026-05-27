@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>WAS GARAGE — Maintenance service sparepart</title>
+<title>WAS GARAGE — Bengkel Service Mobil</title>
 <meta name="theme-color" content="#0f0f0f"/>
 <link rel="manifest" id="manifest-link"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -391,8 +391,81 @@ select.form-input option{background:var(--bg3)}
 .wo-mekanik{font-size:11px;color:var(--text3)}
 
 /* ============================================================
-   NOTA PRINT
+   LOGIN SCREEN
    ============================================================ */
+#login-screen {
+  position: fixed; inset: 0; z-index: 9999;
+  background: var(--bg);
+  display: flex; align-items: center; justify-content: center;
+}
+.login-box {
+  background: var(--bg2);
+  border: 1px solid var(--border2);
+  border-radius: 16px;
+  padding: 40px;
+  width: 100%; max-width: 400px;
+  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+}
+.login-logo {
+  text-align: center; margin-bottom: 28px;
+}
+.login-logo .logo-icon {
+  width: 60px; height: 60px;
+  background: var(--orange);
+  border-radius: 14px;
+  display: inline-flex; align-items: center; justify-content: center;
+  font-size: 28px; margin-bottom: 12px;
+}
+.login-logo h1 {
+  font-family: var(--font-display);
+  font-size: 24px; font-weight: 800;
+  color: var(--text); margin: 0;
+}
+.login-logo p { font-size: 12px; color: var(--text3); margin: 4px 0 0; }
+.login-field { margin-bottom: 16px; }
+.login-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text2); margin-bottom: 6px; }
+.login-field input {
+  width: 100%; padding: 11px 14px;
+  background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: 8px; color: var(--text); font-size: 14px;
+  transition: border-color var(--transition);
+}
+.login-field input:focus { border-color: var(--orange); }
+.login-btn {
+  width: 100%; padding: 12px;
+  background: var(--orange); color: #fff;
+  border: none; border-radius: 8px;
+  font-size: 15px; font-weight: 700;
+  font-family: var(--font-display);
+  cursor: pointer; letter-spacing: 0.5px;
+  transition: background var(--transition);
+  margin-top: 4px;
+}
+.login-btn:hover { background: var(--orange2); }
+.login-btn:disabled { background: var(--bg4); color: var(--text3); cursor: not-allowed; }
+.login-error {
+  background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 8px; padding: 10px 14px;
+  font-size: 12px; color: var(--red);
+  margin-bottom: 14px; display: none;
+}
+.login-role-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 11px; font-weight: 600; padding: 3px 10px;
+  border-radius: 20px; margin-left: 8px;
+}
+.role-owner { background: rgba(255,106,0,0.15); color: var(--orange); border: 1px solid rgba(255,106,0,0.3); }
+.role-admin { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
+/* Nav item tersembunyi untuk role tertentu */
+.nav-item.nav-hidden { display: none !important; }
+/* Overlay untuk halaman yang tidak boleh diakses */
+.access-denied {
+  padding: 60px 40px; text-align: center; color: var(--text3);
+}
+.access-denied i { font-size: 48px; display: block; margin-bottom: 16px; color: var(--red); opacity: 0.5; }
+.access-denied h3 { font-size: 18px; color: var(--text2); margin-bottom: 8px; }
+.access-denied p { font-size: 13px; }
+
 .nota-preview{
   background:#fff;color:#111;
   padding:16px;border-radius:var(--radius);
@@ -578,6 +651,34 @@ select.form-input option{background:var(--bg3)}
 </head>
 <body>
 
+<!-- LOGIN SCREEN -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="logo-icon">🔧</div>
+      <h1>AutoService Je.V.26.1</h1>
+      <p>Sistem Operasional Bengkel Mobil</p>
+    </div>
+    <div class="login-error" id="login-error"></div>
+    <div class="login-field">
+      <label>Username</label>
+      <input type="text" id="login-username" placeholder="Masukkan username..." autocomplete="username"
+        onkeydown="if(event.key==='Enter')document.getElementById('login-password').focus()"/>
+    </div>
+    <div class="login-field">
+      <label>Password</label>
+      <input type="password" id="login-password" placeholder="Masukkan password..."
+        onkeydown="if(event.key==='Enter')doLogin()"/>
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">
+      <i class="ti ti-login"></i> Masuk
+    </button>
+    <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3)">
+      AutoServ Pro &copy; 2026 — WAS Garage
+    </div>
+  </div>
+</div>
+
 <!-- OFFLINE BAR -->
 <div id="offline-bar">
   <i class="ti ti-wifi-off" style="font-size:15px"></i>
@@ -586,16 +687,29 @@ select.form-input option{background:var(--bg3)}
 </div>
 
 <!-- APP -->
-<div id="app">
+<div id="app" style="display:none">
 
   <!-- SIDEBAR -->
   <nav id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">WG</div>
-      <span class="sidebar-title">WAS GARAGE @Je.V.26.</span>
+      <span class="sidebar-title">WAS Garage - Je.V.26.1</span>
     </div>
     <div class="sidebar-nav" id="sidebar-nav">
       <!-- Generated by JS -->
+    </div>
+    <!-- User info di sidebar bawah -->
+    <div style="padding:12px 16px;border-top:1px solid var(--border);margin-top:auto">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div id="sidebar-user-avatar" style="width:32px;height:32px;border-radius:50%;background:var(--orange);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-weight:700;font-size:14px;flex-shrink:0">A</div>
+        <div style="flex:1;min-width:0">
+          <div id="sidebar-user-name" style="font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Admin</div>
+          <div id="sidebar-user-role" style="font-size:10px;color:var(--text3)">admin</div>
+        </div>
+        <button onclick="doLogout()" title="Keluar" style="background:none;border:none;cursor:pointer;color:var(--text3);padding:4px;border-radius:4px;font-size:16px" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">
+          <i class="ti ti-logout"></i>
+        </button>
+      </div>
     </div>
     <div class="sidebar-toggle" onclick="toggleSidebar()">
       <i class="ti ti-chevrons-left"></i>
@@ -607,6 +721,10 @@ select.form-input option{background:var(--bg3)}
     <div id="topbar">
       <div class="topbar-title" id="page-title">Dashboard</div>
       <div class="topbar-right">
+        <!-- Role badge -->
+        <span id="topbar-role-badge" class="login-role-badge role-admin" style="font-size:11px">
+          <i class="ti ti-shield"></i> <span id="topbar-role-text">Admin</span>
+        </span>
         <div class="status-badge" id="status-badge">
           <span class="status-dot online" id="status-dot"></span>
           <span id="status-text">Online</span>
@@ -616,6 +734,9 @@ select.form-input option{background:var(--bg3)}
         </button>
         <button class="btn-icon" title="Sinkronisasi" onclick="syncOfflineData()" id="sync-btn">
           <i class="ti ti-refresh"></i>
+        </button>
+        <button class="btn-icon" title="Keluar" onclick="doLogout()" style="color:var(--text3)">
+          <i class="ti ti-logout"></i>
         </button>
       </div>
     </div>
@@ -648,6 +769,17 @@ const db = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 // ============================================================
 let isOnline = navigator.onLine;
 let currentPage = 'dashboard';
+
+// ============================================================
+// AUTH STATE
+// ============================================================
+let currentUser = null; // { username, role: 'owner'|'admin', nama }
+
+// Halaman eksklusif OWNER (admin tidak bisa akses)
+const OWNER_ONLY_PAGES = ['barang','pesanan-beli','pembelian','bayar-hutang','retur-beli','pengaturan','backup-restore','user-management'];
+
+// Label role
+const ROLE_LABEL = { owner: 'Owner', admin: 'Admin' };
 
 // ============================================================
 // NAVIGATION CONFIG
@@ -689,8 +821,148 @@ const NAV = [
   { id: 'lap-laba-bersih', label: 'Laba Bersih', icon: 'ti-trending-up' },
   { group: 'Pengaturan' },
   { id: 'pengaturan', label: 'Pengaturan', icon: 'ti-settings' },
+  { id: 'user-management', label: 'Kelola User', icon: 'ti-users-group' },
   { id: 'backup-restore', label: 'Backup & Restore', icon: 'ti-database-export' },
 ];
+
+// ============================================================
+// AUTH — LOGIN / LOGOUT
+// ============================================================
+async function doLogin(){
+  const username = document.getElementById('login-username').value.trim();
+  const password = document.getElementById('login-password').value;
+  const errEl    = document.getElementById('login-error');
+  const btn      = document.getElementById('login-btn');
+
+  if(!username || !password){
+    showLoginError('Username dan password wajib diisi');return;
+  }
+
+  btn.disabled=true;btn.innerHTML='<i class="ti ti-loader"></i> Memverifikasi...';
+  errEl.style.display='none';
+
+  try{
+    // Cari user di tabel app_users
+    const{data:users, error}=await db
+      .from('app_users')
+      .select('*')
+      .eq('username', username)
+      .eq('aktif', true)
+      .single();
+
+    if(error||!users){
+      showLoginError('Username tidak ditemukan atau tidak aktif');
+      btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Masuk';return;
+    }
+
+    // Verifikasi password (plain text — untuk produksi gunakan bcrypt di Edge Function)
+    if(users.password !== password){
+      showLoginError('Password salah');
+      btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Masuk';return;
+    }
+
+    // Login berhasil
+    currentUser = { id:users.id, username:users.username, nama:users.nama||users.username, role:users.role };
+    sessionStorage.setItem('autoserv_user', JSON.stringify(currentUser));
+
+    // Catat log login
+    try{
+      await dbOp('app_login_log','INSERT',{
+        id:uid(), user_id:users.id, username:users.username,
+        role:users.role, waktu:new Date().toISOString(),
+        keterangan:'Login berhasil'
+      });
+    }catch(e){/* log opsional */}
+
+    startApp();
+
+  }catch(e){
+    showLoginError('Gagal menghubungi server: '+e.message);
+    btn.disabled=false;btn.innerHTML='<i class="ti ti-login"></i> Masuk';
+  }
+}
+
+function showLoginError(msg){
+  const el=document.getElementById('login-error');
+  el.textContent=msg; el.style.display='block';
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').innerHTML='<i class="ti ti-login"></i> Masuk';
+}
+
+function doLogout(){
+  if(!confirm('Keluar dari aplikasi?'))return;
+  currentUser=null;
+  sessionStorage.removeItem('autoserv_user');
+  // Reset form login
+  document.getElementById('login-username').value='';
+  document.getElementById('login-password').value='';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').innerHTML='<i class="ti ti-login"></i> Masuk';
+  // Sembunyikan app, tampilkan login
+  document.getElementById('app').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+}
+
+// ============================================================
+// RBAC — Terapkan hak akses berdasarkan role
+// ============================================================
+function applyRBAC(){
+  if(!currentUser)return;
+  const isOwner = currentUser.role==='owner';
+
+  // Update badge di topbar
+  const badge=document.getElementById('topbar-role-badge');
+  const badgeText=document.getElementById('topbar-role-text');
+  if(badge){
+    badge.className='login-role-badge '+(isOwner?'role-owner':'role-admin');
+    badgeText.textContent = ROLE_LABEL[currentUser.role]||currentUser.role;
+  }
+
+  // Update sidebar user info
+  const avatarEl=document.getElementById('sidebar-user-avatar');
+  const nameEl=document.getElementById('sidebar-user-name');
+  const roleEl=document.getElementById('sidebar-user-role');
+  if(avatarEl) avatarEl.textContent = currentUser.nama.charAt(0).toUpperCase();
+  if(nameEl)   nameEl.textContent   = currentUser.nama;
+  if(roleEl)   roleEl.textContent   = ROLE_LABEL[currentUser.role]||currentUser.role;
+
+  // Sembunyikan menu yang tidak boleh diakses Admin
+  if(!isOwner){
+    OWNER_ONLY_PAGES.forEach(pageId=>{
+      const navEl=document.getElementById('nav-'+pageId);
+      if(navEl) navEl.classList.add('nav-hidden');
+    });
+  } else {
+    // Owner bisa semua — pastikan tidak ada yang tersembunyi
+    OWNER_ONLY_PAGES.forEach(pageId=>{
+      const navEl=document.getElementById('nav-'+pageId);
+      if(navEl) navEl.classList.remove('nav-hidden');
+    });
+  }
+}
+
+// Override showPage dengan RBAC check
+const _showPageOriginal = showPage;
+function showPage(id){
+  // Cek akses
+  if(currentUser && currentUser.role!=='owner' && OWNER_ONLY_PAGES.includes(id)){
+    // Admin tidak bisa akses halaman Owner Only — tampilkan pesan
+    currentPage=id;
+    const content=document.getElementById('content');
+    const navItem=NAV.find(n=>n.id===id);
+    document.getElementById('page-title').textContent=navItem?navItem.label:'';
+    document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+    content.innerHTML=`<div class="access-denied">
+      <i class="ti ti-lock"></i>
+      <h3>Akses Ditolak</h3>
+      <p>Halaman <strong>${navItem?.label||id}</strong> hanya dapat diakses oleh <strong>Owner</strong>.</p>
+      <p style="margin-top:8px;font-size:12px">Hubungi Owner untuk mendapatkan akses.</p>
+    </div>`;
+    return;
+  }
+  _showPageOriginal(id);
+}
 
 // ============================================================
 // BUILD SIDEBAR
@@ -1487,7 +1759,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
   </select>
 </div>
 
-<div class="form-group"><label class="form-label">Pelanggan (pendaftar)</label>
+<div class="form-group"><label class="form-label">Pemilik (Pelanggan)</label>
   <select id="f-kd-pel" class="form-input"><option value="">-- Tanpa Pemilik --</option></select></div>
 
 </div>
@@ -1498,7 +1770,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
   </div>
   <div class="form-grid">
 
-  <div class="form-group"><label class="form-label">Nama Pemilik<span style="font-size:10px;color:var(--text3)">(sesuai STNK, isi kolom catatan jika pemilik beda nama di STNK)</span></label>
+  <div class="form-group"><label class="form-label">Nama Pemilik Resmi <span style="font-size:10px;color:var(--text3)">(sesuai STNK)</span></label>
     <input id="f-kd-nama-stnk" class="form-input" placeholder="Nama lengkap di STNK..."/></div>
 
   <div class="form-group"><label class="form-label">Nomor Mesin</label>
@@ -1506,7 +1778,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
       style="font-family:monospace;letter-spacing:0.5px;text-transform:uppercase"
       oninput="this.value=this.value.toUpperCase()"/></div>
 
-  <div class="form-group"><label class="form-label">Nomor Rangka</label>
+  <div class="form-group"><label class="form-label">Nomor Rangka / VIN</label>
     <input id="f-kd-no-rangka" class="form-input" placeholder="Contoh: MHFM5EJ9JHK012345"
       style="font-family:monospace;letter-spacing:0.5px;text-transform:uppercase"
       oninput="this.value=this.value.toUpperCase()"/></div>
@@ -2694,6 +2966,174 @@ async function savePengaturan(){
     else await db.from('pengaturan').insert({id:uid(),...payload});
     showToast('Pengaturan disimpan');
   }catch(e){showToast('Gagal simpan','error');}
+  showLoading(false);
+}
+
+// ============================================================
+// PAGE: USER MANAGEMENT (Khusus Owner)
+// ============================================================
+pages['user-management'] = () => `
+<div class="section-hdr">
+  <h2><i class="ti ti-users-group"></i>Kelola User Aplikasi</h2>
+  <div class="section-hdr-actions">
+    <button class="btn btn-primary" onclick="openModalUser()"><i class="ti ti-user-plus"></i>Tambah User</button>
+  </div>
+</div>
+
+<!-- Info akses -->
+<div style="background:rgba(255,106,0,0.07);border:1px solid rgba(255,106,0,0.2);border-radius:8px;padding:12px 16px;margin-bottom:16px;max-width:860px">
+  <div style="font-size:12px;font-weight:700;color:var(--orange);margin-bottom:8px"><i class="ti ti-shield-lock"></i> Hak Akses per Role</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:12px">
+    <div>
+      <div style="font-weight:600;color:var(--orange);margin-bottom:4px">👑 Owner — Akses Penuh:</div>
+      <div style="color:var(--text3);line-height:1.8">Semua fitur + Data Barang, Pembelian (PO, Faktur, Bayar Hutang, Retur), Pengaturan, Backup/Restore, Kelola User</div>
+    </div>
+    <div>
+      <div style="font-weight:600;color:var(--blue);margin-bottom:4px">🛡️ Admin — Akses Operasional:</div>
+      <div style="color:var(--text3);line-height:1.8">Dashboard, Master Data (kecuali Barang), Gudang, Penjualan, Service/WO, Pengeluaran, Laporan</div>
+    </div>
+  </div>
+</div>
+
+<div class="table-wrap" style="max-width:860px">
+  <table id="tbl-users">
+    <thead><tr><th>Username</th><th>Nama Lengkap</th><th>Role</th><th>Status</th><th>Terakhir Login</th><th>Aksi</th></tr></thead>
+    <tbody id="body-users"><tr><td colspan="6" class="table-empty"><i class="ti ti-loader"></i> Memuat...</td></tr></tbody>
+  </table>
+</div>
+
+${modalHtml('modal-user','Tambah / Edit User',`
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Username <span class="req">*</span></label>
+    <input id="f-usr-username" class="form-input" placeholder="Contoh: admin01" autocomplete="off"
+      oninput="this.value=this.value.toLowerCase().replace(/[^a-z0-9_]/g,'')"/></div>
+  <div class="form-group"><label class="form-label">Nama Lengkap <span class="req">*</span></label>
+    <input id="f-usr-nama" class="form-input" placeholder="Nama tampilan"/></div>
+  <div class="form-group"><label class="form-label">Password <span class="req" id="pw-req">*</span>
+    <span id="pw-hint" style="font-size:10px;color:var(--text3);font-weight:400">(kosongkan jika tidak diubah)</span></label>
+    <input id="f-usr-pw" class="form-input" type="password" placeholder="Minimal 6 karakter" autocomplete="new-password"/></div>
+  <div class="form-group"><label class="form-label">Role <span class="req">*</span></label>
+    <select id="f-usr-role" class="form-input">
+      <option value="admin">🛡️ Admin</option>
+      <option value="owner">👑 Owner</option>
+    </select></div>
+  <div class="form-group"><label class="form-label">Status</label>
+    <select id="f-usr-aktif" class="form-input">
+      <option value="true">✅ Aktif</option>
+      <option value="false">❌ Nonaktif</option>
+    </select></div>
+  <div class="form-group"><label class="form-label">Catatan</label>
+    <input id="f-usr-catatan" class="form-input" placeholder="Opsional..."/></div>
+</div>
+<input type="hidden" id="f-usr-id"/>
+`,
+'',`<button class="btn btn-outline" onclick="closeModal('modal-user')">Batal</button>
+<button class="btn btn-primary" onclick="saveUser()"><i class="ti ti-device-floppy"></i>Simpan User</button>`)}`;
+
+window.init_user_management = async function(){ await loadUsers(); };
+
+async function loadUsers(){
+  const tbody = document.getElementById('body-users');
+  if(!tbody) return;
+  try{
+    const{data}=await db.from('app_users').select('*').order('created_at',{ascending:false});
+    if(!(data||[]).length){
+      tbody.innerHTML='<tr><td colspan="6" class="table-empty">Belum ada user</td></tr>';return;
+    }
+    // Ambil log login terakhir per user
+    const{data:logs}=await db.from('app_login_log').select('user_id,waktu').order('waktu',{ascending:false});
+    const lastLogin={};
+    (logs||[]).forEach(l=>{ if(!lastLogin[l.user_id]) lastLogin[l.user_id]=l.waktu; });
+
+    tbody.innerHTML=(data||[]).map(u=>{
+      const isSelf = currentUser && u.id===currentUser.id;
+      const lastLg = lastLogin[u.id]?new Date(lastLogin[u.id]).toLocaleString('id-ID'):'-';
+      return `<tr>
+        <td><code style="color:var(--orange);font-size:12px">${u.username}</code>${isSelf?'<span style="font-size:10px;color:var(--green);margin-left:6px">(Anda)</span>':''}</td>
+        <td style="font-weight:500">${u.nama||'-'}</td>
+        <td><span class="badge ${u.role==='owner'?'badge-orange':'badge-blue'}">${u.role==='owner'?'👑 Owner':'🛡️ Admin'}</span></td>
+        <td><span class="badge ${u.aktif?'badge-green':'badge-red'}">${u.aktif?'Aktif':'Nonaktif'}</span></td>
+        <td style="font-size:11px;color:var(--text3)">${lastLg}</td>
+        <td><div style="display:flex;gap:4px">
+          <button class="btn btn-outline btn-sm" onclick='openModalUser(${JSON.stringify(u)})'><i class="ti ti-edit"></i></button>
+          ${!isSelf?`<button class="btn btn-danger btn-sm" onclick="delUser('${u.id}','${u.username}')"><i class="ti ti-trash"></i></button>`:'<span style="font-size:11px;color:var(--text3);padding:0 6px">—</span>'}
+        </div></td>
+      </tr>`;
+    }).join('');
+  }catch(e){
+    if(tbody) tbody.innerHTML=`<tr><td colspan="6" class="table-empty" style="color:var(--red)">Gagal memuat: ${e.message}</td></tr>`;
+  }
+}
+
+async function openModalUser(u=null){
+  const isEdit=!!u;
+  document.getElementById('pw-req').style.display=isEdit?'none':'inline';
+  document.getElementById('pw-hint').style.display=isEdit?'inline':'none';
+  document.getElementById('f-usr-id').value=u?.id||'';
+  document.getElementById('f-usr-username').value=u?.username||'';
+  document.getElementById('f-usr-nama').value=u?.nama||'';
+  document.getElementById('f-usr-pw').value='';
+  document.getElementById('f-usr-role').value=u?.role||'admin';
+  document.getElementById('f-usr-aktif').value=u?.aktif!==false?'true':'false';
+  document.getElementById('f-usr-catatan').value=u?.catatan||'';
+  // Disable username jika edit (username tidak boleh diubah)
+  document.getElementById('f-usr-username').disabled=isEdit;
+  openModal('modal-user');
+}
+
+async function saveUser(){
+  const id=document.getElementById('f-usr-id').value;
+  const isEdit=!!id;
+  const username=document.getElementById('f-usr-username').value.trim();
+  const nama=document.getElementById('f-usr-nama').value.trim();
+  const pw=document.getElementById('f-usr-pw').value;
+  const role=document.getElementById('f-usr-role').value;
+  const aktif=document.getElementById('f-usr-aktif').value==='true';
+  const catatan=document.getElementById('f-usr-catatan').value;
+
+  if(!nama){showToast('Nama lengkap wajib diisi','error');return;}
+  if(!isEdit && !username){showToast('Username wajib diisi','error');return;}
+  if(!isEdit && !pw){showToast('Password wajib diisi untuk user baru','error');return;}
+  if(pw && pw.length<6){showToast('Password minimal 6 karakter','error');return;}
+
+  // Cek duplikat username (hanya saat tambah baru)
+  if(!isEdit){
+    const{data:cek}=await db.from('app_users').select('id').eq('username',username).maybeSingle();
+    if(cek){showToast('Username sudah digunakan, pilih yang lain','error');return;}
+  }
+
+  const payload={nama,role,aktif,catatan};
+  if(pw) payload.password=pw;
+
+  showLoading(true);
+  try{
+    if(isEdit){
+      await dbOp('app_users','UPDATE',{id,payload});
+      // Jika user yang diedit adalah currentUser, update session
+      if(currentUser && id===currentUser.id){
+        currentUser.nama=nama; currentUser.role=role;
+        sessionStorage.setItem('autoserv_user',JSON.stringify(currentUser));
+        applyRBAC();
+      }
+    } else {
+      await dbOp('app_users','INSERT',{id:uid(),username,...payload,created_at:new Date().toISOString()});
+    }
+    closeModal('modal-user');
+    showToast(isEdit?'User berhasil diperbarui':'User berhasil ditambahkan','success');
+    await loadUsers();
+  }catch(e){showToast('Gagal: '+e.message,'error');}
+  showLoading(false);
+}
+
+async function delUser(id,username){
+  if(currentUser && id===currentUser.id){showToast('Tidak bisa hapus akun sendiri','error');return;}
+  if(!confirm(`Hapus user "${username}"? Tindakan ini tidak dapat dibatalkan.`))return;
+  showLoading(true);
+  try{
+    await db.from('app_users').delete().eq('id',id);
+    showToast('User berhasil dihapus','success');
+    await loadUsers();
+  }catch(e){showToast('Gagal hapus: '+e.message,'error');}
   showLoading(false);
 }
 
@@ -4666,8 +5106,8 @@ requestAnimationFrame(()=>{ setTimeout(()=>window.print(), 100); });
 (function(){
 try {
   const manifest = {
-    name: "Je.V.26.2",
-    short_name: "@Je.2026",
+    name: "Je.2026.service",
+    short_name: "Je.V.26.1",
     description: "Bengkel Service Mobil",
     start_url: "./",
     display: "standalone",
@@ -4685,13 +5125,41 @@ try {
 // ============================================================
 // INIT APP
 // ============================================================
+async function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app').style.display='flex';
+  buildSidebar();
+  applyRBAC();
+  await openIDB();
+  updateStatus();
+  showPage('dashboard');
+}
+
 async function initApp(){
-buildSidebar();
-await openIDB();
-updateStatus();
-showPage('dashboard');
+  // Cek session tersimpan
+  try{
+    const saved=sessionStorage.getItem('autoserv_user');
+    if(saved){
+      currentUser=JSON.parse(saved);
+      // Verifikasi ulang user masih aktif di DB
+      const{data:u}=await db.from('app_users').select('id,aktif,role').eq('id',currentUser.id).single();
+      if(u && u.aktif){
+        currentUser.role=u.role; // refresh role dari DB
+        await startApp();
+        return;
+      } else {
+        sessionStorage.removeItem('autoserv_user');
+        currentUser=null;
+      }
+    }
+  }catch(e){ sessionStorage.removeItem('autoserv_user'); }
+  // Tampilkan login
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('app').style.display='none';
+  setTimeout(()=>document.getElementById('login-username').focus(), 300);
 }
 initApp();
+
 </script>
 </body>
 </html>
