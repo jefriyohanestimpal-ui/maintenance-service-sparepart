@@ -391,27 +391,6 @@ select.form-input option{background:var(--bg3)}
 .wo-mekanik{font-size:11px;color:var(--text3)}
 
 /* ============================================================
-   AUTOCOMPLETE COMPONENT
-   ============================================================ */
-.ac-wrap{position:relative}
-.ac-input{width:100%;padding:8px 36px 8px 12px;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:13px;transition:border-color var(--transition)}
-.ac-input:focus{border-color:var(--orange);outline:none}
-.ac-input::placeholder{color:var(--text3)}
-.ac-clear{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text3);font-size:14px;padding:2px 4px;display:none;border-radius:4px;line-height:1}
-.ac-clear:hover{color:var(--red)}
-.ac-dropdown{position:absolute;top:calc(100% + 4px);left:0;right:0;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;z-index:9999;max-height:240px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,0.4);display:none}
-.ac-dropdown.open{display:block}
-.ac-item{padding:9px 12px;cursor:pointer;font-size:12px;color:var(--text);border-bottom:1px solid var(--border);transition:background var(--transition);display:flex;align-items:center;gap:8px}
-.ac-item:last-child{border-bottom:none}
-.ac-item:hover,.ac-item.ac-active{background:var(--bg3)}
-.ac-item mark{background:rgba(255,106,0,0.25);color:var(--orange);border-radius:2px;padding:0 1px;font-style:normal}
-.ac-icon{width:26px;height:26px;border-radius:6px;background:var(--bg4);display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
-.ac-main{font-weight:500;line-height:1.3;flex:1}
-.ac-sub{font-size:10px;color:var(--text3);margin-top:1px}
-.ac-badge{font-size:10px;padding:1px 6px;border-radius:10px;background:var(--bg4);color:var(--text3);white-space:nowrap}
-.ac-empty{padding:16px 12px;text-align:center;font-size:12px;color:var(--text3)}
-
-/* ============================================================
    LOGIN SCREEN
    ============================================================ */
 #login-screen {
@@ -801,161 +780,6 @@ const OWNER_ONLY_PAGES = ['barang','pesanan-beli','pembelian','bayar-hutang','re
 
 // Label role
 const ROLE_LABEL = { owner: 'Owner', admin: 'Admin' };
-
-// ============================================================
-// AUTOCOMPLETE — Komponen universal typeahead search
-// ============================================================
-/**
- * createAC(config) — Buat komponen autocomplete
- * @param {Object} config
- *   containerId : ID elemen container (div)
- *   placeholder : placeholder text
- *   data        : array data atau async function() → array
- *   searchKeys  : array key yang dicari, misal ['nama','no_plat']
- *   renderItem  : function(item) → {icon, main, sub, badge}
- *   onSelect    : function(item) dipanggil saat item dipilih
- *   onClear     : function() dipanggil saat input dikosongkan
- *   minChars    : min karakter sebelum search (default 1)
- *   initialLabel: label awal jika sudah ada nilai terpilih
- */
-function createAC(config){
-  const wrap = document.getElementById(config.containerId);
-  if(!wrap) return;
-  const minChars = config.minChars ?? 1;
-  let _allData = null;
-  let _selected = null;
-  let _activeIdx = -1;
-  let _closeTimer = null;
-
-  wrap.className = 'ac-wrap';
-  wrap.innerHTML = `
-    <input type="text" class="ac-input" id="ac-input-${config.containerId}"
-      placeholder="${config.placeholder||'Ketik untuk mencari...'}"
-      autocomplete="off" value="${config.initialLabel||''}"/>
-    <button type="button" class="ac-clear" id="ac-clear-${config.containerId}" onclick="_acClear_${config.containerId}()" tabindex="-1">✕</button>
-    <div class="ac-dropdown" id="ac-dd-${config.containerId}"></div>`;
-
-  const input  = document.getElementById(`ac-input-${config.containerId}`);
-  const clearBtn = document.getElementById(`ac-clear-${config.containerId}`);
-  const dd     = document.getElementById(`ac-dd-${config.containerId}`);
-
-  // Fungsi global agar onclick bisa panggil
-  window[`_acClear_${config.containerId}`] = function(){
-    input.value=''; _selected=null; clearBtn.style.display='none';
-    dd.classList.remove('open'); dd.innerHTML='';
-    if(config.onClear) config.onClear();
-    input.focus();
-  };
-
-  async function getData(){
-    if(_allData) return _allData;
-    if(typeof config.data === 'function') _allData = await config.data();
-    else _allData = config.data||[];
-    return _allData;
-  }
-
-  function highlight(text, kw){
-    if(!kw) return text;
-    const re = new RegExp(`(${kw.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')})`, 'gi');
-    return String(text).replace(re, '<mark>$1</mark>');
-  }
-
-  async function doSearch(kw){
-    dd.innerHTML=`<div class="ac-empty">⏳ Mencari...</div>`;
-    dd.classList.add('open');
-    const data = await getData();
-    const q = kw.toLowerCase().trim();
-    const results = data.filter(item =>
-      config.searchKeys.some(k => String(item[k]||'').toLowerCase().includes(q))
-    ).slice(0, 50); // max 50 hasil
-
-    if(!results.length){
-      dd.innerHTML=`<div class="ac-empty">Tidak ditemukan untuk "<strong>${kw}</strong>"</div>`;
-      return;
-    }
-
-    _activeIdx = -1;
-    dd.innerHTML = results.map((item,i)=>{
-      const r = config.renderItem(item);
-      return `<div class="ac-item" data-idx="${i}" onmousedown="_acSelect_${config.containerId}(${i})">
-        ${r.icon?`<div class="ac-icon">${r.icon}</div>`:''}
-        <div style="flex:1;min-width:0">
-          <div class="ac-main">${highlight(r.main, kw)}</div>
-          ${r.sub?`<div class="ac-sub">${highlight(r.sub, kw)}</div>`:''}
-        </div>
-        ${r.badge?`<span class="ac-badge">${r.badge}</span>`:''}
-      </div>`;
-    }).join('');
-
-    // Simpan results di scope agar bisa diakses oleh onmousedown
-    wrap._results = results;
-  }
-
-  window[`_acSelect_${config.containerId}`] = function(idx){
-    const item = wrap._results?.[idx];
-    if(!item) return;
-    _selected = item;
-    const r = config.renderItem(item);
-    input.value = r.main.replace(/<[^>]+>/g,''); // strip html
-    clearBtn.style.display = 'block';
-    dd.classList.remove('open');
-    if(config.onSelect) config.onSelect(item);
-  };
-
-  input.addEventListener('input', ()=>{
-    const kw = input.value;
-    clearBtn.style.display = kw ? 'block' : 'none';
-    if(kw.length < minChars){ dd.classList.remove('open'); return; }
-    _allData = null; // reset cache agar data fresh
-    doSearch(kw);
-  });
-
-  // Keyboard navigation
-  input.addEventListener('keydown', e=>{
-    const items = dd.querySelectorAll('.ac-item');
-    if(!items.length) return;
-    if(e.key==='ArrowDown'){
-      e.preventDefault();
-      _activeIdx = Math.min(_activeIdx+1, items.length-1);
-      items.forEach((el,i)=>el.classList.toggle('ac-active',i===_activeIdx));
-      items[_activeIdx]?.scrollIntoView({block:'nearest'});
-    } else if(e.key==='ArrowUp'){
-      e.preventDefault();
-      _activeIdx = Math.max(_activeIdx-1, 0);
-      items.forEach((el,i)=>el.classList.toggle('ac-active',i===_activeIdx));
-      items[_activeIdx]?.scrollIntoView({block:'nearest'});
-    } else if(e.key==='Enter' && _activeIdx>=0){
-      e.preventDefault();
-      window[`_acSelect_${config.containerId}`](_activeIdx);
-    } else if(e.key==='Escape'){
-      dd.classList.remove('open');
-    }
-  });
-
-  // Tutup dropdown saat focus keluar
-  input.addEventListener('blur', ()=>{
-    _closeTimer = setTimeout(()=> dd.classList.remove('open'), 200);
-  });
-  input.addEventListener('focus', ()=>{
-    clearTimeout(_closeTimer);
-    if(input.value.length >= minChars) doSearch(input.value);
-  });
-
-  // API publik
-  wrap._acReset = function(label=''){
-    input.value=label; _selected=null; _allData=null;
-    clearBtn.style.display=label?'block':'none';
-    dd.classList.remove('open');
-  };
-  wrap._acSetLabel = function(label){
-    input.value=label;
-    clearBtn.style.display=label?'block':'none';
-  };
-  wrap._acInvalidateCache = function(){ _allData=null; };
-
-  return wrap;
-}
-
 
 // ============================================================
 // NAVIGATION CONFIG
@@ -2269,9 +2093,9 @@ function buildModalWO(){
 <div class="form-grid">
   <div class="form-group"><label class="form-label">No. WO <span style="font-size:10px;color:var(--orange);font-weight:400">✎ bisa diubah</span></label><input id="f-wo-no" class="form-input" placeholder="Otomatis: WGWO..." style="font-family:var(--font-display);letter-spacing:0.5px;border-color:rgba(255,106,0,0.4)"/></div>
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-wo-tgl" class="form-input" type="date" value="${today()}"/></div>
-  <div class="form-group"><label class="form-label">Pelanggan</label><div id="ac-wo-pel"></div><input type="hidden" id="f-wo-pel"/></div>
-  <div class="form-group"><label class="form-label">Kendaraan <span class="req">*</span></label><div id="ac-wo-kend"></div><input type="hidden" id="f-wo-kend"/></div>
-  <div class="form-group"><label class="form-label">Mekanik</label><div id="ac-wo-mek"></div><input type="hidden" id="f-wo-mek"/></div>
+  <div class="form-group"><label class="form-label">Pelanggan</label><select id="f-wo-pel" class="form-input" onchange="loadKendByPel()"><option value="">-- Pilih --</option></select></div>
+  <div class="form-group"><label class="form-label">Kendaraan <span class="req">*</span></label><select id="f-wo-kend" class="form-input"><option value="">-- Pilih Kendaraan --</option></select></div>
+  <div class="form-group"><label class="form-label">Mekanik</label><select id="f-wo-mek" class="form-input"><option value="">-- Pilih --</option></select></div>
   <div class="form-group"><label class="form-label">Status</label><select id="f-wo-status" class="form-input"><option value="antri">Antri</option><option value="proses">Proses</option><option value="selesai">Selesai</option></select></div>
   <div class="form-group form-full"><label class="form-label">Keluhan Pelanggan</label><textarea id="f-wo-keluhan" class="form-input" rows="2"></textarea></div>
   <div class="form-group form-full"><label class="form-label">Diagnosa / Pekerjaan</label><textarea id="f-wo-diagnosa" class="form-input" rows="2"></textarea></div>
@@ -2402,73 +2226,6 @@ async function openModalWO(wo=null){
   renderWOParts(window._woBrg||[]);
   hitungTotalWO();
   openModal('modal-wo');
-
-  // ── Inisialisasi Autocomplete (setelah DOM tersedia) ────────
-  // PELANGGAN
-  createAC({
-    containerId:'ac-wo-pel',
-    placeholder:'Ketik nama pelanggan...',
-    data: pls,
-    searchKeys:['nama','telepon'],
-    renderItem: p=>({icon:'👤', main:p.nama, sub:p.telepon||''}),
-    onSelect: p=>{
-      document.getElementById('f-wo-pel').value=p.id;
-      window._woKendFiltered=(window._allKend||[]).filter(k=>k.pelanggan_id===p.id);
-      if(!window._woKendFiltered.length) window._woKendFiltered=window._allKend||[];
-      document.getElementById('ac-wo-kend')._acReset?.();
-      document.getElementById('f-wo-kend').value='';
-    },
-    onClear:()=>{
-      document.getElementById('f-wo-pel').value='';
-      window._woKendFiltered=window._allKend||[];
-      document.getElementById('ac-wo-kend')._acReset?.();
-      document.getElementById('f-wo-kend').value='';
-    }
-  });
-
-  // KENDARAAN
-  window._woKendFiltered = kends;
-  createAC({
-    containerId:'ac-wo-kend',
-    placeholder:'Ketik no. plat / merk / tipe...',
-    data:()=>Promise.resolve(window._woKendFiltered||kends),
-    searchKeys:['no_plat','merk','tipe','warna'],
-    renderItem:k=>({
-      icon:'🚗', main:k.no_plat,
-      sub:`${k.merk||''} ${k.tipe||''} ${k.tahun||''}`.trim(),
-      badge:k.pelanggan?.nama||''
-    }),
-    onSelect:k=>{ document.getElementById('f-wo-kend').value=k.id; },
-    onClear:()=>{ document.getElementById('f-wo-kend').value=''; }
-  });
-
-  // MEKANIK
-  createAC({
-    containerId:'ac-wo-mek',
-    placeholder:'Ketik nama mekanik...',
-    data:meks,
-    searchKeys:['nama','spesialisasi'],
-    renderItem:m=>({icon:'🔧', main:m.nama, sub:m.spesialisasi||''}),
-    onSelect:m=>{ document.getElementById('f-wo-mek').value=m.id; },
-    onClear:()=>{ document.getElementById('f-wo-mek').value=''; }
-  });
-
-  // ── Isi nilai saat mode Edit ─────────────────────────────────
-  if(isEdit && wo){
-    if(wo.pelanggan?.nama){
-      document.getElementById('ac-wo-pel')._acSetLabel?.(wo.pelanggan.nama);
-      document.getElementById('f-wo-pel').value=wo.pelanggan_id||'';
-    }
-    if(wo.kendaraan?.no_plat){
-      const sub=`${wo.kendaraan.merk||''} ${wo.kendaraan.tipe||''}`.trim();
-      document.getElementById('ac-wo-kend')._acSetLabel?.(`${wo.kendaraan.no_plat}${sub?' — '+sub:''}`);
-      document.getElementById('f-wo-kend').value=wo.kendaraan_id||'';
-    }
-    if(wo.mekanik?.nama){
-      document.getElementById('ac-wo-mek')._acSetLabel?.(wo.mekanik.nama);
-      document.getElementById('f-wo-mek').value=wo.mekanik_id||'';
-    }
-  }
 }
 
 async function editWO(id){
@@ -2515,13 +2272,17 @@ function renderWOParts(){
   }
 
   tbody.innerHTML = _woParts.map(p => {
+    // Tampilkan manual HANYA jika user sudah eksplisit pilih manual
+    // Item baru (_isNew) atau item gudang (barang_id ada) → dropdown
     const showManual = p.is_non_gudang === true && !p._isNew;
-    const adaDiGudang = p.barang_id && daftarBrg.some(b=>b.id===p.barang_id);
+    const adaDiGudang = p.barang_id && daftarBrg.some(b => b.id === p.barang_id);
 
     const kolomPart = showManual
       ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-           <span style="font-size:10px;background:rgba(255,165,0,0.15);color:var(--orange);border:1px solid rgba(255,165,0,0.3);border-radius:4px;padding:1px 6px;flex-shrink:0">✏️ Manual</span>
-           <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangWO('${p.rowId}')">
+           <span style="font-size:10px;background:rgba(255,165,0,0.15);color:var(--orange);
+             border:1px solid rgba(255,165,0,0.3);border-radius:4px;padding:1px 6px;flex-shrink:0">✏️ Manual</span>
+           <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px"
+             onclick="gantiKeGudangWO('${p.rowId}')">
              <i class="ti ti-arrow-back-up" style="font-size:10px"></i> Ganti Gudang
            </button>
          </div>
@@ -2530,11 +2291,28 @@ function renderWOParts(){
            value="${(p.nama_barang||'').replace(/"/g,'&quot;')}"
            oninput="updateWOPart('${p.rowId}','nama_barang',this.value)"
            style="font-size:12px"/>`
-      : `<div id="ac-part-${p.rowId}"></div>
-         ${p.nama_barang&&adaDiGudang?`<div style="font-size:10px;color:var(--text3);padding:2px 0 0">📦 ${p.nama_barang} (stok: ${daftarBrg.find(b=>b.id===p.barang_id)?.stok||'?'})</div>`:''}`;
+      : `<select class="form-input" style="font-size:12px;width:100%"
+           onchange="selectWOPart(this,'${p.rowId}')">
+           <option value="">-- Pilih Sparepart --</option>
+           <option value="__manual__" style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
+           <optgroup label="── Stok Gudang ──">
+           ${daftarBrg.map(b =>
+             `<option value="${b.id}"
+               data-nama="${b.nama.replace(/"/g,'&quot;')}"
+               data-satuan="${b.satuan||'pcs'}"
+               data-harga="${b.harga_jual||0}"
+               ${b.id === p.barang_id ? 'selected' : ''}>
+               ${b.nama} (stok: ${b.stok} ${b.satuan||'pcs'})
+             </option>`
+           ).join('')}
+           </optgroup>
+         </select>
+         ${p.nama_barang && adaDiGudang
+           ? `<div style="font-size:10px;color:var(--text3);padding:2px 0 0">📦 ${p.nama_barang}</div>`
+           : ''}`;
 
     return `<tr id="row-${p.rowId}">
-      <td style="min-width:200px">${kolomPart}</td>
+      <td>${kolomPart}</td>
       <td><input type="text" class="form-input" id="sat-${p.rowId}"
         value="${p.satuan||'pcs'}" oninput="updateWOPart('${p.rowId}','satuan',this.value)"
         style="font-size:12px"/></td>
@@ -2550,60 +2328,6 @@ function renderWOParts(){
         <i class="ti ti-trash"></i></button></td>
     </tr>`;
   }).join('');
-
-  // Inisialisasi autocomplete untuk setiap baris part (non-manual)
-  _woParts.forEach(p=>{
-    if(p.is_non_gudang && !p._isNew) return; // skip manual
-    const containerId=`ac-part-${p.rowId}`;
-    if(!document.getElementById(containerId)) return;
-    const initLabel = p.nama_barang && !p._isNew ? p.nama_barang : '';
-    createAC({
-      containerId,
-      placeholder:'Ketik nama sparepart / kode...',
-      data: daftarBrg,
-      searchKeys:['nama','kode','satuan'],
-      initialLabel: initLabel,
-      renderItem: b=>({
-        icon:'📦',
-        main: b.nama,
-        sub: `${b.satuan||'pcs'} | Harga: ${fmt(b.harga_jual||0)}`,
-        badge: `Stok: ${b.stok}`
-      }),
-      onSelect: b=>{
-        const part=_woParts.find(x=>x.rowId===p.rowId);
-        if(!part) return;
-        part.barang_id=b.id; part.is_non_gudang=false; part._isNew=false;
-        part.nama_barang=b.nama; part.satuan=b.satuan||'pcs'; part.harga_jual=b.harga_jual||0;
-        const satEl=document.getElementById('sat-'+p.rowId);
-        const hjEl =document.getElementById('hj-' +p.rowId);
-        if(satEl) satEl.value=b.satuan||'pcs';
-        if(hjEl)  hjEl.value =b.harga_jual||0;
-        hitungSubtotalWO(p.rowId);
-      },
-      onClear:()=>{
-        const part=_woParts.find(x=>x.rowId===p.rowId);
-        if(!part) return;
-        part.barang_id=''; part.nama_barang=''; part._isNew=true;
-      }
-    });
-    // Tambah opsi manual di bawah autocomplete
-    const wrap=document.getElementById(containerId);
-    if(wrap && !wrap.querySelector('.ac-manual-btn')){
-      const manualBtn=document.createElement('button');
-      manualBtn.type='button';
-      manualBtn.className='ac-manual-btn';
-      manualBtn.style.cssText='margin-top:4px;font-size:10px;color:var(--orange);background:none;border:none;cursor:pointer;padding:0;';
-      manualBtn.innerHTML='✏️ Input manual (non-gudang)';
-      manualBtn.onclick=()=>{
-        const part=_woParts.find(x=>x.rowId===p.rowId);
-        if(!part) return;
-        part.is_non_gudang=true; part._isNew=false; part.barang_id=''; part.nama_barang='';
-        renderWOParts();
-        setTimeout(()=>{ const nm=document.getElementById('nm-'+p.rowId); if(nm) nm.focus(); },50);
-      };
-      wrap.appendChild(manualBtn);
-    }
-  });
 }
 
 function selectWOPart(sel, rowId){
@@ -2983,7 +2707,7 @@ function buildModalJual(){
 <div class="form-grid">
   <div class="form-group"><label class="form-label">No. Faktur <span style="font-size:10px;color:var(--orange);font-weight:400">✎ bisa diubah</span></label><input id="f-jl-no" class="form-input" placeholder="Otomatis: WGJL..." style="font-family:var(--font-display);letter-spacing:0.5px;border-color:rgba(255,106,0,0.4)"/></div>
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-jl-tgl" class="form-input" type="date" value="${today()}"/></div>
-  <div class="form-group"><label class="form-label">Pelanggan</label><div id="ac-jl-pel"></div><input type="hidden" id="f-jl-pel"/></div>
+  <div class="form-group"><label class="form-label">Pelanggan</label><select id="f-jl-pel" class="form-input"><option value="">-- Umum --</option></select></div>
   <div class="form-group"><label class="form-label">Metode Bayar</label><select id="f-jl-metode" class="form-input"><option value="tunai">Tunai</option><option value="transfer">Transfer</option><option value="kredit">Kredit</option></select></div>
 </div>
 <hr class="form-divider" style="margin:12px 0"/>
@@ -3017,8 +2741,7 @@ async function openModalJual(){
   _jualItems=[];
   const[pls,brg]=await Promise.all([loadTable('pelanggan',{order:'nama'}),loadTable('barang',{eq:{aktif:true},order:'nama'})]);
   window._brg=brg;
-  openModal('modal-jual');
-  createAC({containerId:'ac-jl-pel',placeholder:'Ketik nama pelanggan (kosong = Umum)...',data:pls,searchKeys:['nama','telepon'],renderItem:p=>({icon:'👤',main:p.nama,sub:p.telepon||''}),onSelect:p=>{document.getElementById('f-jl-pel').value=p.id;},onClear:()=>{document.getElementById('f-jl-pel').value='';},initialLabel:''});
+  document.getElementById('f-jl-pel').innerHTML='<option value="">-- Umum --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
   const no=await autoNo('JL','penjualan','no_faktur');
   document.getElementById('f-jl-no').value=no;
   document.getElementById('f-jl-tgl').value=today();
@@ -3554,7 +3277,7 @@ ${modalHtml('modal-po','Buat Purchase Order',`
 <div class="form-grid">
   <div class="form-group"><label class="form-label">No. PO <span style="font-size:10px;color:var(--orange);font-weight:400">✎ bisa diubah</span></label><input id="f-po-no" class="form-input" placeholder="Otomatis: WGPO..." style="font-family:var(--font-display);letter-spacing:0.5px;border-color:rgba(255,106,0,0.4)"/></div>
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-po-tgl" class="form-input" type="date"/></div>
-  <div class="form-group"><label class="form-label">Supplier <span class="req">*</span></label><div id="ac-po-sup"></div><input type="hidden" id="f-po-sup"/></div>
+  <div class="form-group"><label class="form-label">Supplier <span class="req">*</span></label><select id="f-po-sup" class="form-input"><option value="">-- Pilih --</option></select></div>
   <div class="form-group"><label class="form-label">Status</label>
     <select id="f-po-status" class="form-input"><option value="pending">Pending</option><option value="approved">Approved</option><option value="ditolak">Ditolak</option><option value="selesai">Selesai</option></select>
   </div>
@@ -3579,6 +3302,7 @@ window.init_pesanan_beli=async function(){await loadPO();};
 async function openModalPO(){
   _poItems=[];
   const sups=await loadTable('supplier',{order:'nama'});
+  document.getElementById('f-po-sup').innerHTML='<option value="">-- Pilih --</option>'+sups.map(s=>`<option value="${s.id}">${s.nama}</option>`).join('');
   document.getElementById('f-po-id').value='';
   const no=await autoNo('PO','pesanan_beli','no_po');
   document.getElementById('f-po-no').value=no;
@@ -3587,7 +3311,6 @@ async function openModalPO(){
   document.getElementById('f-po-status').value='pending';
   renderPOItems();hitungTotalPO();
   openModal('modal-po');
-  createAC({containerId:'ac-po-sup',placeholder:'Ketik nama supplier...',data:sups,searchKeys:['nama','telepon','kota'],renderItem:s=>({icon:'🏭',main:s.nama,sub:[s.kota,s.telepon].filter(Boolean).join(' | ')}),onSelect:s=>{document.getElementById('f-po-sup').value=s.id;},onClear:()=>{document.getElementById('f-po-sup').value='';},initialLabel:''});
 }
 
 async function addPOItem(){
@@ -3599,58 +3322,46 @@ async function addPOItem(){
 function renderPOItems(){
   const tbody=document.getElementById('body-po-items');
   const brg=window._brg||[];
-  if(!_poItems.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:16px;color:var(--text3);font-size:12px"><i class="ti ti-inbox" style="font-size:22px;display:block;margin-bottom:6px"></i>Belum ada item — klik "+ Tambah Item"</td></tr>`;return;}
+  if(!_poItems.length){tbody.innerHTML=`<tr><td colspan="6" style="text-align:center;padding:12px;color:var(--text3);font-size:12px">Belum ada item — klik "+ Tambah Item"</td></tr>`;return;}
   tbody.innerHTML=_poItems.map(p=>`<tr id="prow-${p.rowId}">
-    <td style="min-width:200px">
-      ${p.is_manual
-        ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-             <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
-             <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangPO('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
-           </div>
-           <input type="text" class="form-input" id="pnm-${p.rowId}" placeholder="Nama barang manual..." value="${(p.nama_barang||'').replace(/"/g,'&quot;')}" oninput="updatePOItem('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
-        : `<div id="ac-po-item-${p.rowId}"></div>
-           ${p.nama_barang?`<div style="font-size:10px;color:var(--text3);padding:2px 0 0">📦 ${p.nama_barang}</div>`:''}`
+    <td>
+      <select class="form-input" style="font-size:12px;margin-bottom:${p.is_manual?'4px':'0'}" onchange="selectPOItem(this,'${p.rowId}')">
+        <option value="">-- Pilih Barang --</option>
+        <option value="__manual__" ${p.is_manual?'selected':''} style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
+        <optgroup label="── Barang Gudang ──">
+        ${brg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan}" data-harga="${b.harga_beli}" ${p.barang_id===b.id?'selected':''}>${b.nama}</option>`).join('')}
+        </optgroup>
+      </select>
+      ${p.is_manual?`<input type="text" class="form-input" id="pnm-${p.rowId}" placeholder="Nama barang manual..." value="${p.nama_barang}" oninput="updatePOItem('${p.rowId}','nama_barang',this.value)" style="font-size:11px"/>`:
+      (p.nama_barang?`<div style="font-size:10px;color:var(--text3);padding:2px 2px 0">📦 ${p.nama_barang}</div>`:'')
       }
     </td>
-    <td><input type="text" class="form-input" id="psat-${p.rowId}" value="${p.satuan||'pcs'}" oninput="updatePOItem('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
-    <td><input type="number" min="1" class="form-input" value="${p.jumlah||1}" oninput="updatePOItem('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
-    <td><input type="number" min="0" class="form-input" id="phb-${p.rowId}" value="${p.harga_beli||0}" oninput="updatePOItem('${p.rowId}','harga_beli',Number(this.value))" style="font-size:12px"/></td>
-    <td style="font-size:12px;color:var(--orange)" id="psub-${p.rowId}">${fmt(p.subtotal||0)}</td>
+    <td><input type="text" class="form-input" id="psat-${p.rowId}" value="${p.satuan}" oninput="updatePOItem('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
+    <td><input type="number" min="1" class="form-input" value="${p.jumlah}" oninput="updatePOItem('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
+    <td><input type="number" min="0" class="form-input" id="phb-${p.rowId}" value="${p.harga_beli}" oninput="updatePOItem('${p.rowId}','harga_beli',Number(this.value))" style="font-size:12px"/></td>
+    <td style="font-size:12px;color:var(--orange)" id="psub-${p.rowId}">${fmt(p.subtotal)}</td>
     <td><button class="btn btn-danger btn-sm" onclick="removePOItem('${p.rowId}')"><i class="ti ti-x"></i></button></td>
   </tr>`).join('');
-
-  // Init autocomplete per baris
-  _poItems.forEach(p=>{
-    if(p.is_manual) return;
-    if(!document.getElementById(`ac-po-item-${p.rowId}`)) return;
-    createAC({
-      containerId:`ac-po-item-${p.rowId}`,
-      placeholder:'Ketik nama barang...',
-      data:brg, searchKeys:['nama','kode','satuan'],
-      initialLabel:p.nama_barang||'',
-      renderItem:b=>({icon:'📦',main:b.nama,sub:`Harga Beli: ${fmt(b.harga_beli||0)} | Stok: ${b.stok} ${b.satuan}`,badge:b.satuan}),
-      onSelect:b=>{
-        const item=_poItems.find(x=>x.rowId===p.rowId);if(!item)return;
-        item.barang_id=b.id;item.nama_barang=b.nama;item.satuan=b.satuan;item.harga_beli=b.harga_beli||0;item.is_manual=false;
-        const satEl=document.getElementById('psat-'+p.rowId);if(satEl)satEl.value=b.satuan;
-        const hbEl=document.getElementById('phb-'+p.rowId);if(hbEl)hbEl.value=b.harga_beli||0;
-        hitungSubPO(p.rowId);
-      },
-      onClear:()=>{const item=_poItems.find(x=>x.rowId===p.rowId);if(item){item.barang_id='';item.nama_barang='';}}
-    });
-    // Tombol manual
-    const wrap=document.getElementById(`ac-po-item-${p.rowId}`);
-    if(wrap&&!wrap.querySelector('.ac-manual-btn')){
-      const btn=document.createElement('button');btn.type='button';btn.className='ac-manual-btn';
-      btn.style.cssText='margin-top:3px;font-size:10px;color:var(--orange);background:none;border:none;cursor:pointer;padding:0';
-      btn.innerHTML='✏️ Input manual';
-      btn.onclick=()=>{const item=_poItems.find(x=>x.rowId===p.rowId);if(!item)return;item.is_manual=true;item.barang_id='';item.nama_barang='';renderPOItems();setTimeout(()=>document.getElementById('pnm-'+p.rowId)?.focus(),50);};
-      wrap.appendChild(btn);
-    }
-  });
 }
-function gantiKeGudangPO(rowId){const p=_poItems.find(x=>x.rowId===rowId);if(!p)return;p.is_manual=false;p.barang_id='';p.nama_barang='';renderPOItems();}
 
+function selectPOItem(sel,rowId){
+  const p=_poItems.find(x=>x.rowId===rowId);if(!p)return;
+  if(sel.value==='__manual__'){
+    p.barang_id='';p.nama_barang='';p.satuan='pcs';p.harga_beli=0;p.is_manual=true;
+    renderPOItems();
+    const nm=document.getElementById('pnm-'+rowId);if(nm)nm.focus();
+  } else if(sel.value){
+    const opt=sel.selectedOptions[0];
+    p.barang_id=sel.value;p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan;p.harga_beli=Number(opt.dataset.harga);p.is_manual=false;
+    document.getElementById('psat-'+rowId).value=p.satuan;
+    document.getElementById('phb-'+rowId).value=p.harga_beli;
+    hitungSubPO(rowId);
+    renderPOItems();
+  } else {
+    p.barang_id='';p.nama_barang='';p.is_manual=false;
+    renderPOItems();
+  }
+}
 function updatePOItem(rowId,field,val){const p=_poItems.find(x=>x.rowId===rowId);if(!p)return;p[field]=val;hitungSubPO(rowId);}
 function hitungSubPO(rowId){const p=_poItems.find(x=>x.rowId===rowId);if(!p)return;p.subtotal=p.jumlah*p.harga_beli;const el=document.getElementById('psub-'+rowId);if(el)el.textContent=fmt(p.subtotal);hitungTotalPO();}
 function removePOItem(rowId){_poItems=_poItems.filter(x=>x.rowId!==rowId);renderPOItems();hitungTotalPO();}
@@ -3769,7 +3480,7 @@ function buildModalBeli(){
 <div class="form-grid">
   <div class="form-group"><label class="form-label">No. Faktur <span style="font-size:10px;color:var(--orange);font-weight:400">✎ bisa diubah</span></label><input id="f-bl-no" class="form-input" placeholder="Otomatis: WGFB..." style="font-family:var(--font-display);letter-spacing:0.5px;border-color:rgba(255,106,0,0.4)"/></div>
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-bl-tgl" class="form-input" type="date"/></div>
-  <div class="form-group"><label class="form-label">Supplier <span class="req">*</span></label><div id="ac-bl-sup"></div><input type="hidden" id="f-bl-sup"/></div>
+  <div class="form-group"><label class="form-label">Supplier <span class="req">*</span></label><select id="f-bl-sup" class="form-input"><option value="">-- Pilih --</option></select></div>
   <div class="form-group"><label class="form-label">Dari PO</label><select id="f-bl-po" class="form-input" onchange="isiDariPO()"><option value="">-- Tanpa PO --</option></select></div>
 </div>
 <hr class="form-divider" style="margin:12px 0"/>
@@ -3810,6 +3521,7 @@ async function openModalBeli(fromPoId=null){
   ]);
   if(!window._brg) window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
 
+  document.getElementById('f-bl-sup').innerHTML='<option value="">-- Pilih --</option>'+sups.map(s=>`<option value="${s.id}">${s.nama}</option>`).join('');
   document.getElementById('f-bl-po').innerHTML='<option value="">-- Tanpa PO --</option>'+pos.map(p=>`<option value="${p.id}" data-sup="${p.supplier_id}">${p.no_po} - ${sups.find(s=>s.id===p.supplier_id)?.nama||''}</option>`).join('');
   document.getElementById('f-bl-id').value='';
   const no=await autoNo('FB','pembelian','no_faktur');
@@ -3821,7 +3533,6 @@ async function openModalBeli(fromPoId=null){
 
   // Buka modal dulu agar DOM tersedia
   openModal('modal-beli');
-  createAC({containerId:'ac-bl-sup',placeholder:'Ketik nama supplier...',data:sups,searchKeys:['nama','telepon','kota'],renderItem:s=>({icon:'🏭',main:s.nama,sub:[s.kota,s.telepon].filter(Boolean).join(' | ')}),onSelect:s=>{document.getElementById('f-bl-sup').value=s.id;},onClear:()=>{document.getElementById('f-bl-sup').value='';},initialLabel:''});
 
   // Setelah modal terbuka, baru isi data
   if(fromPoId){
@@ -3900,21 +3611,32 @@ function renderBeliItems(){
     return;
   }
   tbody.innerHTML=_beliItems.map(p=>{
-    const tampilManual = p.is_manual && !p.barang_id;
+    const isManual = p.is_manual || !p.barang_id;
+    // Cek apakah barang_id ada di daftar gudang
+    const adaDiGudang = p.barang_id && brg.some(b=>b.id===p.barang_id);
+    const tampilManual = isManual && !adaDiGudang;
+
+    const kolomBarang = tampilManual
+      ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
+           <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px;white-space:nowrap;flex-shrink:0">✏️ Manual</span>
+           <button class="btn btn-outline btn-sm" style="padding:1px 7px;font-size:10px;flex-shrink:0" onclick="gantiKeGudangBeli('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:11px"></i> Ganti Gudang</button>
+         </div>
+         <input type="text" class="form-input" id="bnm-${p.rowId}"
+           placeholder="Nama barang manual..."
+           value="${(p.nama_barang||'').replace(/"/g,'&quot;')}"
+           oninput="updateBeliItem('${p.rowId}','nama_barang',this.value)"
+           style="font-size:12px"/>`
+      : `<select class="form-input" style="font-size:12px" onchange="selectBeliItem(this,'${p.rowId}')">
+           <option value="">-- Pilih Barang --</option>
+           <option value="__manual__" style="color:var(--orange);font-weight:600">✏️ Input Manual (Non-Gudang)</option>
+           <optgroup label="── Barang Gudang ──">
+           ${brg.map(b=>`<option value="${b.id}" data-nama="${b.nama}" data-satuan="${b.satuan||'pcs'}" data-harga="${b.harga_beli||0}" ${b.id===p.barang_id?'selected':''}>${b.nama}</option>`).join('')}
+           </optgroup>
+         </select>
+         ${p.nama_barang&&adaDiGudang?`<div style="font-size:10px;color:var(--text3);padding:2px 2px 0">📦 ${p.nama_barang}</div>`:''}`;
+
     return `<tr id="brow-${p.rowId}">
-      <td style="min-width:200px">
-        ${tampilManual
-          ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-               <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
-               <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangBeli('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
-             </div>
-             <input type="text" class="form-input" id="bnm-${p.rowId}" placeholder="Nama barang manual..."
-               value="${(p.nama_barang||'').replace(/"/g,'&quot;')}"
-               oninput="updateBeliItem('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
-          : `<div id="ac-bl-item-${p.rowId}"></div>
-             ${p.nama_barang?`<div style="font-size:10px;color:var(--text3);padding:2px 0 0">📦 ${p.nama_barang}</div>`:''}`
-        }
-      </td>
+      <td>${kolomBarang}</td>
       <td><input type="text" class="form-input" id="bsat-${p.rowId}" value="${p.satuan||'pcs'}" oninput="updateBeliItem('${p.rowId}','satuan',this.value)" style="font-size:12px"/></td>
       <td><input type="number" min="1" class="form-input" value="${p.jumlah||1}" oninput="updateBeliItem('${p.rowId}','jumlah',Number(this.value))" style="font-size:12px"/></td>
       <td><input type="number" min="0" class="form-input" id="bhb-${p.rowId}" value="${p.harga_beli||0}" oninput="updateBeliItem('${p.rowId}','harga_beli',Number(this.value))" style="font-size:12px"/></td>
@@ -3922,40 +3644,32 @@ function renderBeliItems(){
       <td><button class="btn btn-danger btn-sm" onclick="removeBeliItem('${p.rowId}')"><i class="ti ti-x"></i></button></td>
     </tr>`;
   }).join('');
+}
 
-  // Init autocomplete per baris
-  _beliItems.forEach(p=>{
-    if(p.is_manual) return;
-    if(!document.getElementById(`ac-bl-item-${p.rowId}`)) return;
-    createAC({
-      containerId:`ac-bl-item-${p.rowId}`,
-      placeholder:'Ketik nama barang...',
-      data:brg, searchKeys:['nama','kode','satuan'],
-      initialLabel:p.nama_barang||'',
-      renderItem:b=>({icon:'📦',main:b.nama,sub:`Harga Beli: ${fmt(b.harga_beli||0)} | Stok: ${b.stok} ${b.satuan}`,badge:b.satuan}),
-      onSelect:b=>{
-        const item=_beliItems.find(x=>x.rowId===p.rowId);if(!item)return;
-        item.barang_id=b.id;item.nama_barang=b.nama;item.satuan=b.satuan||'pcs';item.harga_beli=b.harga_beli||0;item.is_manual=false;
-        const satEl=document.getElementById('bsat-'+p.rowId);if(satEl)satEl.value=b.satuan||'pcs';
-        const hbEl=document.getElementById('bhb-'+p.rowId);if(hbEl)hbEl.value=b.harga_beli||0;
-        hitungSubBeli(p.rowId);
-      },
-      onClear:()=>{const item=_beliItems.find(x=>x.rowId===p.rowId);if(item){item.barang_id='';item.nama_barang='';}}
-    });
-    const wrap=document.getElementById(`ac-bl-item-${p.rowId}`);
-    if(wrap&&!wrap.querySelector('.ac-manual-btn')){
-      const btn=document.createElement('button');btn.type='button';btn.className='ac-manual-btn';
-      btn.style.cssText='margin-top:3px;font-size:10px;color:var(--orange);background:none;border:none;cursor:pointer;padding:0';
-      btn.innerHTML='✏️ Input manual';
-      btn.onclick=()=>{const item=_beliItems.find(x=>x.rowId===p.rowId);if(!item)return;item.is_manual=true;item.barang_id='';item.nama_barang='';renderBeliItems();setTimeout(()=>document.getElementById('bnm-'+p.rowId)?.focus(),50);};
-      wrap.appendChild(btn);
-    }
-  });
+function selectBeliItem(sel,rowId){
+  const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;
+  if(sel.value==='__manual__'){
+    p.barang_id='';p.nama_barang='';p.satuan='pcs';p.harga_beli=0;p.subtotal=0;p.is_manual=true;
+    renderBeliItems();
+    const nm=document.getElementById('bnm-'+rowId);if(nm)setTimeout(()=>nm.focus(),50);
+  } else if(sel.value){
+    const opt=sel.selectedOptions[0];
+    p.barang_id=sel.value;p.nama_barang=opt.dataset.nama;p.satuan=opt.dataset.satuan||'pcs';p.harga_beli=Number(opt.dataset.harga)||0;p.is_manual=false;
+    const satEl=document.getElementById('bsat-'+rowId);if(satEl)satEl.value=p.satuan;
+    const hbEl=document.getElementById('bhb-'+rowId);if(hbEl)hbEl.value=p.harga_beli;
+    hitungSubBeli(rowId);
+    // Re-render agar nama barang tampil di bawah dropdown
+    renderBeliItems();
+  } else {
+    p.barang_id='';p.nama_barang='';p.is_manual=false;
+    renderBeliItems();
+  }
 }
 
 function gantiKeGudangBeli(rowId){
   const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;
-  p.is_manual=false;p.barang_id='';p.nama_barang='';renderBeliItems();
+  p.is_manual=false;p.barang_id='';p.nama_barang='';
+  renderBeliItems();
 }
 function updateBeliItem(rowId,field,val){const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;p[field]=val;hitungSubBeli(rowId);}
 function hitungSubBeli(rowId){const p=_beliItems.find(x=>x.rowId===rowId);if(!p)return;p.subtotal=p.jumlah*p.harga_beli;const el=document.getElementById('bsub-'+rowId);if(el)el.textContent=fmt(p.subtotal);hitungTotalBeli();}
