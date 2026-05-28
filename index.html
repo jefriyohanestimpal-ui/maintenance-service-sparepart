@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>WAS Garage — Bengkel Service Mobil</title>
+<title>WAS Garage — Autoserv @Je.V.26.1</title>
 <meta name="theme-color" content="#0f0f0f"/>
 <link rel="manifest" id="manifest-link"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -608,6 +608,10 @@ select.form-input option{background:var(--bg3)}
   animation:spin 0.7s linear infinite;
 }
 @keyframes spin{to{transform:rotate(360deg)}}
+@keyframes arPulse{
+  0%,100%{opacity:1;transform:scale(1)}
+  50%{opacity:0.4;transform:scale(0.7)}
+}
 
 /* ============================================================
    OFFLINE INDICATOR
@@ -655,13 +659,112 @@ select.form-input option{background:var(--bg3)}
 /* ============================================================
    RESPONSIVE
    ============================================================ */
+/* ============================================================
+   RESPONSIVE — TABLET (max 768px)
+   ============================================================ */
 @media(max-width:768px){
-  :root{--sidebar-w:56px}
-  #sidebar .sidebar-title,#sidebar .nav-label,#sidebar .nav-group-label{display:none}
+  :root{--sidebar-w:0px}
+
+  /* Sidebar tersembunyi default di mobile */
+  #sidebar{
+    position:fixed;left:-240px;top:0;bottom:0;width:240px;
+    z-index:1000;transition:left 0.3s ease;
+    box-shadow:none;
+  }
+  #sidebar.mobile-open{
+    left:0;
+    box-shadow:4px 0 24px rgba(0,0,0,0.5);
+  }
+  /* Overlay gelap saat sidebar terbuka */
+  #sidebar-overlay{
+    display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);
+    z-index:999;
+  }
+  #sidebar-overlay.show{display:block;}
+
+  /* Sidebar label tampil di mobile (karena slide-in) */
+  #sidebar .sidebar-title,
+  #sidebar .nav-label,
+  #sidebar .nav-group-label{display:block !important}
+  #sidebar{width:240px}
+  .sidebar-toggle{display:none}
+
+  /* Main konten full width */
+  #main{margin-left:0 !important;width:100%}
+
+  /* Topbar */
+  #topbar{padding:8px 12px;gap:6px;flex-wrap:nowrap}
+  .topbar-title{font-size:14px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .topbar-right{gap:4px;flex-shrink:0}
+
+  /* Sembunyikan beberapa elemen topbar di HP kecil */
+  #auto-refresh-badge .ar-countdown-text{display:none}
+  #ar-countdown{display:none}
+  #ar-label{display:none}
+  #auto-refresh-badge span:first-child{margin:0}
+
+  /* Content padding */
+  #content{padding:10px}
+
+  /* Grid forms */
   .dash-grid{grid-template-columns:1fr}
   .stats-grid{grid-template-columns:repeat(2,1fr)}
-  .form-grid{grid-template-columns:1fr}
-  #content{padding:12px}
+  .form-grid{grid-template-columns:1fr !important}
+  .form-full{grid-column:1 !important}
+
+  /* TABEL — scrollable horizontal */
+  .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:10px}
+  table{min-width:600px;font-size:11px}
+  th,td{padding:7px 8px !important;white-space:nowrap}
+
+  /* Modal */
+  .modal-overlay{align-items:flex-end}
+  .modal-box{
+    width:100% !important;max-width:100% !important;
+    border-radius:16px 16px 0 0 !important;
+    max-height:92vh;overflow-y:auto;
+    margin:0 !important;
+  }
+  .modal-xl,.modal-lg{width:100% !important;max-width:100% !important}
+
+  /* Section header */
+  .section-hdr{flex-direction:column;align-items:flex-start;gap:8px}
+  .section-hdr-actions{width:100%;display:flex;flex-wrap:wrap;gap:6px}
+  .section-hdr-actions .btn{flex:1;min-width:120px;justify-content:center}
+
+  /* Stat cards */
+  .stat-card{padding:12px}
+  .stat-value{font-size:20px}
+
+  /* Login box */
+  .login-box{padding:24px 20px;margin:0 12px}
+
+  /* Sidebar user info */
+  #sidebar .sidebar-nav{padding-bottom:60px}
+}
+
+/* ============================================================
+   RESPONSIVE — HP KECIL (max 480px)
+   ============================================================ */
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  #topbar{padding:6px 10px}
+  .topbar-title{font-size:13px}
+
+  /* Sembunyikan badge role di HP kecil */
+  #topbar-role-badge{display:none}
+
+  /* Tabel lebih kompak */
+  table{font-size:10px}
+  th,td{padding:5px 6px !important}
+
+  /* Tombol aksi di tabel */
+  .btn-sm{padding:3px 6px;font-size:10px}
+  .btn-sm i{font-size:12px}
+
+  /* Form input */
+  .form-input{font-size:13px;padding:8px 10px}
+  .ac-input{font-size:13px;padding:8px 32px 8px 10px}
 }
 </style>
 
@@ -677,7 +780,7 @@ select.form-input option{background:var(--bg3)}
   <div class="login-box">
     <div class="login-logo">
       <div class="logo-icon">🔧</div>
-      <h1>AutoServ Pro Je.V.26.1</h1>
+      <h1>AutoServ Je.V.26.1</h1>
       <p>Sistem Operasional Bengkel Mobil</p>
     </div>
     <div class="login-error" id="login-error"></div>
@@ -695,10 +798,13 @@ select.form-input option{background:var(--bg3)}
       <i class="ti ti-login"></i> Masuk
     </button>
     <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3)">
-      Jefmanado &copy; 2026 — WAS Garage
+      AutoServ Pro &copy; 2026 — WAS Garage
     </div>
   </div>
 </div>
+
+<!-- SIDEBAR OVERLAY (mobile) -->
+<div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
 
 <!-- OFFLINE BAR -->
 <div id="offline-bar">
@@ -714,7 +820,7 @@ select.form-input option{background:var(--bg3)}
   <nav id="sidebar">
     <div class="sidebar-header">
       <div class="sidebar-logo">WG</div>
-      <span class="sidebar-title">WAS GARAGE @Je.V.26.1</span>
+      <span class="sidebar-title">WAS Garage</span>
     </div>
     <div class="sidebar-nav" id="sidebar-nav">
       <!-- Generated by JS -->
@@ -740,12 +846,23 @@ select.form-input option{background:var(--bg3)}
   <!-- MAIN -->
   <div id="main">
     <div id="topbar">
+      <!-- Hamburger menu (mobile only) -->
+      <button id="hamburger-btn" onclick="toggleMobileSidebar()"
+        style="display:none;background:none;border:none;cursor:pointer;color:var(--text);font-size:22px;padding:4px;margin-right:4px;flex-shrink:0">
+        <i class="ti ti-menu-2"></i>
+      </button>
       <div class="topbar-title" id="page-title">Dashboard</div>
       <div class="topbar-right">
         <!-- Role badge -->
         <span id="topbar-role-badge" class="login-role-badge role-admin" style="font-size:11px">
           <i class="ti ti-shield"></i> <span id="topbar-role-text">Admin</span>
         </span>
+        <!-- Auto-refresh indicator -->
+        <div id="auto-refresh-badge" title="Auto-refresh aktif" style="display:flex;align-items:center;gap:5px;font-size:11px;background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.25);border-radius:20px;padding:3px 10px;cursor:pointer" onclick="toggleAutoRefresh()">
+          <span id="ar-dot" style="width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block;animation:arPulse 2s infinite"></span>
+          <span id="ar-label" style="color:var(--green);font-weight:500">Auto</span>
+          <span id="ar-countdown" style="color:var(--text3);font-family:var(--font-display)">30:00</span>
+        </div>
         <div class="status-badge" id="status-badge">
           <span class="status-dot online" id="status-dot"></span>
           <span id="status-text">Online</span>
@@ -1030,8 +1147,161 @@ const NAV = [
 ];
 
 // ============================================================
-// AUTH — LOGIN / LOGOUT
+// MOBILE NAVIGATION
 // ============================================================
+function isMobile(){ return window.innerWidth <= 768; }
+
+function toggleMobileSidebar(){
+  const sidebar  = document.getElementById('sidebar');
+  const overlay  = document.getElementById('sidebar-overlay');
+  const isOpen   = sidebar.classList.contains('mobile-open');
+  if(isOpen) closeMobileSidebar();
+  else {
+    sidebar.classList.add('mobile-open');
+    overlay.classList.add('show');
+    document.body.style.overflow='hidden';
+  }
+}
+
+function closeMobileSidebar(){
+  const sidebar = document.getElementById('sidebar');
+  const overlay = document.getElementById('sidebar-overlay');
+  sidebar.classList.remove('mobile-open');
+  overlay.classList.remove('show');
+  document.body.style.overflow='';
+}
+
+// Tutup sidebar saat item nav diklik di mobile
+const _navClickHandler = showPage;
+
+// Deteksi ukuran layar dan tampilkan/sembunyikan hamburger
+function handleResize(){
+  const hamburger = document.getElementById('hamburger-btn');
+  if(!hamburger) return;
+  if(isMobile()){
+    hamburger.style.display='block';
+    // Pastikan sidebar tertutup saat resize ke mobile
+    closeMobileSidebar();
+  } else {
+    hamburger.style.display='none';
+    // Reset sidebar ke posisi normal di desktop
+    const sidebar=document.getElementById('sidebar');
+    if(sidebar) sidebar.classList.remove('mobile-open');
+    const overlay=document.getElementById('sidebar-overlay');
+    if(overlay) overlay.classList.remove('show');
+    document.body.style.overflow='';
+  }
+}
+
+window.addEventListener('resize', handleResize);
+// Jalankan sekali saat load
+document.addEventListener('DOMContentLoaded', handleResize);
+
+// Override showPage untuk tutup sidebar di mobile setelah navigasi
+const _showPageBeforeMobile = showPage;
+function showPage(id){
+  _showPageBeforeMobile(id);
+  if(isMobile()) closeMobileSidebar();
+}
+
+// ============================================================
+// AUTO-REFRESH SYSTEM
+// ============================================================
+const AR_INTERVAL_SEC = 30 * 60; // 30 menit dalam detik
+let _arTimer      = null;  // interval countdown
+let _arSecondsLeft = AR_INTERVAL_SEC;
+let _arEnabled    = true;
+
+function formatCountdown(sec){
+  const m = Math.floor(sec/60);
+  const s = sec % 60;
+  return `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+}
+
+function updateARBadge(){
+  const dot      = document.getElementById('ar-dot');
+  const label    = document.getElementById('ar-label');
+  const countdown= document.getElementById('ar-countdown');
+  const badge    = document.getElementById('auto-refresh-badge');
+  if(!badge) return;
+
+  if(_arEnabled){
+    dot.style.background    = 'var(--green)';
+    dot.style.animation     = 'arPulse 2s infinite';
+    label.style.color       = 'var(--green)';
+    label.textContent       = 'Auto';
+    badge.style.borderColor = 'rgba(34,197,94,0.25)';
+    badge.style.background  = 'rgba(34,197,94,0.1)';
+    badge.title             = 'Auto-refresh aktif — klik untuk matikan';
+    countdown.textContent   = formatCountdown(_arSecondsLeft);
+  } else {
+    dot.style.background    = 'var(--text3)';
+    dot.style.animation     = 'none';
+    label.style.color       = 'var(--text3)';
+    label.textContent       = 'Off';
+    badge.style.borderColor = 'rgba(255,255,255,0.1)';
+    badge.style.background  = 'rgba(255,255,255,0.05)';
+    badge.title             = 'Auto-refresh nonaktif — klik untuk aktifkan';
+    countdown.textContent   = '--:--';
+  }
+}
+
+function startARTimer(){
+  if(_arTimer) clearInterval(_arTimer);
+  _arSecondsLeft = AR_INTERVAL_SEC;
+  updateARBadge();
+
+  _arTimer = setInterval(async ()=>{
+    if(!_arEnabled) return;
+    _arSecondsLeft--;
+    updateARBadge();
+
+    if(_arSecondsLeft <= 0){
+      // Saatnya refresh!
+      _arSecondsLeft = AR_INTERVAL_SEC;
+      updateARBadge();
+      await doAutoRefresh();
+    }
+  }, 1000);
+}
+
+async function doAutoRefresh(){
+  if(!currentUser) return; // tidak refresh jika belum login
+  showToast('🔄 Auto-refresh data...', 'info');
+  try{
+    await safeInitPage(currentPage);
+    const now = new Date().toLocaleTimeString('id-ID',{hour:'2-digit',minute:'2-digit'});
+    showToast(`✅ Data diperbarui pukul ${now}`, 'success');
+  }catch(e){
+    showToast('Gagal auto-refresh', 'error');
+  }
+}
+
+function toggleAutoRefresh(){
+  _arEnabled = !_arEnabled;
+  updateARBadge();
+  if(_arEnabled){
+    _arSecondsLeft = AR_INTERVAL_SEC;
+    showToast('Auto-refresh diaktifkan (setiap 30 menit)', 'success');
+  } else {
+    showToast('Auto-refresh dimatikan', 'info');
+  }
+}
+
+// Reset countdown saat user ganti halaman (agar tidak refresh saat baru pindah)
+const _showPageOriginalAR = showPage;
+// Sudah di-override sebelumnya, tambahkan reset countdown
+const _prevShowPage = showPage;
+function showPage(id){
+  _prevShowPage(id);
+  // Reset countdown saat pindah halaman
+  if(_arEnabled){
+    _arSecondsLeft = AR_INTERVAL_SEC;
+    updateARBadge();
+  }
+}
+
+
 async function doLogin(){
   const username = document.getElementById('login-username').value.trim();
   const password = document.getElementById('login-password').value;
@@ -1936,7 +2206,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
   <input id="f-kd-plat" class="form-input" placeholder="DB 1234 XX" style="text-transform:uppercase;font-family:var(--font-display);font-weight:700;letter-spacing:1px"/></div>
 
 <div class="form-group"><label class="form-label">Merk</label>
-  <input id="f-kd-merk" class="form-input" placeholder="Ford, Toyota, Honda, Suzuki..."/></div>
+  <input id="f-kd-merk" class="form-input" placeholder="Toyota, Honda, Suzuki..."/></div>
 
 <div class="form-group"><label class="form-label">Tipe / Model</label>
   <input id="f-kd-tipe" class="form-input" placeholder="Avanza, Civic, Ertiga..."/></div>
@@ -1974,7 +2244,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
   </div>
   <div class="form-grid">
 
-  <div class="form-group"><label class="form-label">Nama Pemilik Resmi <span style="font-size:10px;color:var(--text3)">(sesuai STNK)</span></label>
+  <div class="form-group"><label class="form-label">Nama Pemilik <span style="font-size:10px;color:var(--text3)">(sesuai STNK)</span></label>
     <input id="f-kd-nama-stnk" class="form-input" placeholder="Nama lengkap di STNK..."/></div>
 
   <div class="form-group"><label class="form-label">Nomor Mesin</label>
@@ -1987,7 +2257,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
       style="font-family:monospace;letter-spacing:0.5px;text-transform:uppercase"
       oninput="this.value=this.value.toUpperCase()"/></div>
 
-  <div class="form-group"><label class="form-label">Catatan <span style="font-size:10px;color:var(--text3)">isi nama pemilik jika sudah tidak sama dengan di STNK</label>
+  <div class="form-group"><label class="form-label">Catatan <span style="font-size:10px;color:var(--text3)"><b>(input disini jika nama pemilik tidak sama STNK)</b></span></label>
     <input id="f-kd-catatan" class="form-input" placeholder="Catatan tambahan..."/></div>
 
   </div>
@@ -4369,7 +4639,7 @@ async function delReturBeli(id,no){if(!confirm2('Hapus retur '+no+'?'))return;sh
 // PAGE: PESANAN JUAL (SO)
 // ============================================================
 pages['pesanan-jual'] = () => `
-<div class="section-hdr"><h2><i class="ti ti-clipboard-list"></i>Pesanan Jual (SO)</h2>
+<div class="section-hdr"><h2><i class="ti ti-clipboard-list"></i>Pesanan Sparepart</h2>
   <div class="section-hdr-actions"><button class="btn btn-primary" onclick="openModalSO()"><i class="ti ti-plus"></i>Buat SO Baru</button></div>
 </div>
 <div class="table-wrap">
@@ -5528,8 +5798,8 @@ requestAnimationFrame(()=>{ setTimeout(()=>window.print(), 100); });
 (function(){
 try {
   const manifest = {
-    name: "AutoServ Je.V.26.1",
-    short_name: "Je.V.26.1",
+    name: "AutoServe Je.V.26.1",
+    short_name: "AutoServ Je.V.26.1",
     description: "Bengkel Service Mobil",
     start_url: "./",
     display: "standalone",
@@ -5554,7 +5824,9 @@ async function startApp(){
   applyRBAC();
   await openIDB();
   updateStatus();
+  handleResize(); // deteksi mobile segera
   showPage('dashboard');
+  startARTimer();
 }
 
 async function initApp(){
