@@ -4639,7 +4639,7 @@ async function delReturBeli(id,no){if(!confirm2('Hapus retur '+no+'?'))return;sh
 // PAGE: PESANAN JUAL (SO)
 // ============================================================
 pages['pesanan-jual'] = () => `
-<div class="section-hdr"><h2><i class="ti ti-clipboard-list"></i>Pesanan Sparepart</h2>
+<div class="section-hdr"><h2><i class="ti ti-clipboard-list"></i>Pesanan Sparepart <span style="font-size:10px;color:var(--text3)">(alur sebelum buat penjualan: Input barang di <b>Data Barang</b>, order barang di <b>Pesanan Beli</b>)</span></h2>
   <div class="section-hdr-actions"><button class="btn btn-primary" onclick="openModalSO()"><i class="ti ti-plus"></i>Buat SO Baru</button></div>
 </div>
 <div class="table-wrap">
