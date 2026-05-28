@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>AutoServ Pro Je.V.26.1 — Bengkel Service Mobil</title>
+<title>WAS Garage — Bengkel Service Mobil</title>
 <meta name="theme-color" content="#0f0f0f"/>
 <link rel="manifest" id="manifest-link"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -695,7 +695,7 @@ select.form-input option{background:var(--bg3)}
       <i class="ti ti-login"></i> Masuk
     </button>
     <div style="text-align:center;margin-top:16px;font-size:11px;color:var(--text3)">
-      Jef &copy; 2026 — WAS Garage
+      Jefmanado &copy; 2026 — WAS Garage
     </div>
   </div>
 </div>
@@ -1936,7 +1936,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
   <input id="f-kd-plat" class="form-input" placeholder="DB 1234 XX" style="text-transform:uppercase;font-family:var(--font-display);font-weight:700;letter-spacing:1px"/></div>
 
 <div class="form-group"><label class="form-label">Merk</label>
-  <input id="f-kd-merk" class="form-input" placeholder="Toyota, Honda, Suzuki..."/></div>
+  <input id="f-kd-merk" class="form-input" placeholder="Ford, Toyota, Honda, Suzuki..."/></div>
 
 <div class="form-group"><label class="form-label">Tipe / Model</label>
   <input id="f-kd-tipe" class="form-input" placeholder="Avanza, Civic, Ertiga..."/></div>
@@ -1987,7 +1987,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
       style="font-family:monospace;letter-spacing:0.5px;text-transform:uppercase"
       oninput="this.value=this.value.toUpperCase()"/></div>
 
-  <div class="form-group"><label class="form-label">Catatan <span style="font-size:10px;color:var(--text3)">(isi nama di sini jika tidak lagi sesuai STNK)</span></label>
+  <div class="form-group"><label class="form-label">Catatan <span style="font-size:10px;color:var(--text3)">isi nama pemilik jika sudah tidak sama dengan di STNK</label>
     <input id="f-kd-catatan" class="form-input" placeholder="Catatan tambahan..."/></div>
 
   </div>
@@ -4379,7 +4379,7 @@ pages['pesanan-jual'] = () => `
       <option value="">Semua</option><option value="pending">Pending</option><option value="diproses">Diproses</option><option value="selesai">Selesai</option><option value="batal">Batal</option>
     </select>
   </div>
-  <table id="tbl-so"><thead><tr><th>No SO</th><th>Tanggal</th><th>Pelanggan</th><th>Total</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead>
+  <table id="tbl-so"><thead><tr><th>No SO</th><th>Tanggal</th><th>Pelanggan</th><th>Status</th><th>Catatan</th><th>Aksi</th></tr></thead>
   <tbody id="body-so"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
 ${modalHtml('modal-so','Pesanan Jual (SO)',`
@@ -4390,16 +4390,8 @@ ${modalHtml('modal-so','Pesanan Jual (SO)',`
   <div class="form-group"><label class="form-label">Status</label><select id="f-so-status" class="form-input"><option value="pending">Pending</option><option value="diproses">Diproses</option><option value="selesai">Selesai</option><option value="batal">Batal</option></select></div>
   <div class="form-group form-full"><label class="form-label">Catatan</label><textarea id="f-so-catatan" class="form-input" rows="2"></textarea></div>
 </div>
-<hr class="form-divider" style="margin:10px 0"/>
-<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-  <span style="font-size:13px;font-weight:500;color:var(--text)">Item SO</span>
-  <button class="btn btn-outline btn-sm" onclick="addSOItem()"><i class="ti ti-plus"></i>Tambah</button>
-</div>
-<table class="trx-items"><thead><tr><th>Barang</th><th>Satuan</th><th>Qty</th><th>Harga</th><th>Sub</th><th></th></tr></thead>
-<tbody id="body-so-items"></tbody></table>
-<div class="trx-total-row"><span class="trx-total-label">Total:</span><span class="trx-total-val" id="so-total-val">Rp 0</span></div>
 <input type="hidden" id="f-so-id"/>`,
-'modal-xl',`
+'',`
 <button class="btn btn-outline" onclick="closeModal('modal-so')">Batal</button>
 <button class="btn btn-primary" onclick="saveSO()"><i class="ti ti-device-floppy"></i>Simpan SO</button>`)}`;
 
@@ -4408,11 +4400,14 @@ window.init_pesanan_jual=async function(){await loadSO();};
 async function openModalSO(){
   _soItems=[];
   const pls=await loadTable('pelanggan',{order:'nama'});
-  if(!window._brg)window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
   document.getElementById('f-so-pel').innerHTML='<option value="">-- Umum --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
   const no=await autoNo('SO','pesanan_jual','no_so');
-  document.getElementById('f-so-no').value=no;document.getElementById('f-so-tgl').value=today();document.getElementById('f-so-catatan').value='';document.getElementById('f-so-status').value='pending';document.getElementById('f-so-id').value='';
-  renderSOItems();hitungTotalSO();openModal('modal-so');
+  document.getElementById('f-so-no').value=no;
+  document.getElementById('f-so-tgl').value=today();
+  document.getElementById('f-so-catatan').value='';
+  document.getElementById('f-so-status').value='pending';
+  document.getElementById('f-so-id').value='';
+  openModal('modal-so');
 }
 async function addSOItem(){
   if(!window._brg)window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
@@ -4436,16 +4431,21 @@ function hitungSubSO(rowId){const p=_soItems.find(x=>x.rowId===rowId);if(!p)retu
 function removeSOItem(rowId){_soItems=_soItems.filter(x=>x.rowId!==rowId);renderSOItems();hitungTotalSO();}
 function hitungTotalSO(){const t=_soItems.reduce((a,p)=>a+p.subtotal,0);const el=document.getElementById('so-total-val');if(el)el.textContent=fmt(t);}
 async function saveSO(){
-  if(!_soItems.length){showToast('Tambah minimal 1 item','error');return;}
   const no=document.getElementById('f-so-no').value.trim();
   if(!no){showToast('No. SO tidak boleh kosong','error');document.getElementById('f-so-no').focus();return;}
-  const id=uid();const total=_soItems.reduce((a,p)=>a+p.subtotal,0);
-  const payload={no_so:no,tanggal:document.getElementById('f-so-tgl').value,pelanggan_id:document.getElementById('f-so-pel').value||null,status:document.getElementById('f-so-status').value,total,catatan:document.getElementById('f-so-catatan').value};
+  const id=uid();
+  const payload={
+    no_so:no,
+    tanggal:document.getElementById('f-so-tgl').value,
+    pelanggan_id:document.getElementById('f-so-pel').value||null,
+    status:document.getElementById('f-so-status').value,
+    total:0,
+    catatan:document.getElementById('f-so-catatan').value
+  };
   showLoading(true);
   try{
     await dbOp('pesanan_jual','INSERT',{id,...payload});
-    for(const p of _soItems){if(!p.barang_id)continue;await dbOp('detail_pesanan_jual','INSERT',{id:uid(),pesanan_jual_id:id,barang_id:p.barang_id,nama_barang:p.nama_barang,satuan:p.satuan,jumlah:p.jumlah,harga_jual:p.harga_jual,subtotal:p.subtotal});}
-    closeModal('modal-so');showToast('SO disimpan');await loadSO();
+    closeModal('modal-so');showToast('SO berhasil disimpan','success');await loadSO();
   }catch(e){showToast('Gagal: '+e.message,'error');}
   showLoading(false);
 }
@@ -4458,11 +4458,10 @@ async function loadSO(){
     <td><code style="color:var(--orange);font-size:12px">${s.no_so}</code></td>
     <td>${new Date(s.tanggal).toLocaleDateString('id-ID')}</td>
     <td>${s.pelanggan?.nama||'Umum'}</td>
-    <td style="font-family:var(--font-display);color:var(--orange)">${fmt(s.total)}</td>
     <td><span class="badge ${s.status==='selesai'?'badge-green':s.status==='diproses'?'badge-orange':s.status==='batal'?'badge-red':'badge-gray'}">${s.status}</span></td>
-    <td style="font-size:12px;color:var(--text3)">${s.catatan||'-'}</td>
+    <td style="font-size:12px;color:var(--text3);max-width:200px;overflow:hidden;text-overflow:ellipsis">${s.catatan||'-'}</td>
     <td><button class="btn btn-danger btn-sm" onclick="delSO('${s.id}','${s.no_so}')"><i class="ti ti-trash"></i></button></td>
-  </tr>`).join(''):'<tr><td colspan="7" class="table-empty">Belum ada SO</td></tr>';
+  </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Belum ada SO</td></tr>';
 }
 async function delSO(id,no){if(!confirm2('Hapus SO '+no+'?'))return;showLoading(true);try{await db.from('detail_pesanan_jual').delete().eq('pesanan_jual_id',id);await dbOp('pesanan_jual','DELETE',{id});showToast('SO dihapus');await loadSO();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
@@ -5529,8 +5528,8 @@ requestAnimationFrame(()=>{ setTimeout(()=>window.print(), 100); });
 (function(){
 try {
   const manifest = {
-    name: "AutoServ Pro Je.V.26.1",
-    short_name: "@Jef2026",
+    name: "AutoServ Je.V.26.1",
+    short_name: "Je.V.26.1",
     description: "Bengkel Service Mobil",
     start_url: "./",
     display: "standalone",
