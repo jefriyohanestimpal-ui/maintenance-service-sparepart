@@ -3713,6 +3713,7 @@ async function cetakWOById(woId){
 }
 
 async function cetakWO(wo, parts){
+  const fotos=[];
   const s=await getSettings();
   const logoHtml=s.logo_base64?`<img src="${s.logo_base64}" style="max-width:80px;max-height:50px;object-fit:contain;margin-bottom:6px"/>`:
     `<div style="font-size:20px;font-weight:800;color:#111">${s.nama_bengkel}</div>`;
@@ -4196,6 +4197,7 @@ function applyPrintArea(content, useA4=false){
 }
 
 function uploadLogo(input){
+  const file=input.files[0];if(!file)return;
   if(file.size>200*1024){showToast('Logo maks 200KB','error');return;}
   const reader=new FileReader();
   reader.onload=e=>{
@@ -6362,7 +6364,7 @@ const html=`<style>
   <p style="font-size:9px;color:#888">Dicetak: ${new Date().toLocaleString('id-ID')}</p>
 </div>
 ${el.innerHTML}`;
-applyPrintArea(html, true);
+  applyPrintArea(html, true);
 }
 // ============================================================
 // PWA MANIFEST (data URI — tidak butuh blob)
