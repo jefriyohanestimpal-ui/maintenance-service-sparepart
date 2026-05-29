@@ -1805,6 +1805,18 @@ pages['dashboard'] = () => `
     <div class="stat-value" id="d-piutang">Rp 0</div>
     <div class="stat-sub" id="d-piutang-sub">dari penjualan & service</div>
   </div>
+  <div class="stat-card green">
+    <i class="ti ti-cash stat-icon"></i>
+    <div class="stat-label">Kas Tunai Hari Ini</div>
+    <div class="stat-value" id="d-tunai">Rp 0</div>
+    <div class="stat-sub" id="d-tunai-sub">dari penjualan & service</div>
+  </div>
+  <div class="stat-card blue">
+    <i class="ti ti-building-bank stat-icon"></i>
+    <div class="stat-label">Transfer Bank Hari Ini</div>
+    <div class="stat-value" id="d-transfer">Rp 0</div>
+    <div class="stat-sub" id="d-transfer-sub">dari penjualan & service</div>
+  </div>
 </div>
 <div class="dash-grid">
   <div class="dash-card">
@@ -1881,7 +1893,26 @@ window.init_dashboard = async function() {
   } catch(e) { console.error('dash-piutang:',e); }
 
   if(!stillHere()) return;
+// ── Tunai & Transfer ───────────────────────────────────────
+  try {
+    const td = today();
+    const [{ data: pjAll }, { data: woAll }] = await Promise.all([
+      db.from('penjualan').select('terbayar,metode_bayar').gte('tanggal',td),
+      db.from('work_order').select('terbayar,metode_bayar').gte('tanggal',td)
+    ]);
+    if(!stillHere()) return;
+    const semua = [...(pjAll||[]), ...(woAll||[])];
+    const totalTunai    = semua.filter(r=>r.metode_bayar==='tunai').reduce((a,r)=>a+Number(r.terbayar),0);
+    const totalTransfer = semua.filter(r=>r.metode_bayar==='transfer').reduce((a,r)=>a+Number(r.terbayar),0);
+    const cTunai    = semua.filter(r=>r.metode_bayar==='tunai').length;
+    const cTransfer = semua.filter(r=>r.metode_bayar==='transfer').length;
+    setTxt('d-tunai', fmt(totalTunai));
+    setTxt('d-transfer', fmt(totalTransfer));
+    setTxt('d-tunai-sub', `${cTunai} transaksi`);
+    setTxt('d-transfer-sub', `${cTransfer} transaksi`);
+  } catch(e) { console.error('dash-kas:',e); }
 
+  if(!stillHere()) return;
   // ── Alert panel ────────────────────────────────────────────
   try {
     const alerts = [];
