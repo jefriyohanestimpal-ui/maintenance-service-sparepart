@@ -1211,7 +1211,7 @@ function showPage(id){
 const AR_INTERVAL_SEC = 30 * 60; // 30 menit dalam detik
 let _arTimer      = null;  // interval countdown
 let _arSecondsLeft = AR_INTERVAL_SEC;
-let _arEnabled    = true;
+let _arEnabled    = false;
 
 function formatCountdown(sec){
   const m = Math.floor(sec/60);
