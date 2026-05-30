@@ -2289,8 +2289,8 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
       style="font-family:monospace;letter-spacing:0.5px;text-transform:uppercase"
       oninput="this.value=this.value.toUpperCase()"/></div>
 
-  <div class="form-group"><label class="form-label">Catatan</label>
-    <input id="f-kd-catatan" class="form-input" placeholder="Catatan tambahan..."/></div>
+  <div class="form-group"><label class="form-label">Catatan <span style="font-size:10px;color:var(--text3)">(input di sini jika nama pemilik sah tidak sesuai lagi dengan STNK)</span</label>
+    <input id="f-kd-catatan" class="form-input" placeholder="Isi nama pemilik sah..."/></div>
 
   </div>
 </div>
@@ -5265,7 +5265,7 @@ ${modalHtml('modal-so','Pesanan Jual (SO)',`
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-so-tgl" class="form-input" type="date"/></div>
   <div class="form-group"><label class="form-label">Pelanggan</label><select id="f-so-pel" class="form-input"><option value="">-- Umum --</option></select></div>
   <div class="form-group"><label class="form-label">Status</label><select id="f-so-status" class="form-input"><option value="pending">Pending</option><option value="diproses">Diproses</option><option value="selesai">Selesai</option><option value="batal">Batal</option></select></div>
-  <div class="form-group form-full"><label class="form-label">Catatan</label><textarea id="f-so-catatan" class="form-input" rows="2"></textarea></div>
+  <div class="form-group form-full"><label class="form-label">Catatan isi detail barang yang akan dipesanan</label><textarea id="f-so-catatan" class="form-input" rows="2"></textarea></div>
 </div>
 <input type="hidden" id="f-so-id"/>`,
 '',`
