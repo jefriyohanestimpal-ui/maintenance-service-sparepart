@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>WAS GARAGE @Je.V.26.1</title>
-<meta name="theme-color" content="#18191a"/>
+<meta name="theme-color" content="#f0f2f5"/>
 <link rel="manifest" id="manifest-link"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -16,19 +16,19 @@
    VARIABLES & RESET
    ============================================================ */
 :root {
-  --bg: #18191a;
-  --bg2: #242526;
-  --bg3: #3a3b3c;
-  --bg4: #4e4f50;
-  --border: #3a3b3c;
-  --border2: #4e4f50;
+  --bg: #f0f2f5;
+  --bg2: #ffffff;
+  --bg3: #f0f2f5;
+  --bg4: #e4e6eb;
+  --border: #dddfe2;
+  --border2: #ccd0d5;
   --orange: #1877f2;
   --orange2: #166fe5;
-  --orange-dim: rgba(24,119,242,0.15);
-  --orange-glow: rgba(24,119,242,0.08);
-  --text: #e4e6eb;
-  --text: #e4e6eb;
-  --text: #e4e6eb;
+  --orange-dim: rgba(24,119,242,0.12);
+  --orange-glow: rgba(24,119,242,0.06);
+  --text: #050505;
+  --text: #050505;
+  --text: #050505;
   --green: #42b72a;
   --red: #fa3e3e;
   --blue: #1877f2;
@@ -37,7 +37,7 @@
   --header-h: 56px;
   --radius: 10px;
   --radius-sm: 6px;
-  --shadow: 0 4px 24px rgba(0,0,0,0.5);
+  --shadow: 0 2px 12px rgba(0,0,0,0.12);
   --font-display: 'Poppins', sans-serif;
   --font-body: 'Poppins', sans-serif;
   --transition: 0.18s ease;
@@ -425,7 +425,7 @@ select.form-input option{background:var(--bg3)}
   border-radius: 16px;
   padding: 40px;
   width: 100%; max-width: 400px;
-  box-shadow: 0 24px 64px rgba(0,0,0,0.6);
+  box-shadow: 0 8px 32px rgba(0,0,0,0.15);
 }
 .login-logo {
   text-align: center; margin-bottom: 28px;
@@ -475,7 +475,7 @@ select.form-input option{background:var(--bg3)}
   font-size: 11px; font-weight: 600; padding: 3px 10px;
   border-radius: 20px; margin-left: 8px;
 }
-.role-owner { background: rgba(24,119,242,0.15); color: var(--orange); border: 1px solid rgba(255,106,0,0.3); }
+.role-owner { background: rgba(24,119,242,0.12); color: var(--orange); border: 1px solid rgba(255,106,0,0.3); }
 .role-admin { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
 /* Nav item tersembunyi untuk role tertentu */
 .nav-item.nav-hidden { display: none !important; }
@@ -673,7 +673,7 @@ select.form-input option{background:var(--bg3)}
   }
   #sidebar.mobile-open{
     left:0;
-    box-shadow:4px 0 24px rgba(0,0,0,0.5);
+    box-shadow:4px 0 12px rgba(0,0,0,0.1);
   }
   /* Overlay gelap saat sidebar terbuka */
   #sidebar-overlay{
@@ -766,6 +766,39 @@ select.form-input option{background:var(--bg3)}
   .form-input{font-size:13px;padding:8px 10px}
   .ac-input{font-size:13px;padding:8px 32px 8px 10px}
 }
+
+/* ============================================================
+   FACEBOOK LIGHT MODE OVERRIDES
+   ============================================================ */
+.form-input{background:#fff;color:#050505;border-color:#ccd0d5;}
+.form-input:focus{border-color:#1877f2;background:#fff;}
+.ac-input{background:#fff;color:#050505;border-color:#ccd0d5;}
+select.form-input option{background:#fff;color:#050505;}
+#topbar{background:#ffffff;border-bottom:1px solid #dddfe2;}
+.topbar-title,.page-title{color:#050505;}
+#sidebar{background:#ffffff;border-right:1px solid #dddfe2;}
+.sidebar-title{color:#050505;}
+.nav-label{color:#444;}
+.nav-item:hover{background:#f0f2f5;}
+.nav-section-title{color:#888;}
+.card{background:#ffffff;border-color:#dddfe2;}
+.modal-box{background:#ffffff;}
+.modal-header{background:#ffffff;border-bottom:1px solid #dddfe2;}
+.modal-footer{background:#f0f2f5;border-top:1px solid #dddfe2;}
+.table-wrap{background:#ffffff;}
+table th{background:#f0f2f5;color:#444;}
+table td{color:#050505;border-color:#dddfe2;}
+tr:hover td{background:#f0f2f5;}
+.stat-card{background:#ffffff;border-color:#dddfe2;}
+.stat-label{color:#606770;}
+.stat-value{color:#050505;}
+.dropdown-menu{background:#fff;border-color:#dddfe2;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+.dropdown-item{color:#050505;}
+.dropdown-item:hover{background:#f0f2f5;}
+.toast{background:#fff;color:#050505;border:1px solid #dddfe2;box-shadow:0 4px 16px rgba(0,0,0,0.12);}
+.text-muted,.text2,.sub-text{color:#606770;}
+#login-page{background:#f0f2f5;}
+.login-box{background:#fff;border:1px solid #dddfe2;box-shadow:0 2px 8px rgba(0,0,0,0.1);}
 </style>
 
 <script>
@@ -3311,7 +3344,7 @@ function renderWOParts(){
       : `<div style="display:flex;flex-direction:column;gap:3px">
            <div id="ac-part-${p.rowId}"></div>
            <button type="button" onclick="setManualWO('${p.rowId}')"
-             style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+             style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.06);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
              ✏️ Input manual (non-gudang)
            </button>
            ${p.nama_barang&&adaDiGudang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang} (stok: ${daftarBrg.find(b=>b.id===p.barang_id)?.stok||'?'})</div>`:''}
@@ -3883,7 +3916,7 @@ function renderJualItems(){
       <td style="min-width:180px">
         ${p.is_non_gudang
           ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-               <span style="font-size:10px;background:rgba(24,119,242,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
+               <span style="font-size:10px;background:rgba(24,119,242,0.12);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
                <button class="btn btn-outline btn-sm" style="padding:1px 5px;font-size:10px" onclick="gantiKeGudangJual('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
              </div>
              <input id="jnm-${p.rowId}" type="text" placeholder="Nama barang..." class="form-input"
@@ -3892,7 +3925,7 @@ function renderJualItems(){
           : `<div style="display:flex;flex-direction:column;gap:3px">
              <div id="ac-jl-item-${p.rowId}"></div>
              <button type="button" onclick="setManualJual('${p.rowId}')"
-               style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+               style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.06);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
                ✏️ Input manual (non-gudang)
              </button>
              ${p.nama_barang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang}</div>`:''}
@@ -4143,7 +4176,7 @@ pages['pengaturan'] = () => `
     </div>
 
     <!-- Info printer aktif -->
-    <div id="printer-info-box" style="background:rgba(24,119,242,0.08);border:1px solid rgba(255,106,0,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
+    <div id="printer-info-box" style="background:rgba(24,119,242,0.06);border:1px solid rgba(255,106,0,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
       <i class="ti ti-info-circle" style="color:var(--orange)"></i>
       <span id="printer-info-text">Pilih tipe printer di atas</span>
     </div>
@@ -4182,7 +4215,7 @@ function updatePrinterUI(){
       ? '2px solid var(--orange)'
       : '2px solid var(--border2)';
     el.style.background = t===_printerType
-      ? 'rgba(24,119,242,0.08)'
+      ? 'rgba(24,119,242,0.06)'
       : 'transparent';
   });
   const infoEl=document.getElementById('printer-info-text');
@@ -4609,14 +4642,14 @@ function renderPOItems(){
     <td style="min-width:200px">
       ${p.is_manual
         ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-             <span style="font-size:10px;background:rgba(24,119,242,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
+             <span style="font-size:10px;background:rgba(24,119,242,0.12);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
              <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangPO('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
            </div>
            <input type="text" class="form-input" id="pnm-${p.rowId}" placeholder="Nama barang manual..." value="${(p.nama_barang||'').replace(/"/g,'&quot;')}" oninput="updatePOItem('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
         : `<div style="display:flex;flex-direction:column;gap:3px">
              <div id="ac-po-item-${p.rowId}"></div>
              <button type="button" onclick="setManualPO('${p.rowId}')"
-               style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+               style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.06);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
                ✏️ Input manual (non-gudang)
              </button>
              ${p.nama_barang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang}</div>`:''}
@@ -4915,7 +4948,7 @@ function renderBeliItems(){
       <td style="min-width:200px">
         ${tampilManual
           ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-               <span style="font-size:10px;background:rgba(24,119,242,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
+               <span style="font-size:10px;background:rgba(24,119,242,0.12);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
                <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangBeli('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
              </div>
              <input type="text" class="form-input" id="bnm-${p.rowId}" placeholder="Nama barang manual..."
@@ -4924,7 +4957,7 @@ function renderBeliItems(){
           : `<div style="display:flex;flex-direction:column;gap:3px">
               <div id="ac-bl-item-${p.rowId}"></div>
               <button type="button" onclick="setManualBeli('${p.rowId}')"
-                style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+                style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.06);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
                 ✏️ Input manual (non-gudang)
               </button>
               ${p.nama_barang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang}</div>`:''}
@@ -6386,7 +6419,7 @@ const html=`<style>
   .stat-card,.stats-grid{display:none}
   .section-hdr-actions{display:none}
   button{display:none}
-  [style*="color:var"]{color:#333 !important}
+  [style*="color:var"]{color:#050505 !important}
 </style>
 <div class="print-header">
   <h2>${s.nama_bengkel||'AutoServ Pro'}</h2>
