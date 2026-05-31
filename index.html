@@ -4,7 +4,7 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>WAS GARAGE @Je.V.26.1</title>
-<meta name="theme-color" content="#0f0f0f"/>
+<meta name="theme-color" content="#18191a"/>
 <link rel="manifest" id="manifest-link"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
@@ -16,23 +16,23 @@
    VARIABLES & RESET
    ============================================================ */
 :root {
-  --bg: #0a0a0a;
-  --bg2: #111111;
-  --bg3: #1a1a1a;
-  --bg4: #222222;
-  --border: #2a2a2a;
-  --border2: #333333;
-  --orange: #ff6a00;
-  --orange2: #ff8c00;
-  --orange-dim: rgba(255,106,0,0.15);
-  --orange-glow: rgba(255,106,0,0.08);
-  --text: #ffffff;
-  --text: #ffffff;
-  --text: #ffffff;
-  --green: #22c55e;
-  --red: #ef4444;
-  --blue: #3b82f6;
-  --yellow: #f59e0b;
+  --bg: #18191a;
+  --bg2: #242526;
+  --bg3: #3a3b3c;
+  --bg4: #4e4f50;
+  --border: #3a3b3c;
+  --border2: #4e4f50;
+  --orange: #1877f2;
+  --orange2: #166fe5;
+  --orange-dim: rgba(24,119,242,0.15);
+  --orange-glow: rgba(24,119,242,0.08);
+  --text: #e4e6eb;
+  --text: #e4e6eb;
+  --text: #e4e6eb;
+  --green: #42b72a;
+  --red: #fa3e3e;
+  --blue: #1877f2;
+  --yellow: #f7b928;
   --sidebar-w: 240px;
   --header-h: 56px;
   --radius: 10px;
@@ -475,7 +475,7 @@ select.form-input option{background:var(--bg3)}
   font-size: 11px; font-weight: 600; padding: 3px 10px;
   border-radius: 20px; margin-left: 8px;
 }
-.role-owner { background: rgba(255,106,0,0.15); color: var(--orange); border: 1px solid rgba(255,106,0,0.3); }
+.role-owner { background: rgba(24,119,242,0.15); color: var(--orange); border: 1px solid rgba(255,106,0,0.3); }
 .role-admin { background: rgba(59,130,246,0.15); color: var(--blue); border: 1px solid rgba(59,130,246,0.3); }
 /* Nav item tersembunyi untuk role tertentu */
 .nav-item.nav-hidden { display: none !important; }
@@ -3311,7 +3311,7 @@ function renderWOParts(){
       : `<div style="display:flex;flex-direction:column;gap:3px">
            <div id="ac-part-${p.rowId}"></div>
            <button type="button" onclick="setManualWO('${p.rowId}')"
-             style="font-size:10px;color:var(--orange);background:rgba(255,106,0,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+             style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
              ✏️ Input manual (non-gudang)
            </button>
            ${p.nama_barang&&adaDiGudang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang} (stok: ${daftarBrg.find(b=>b.id===p.barang_id)?.stok||'?'})</div>`:''}
@@ -3883,7 +3883,7 @@ function renderJualItems(){
       <td style="min-width:180px">
         ${p.is_non_gudang
           ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:3px">
-               <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
+               <span style="font-size:10px;background:rgba(24,119,242,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
                <button class="btn btn-outline btn-sm" style="padding:1px 5px;font-size:10px" onclick="gantiKeGudangJual('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
              </div>
              <input id="jnm-${p.rowId}" type="text" placeholder="Nama barang..." class="form-input"
@@ -3892,7 +3892,7 @@ function renderJualItems(){
           : `<div style="display:flex;flex-direction:column;gap:3px">
              <div id="ac-jl-item-${p.rowId}"></div>
              <button type="button" onclick="setManualJual('${p.rowId}')"
-               style="font-size:10px;color:var(--orange);background:rgba(255,106,0,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+               style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
                ✏️ Input manual (non-gudang)
              </button>
              ${p.nama_barang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang}</div>`:''}
@@ -4143,7 +4143,7 @@ pages['pengaturan'] = () => `
     </div>
 
     <!-- Info printer aktif -->
-    <div id="printer-info-box" style="background:rgba(255,106,0,0.08);border:1px solid rgba(255,106,0,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
+    <div id="printer-info-box" style="background:rgba(24,119,242,0.08);border:1px solid rgba(255,106,0,0.2);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--text2)">
       <i class="ti ti-info-circle" style="color:var(--orange)"></i>
       <span id="printer-info-text">Pilih tipe printer di atas</span>
     </div>
@@ -4182,7 +4182,7 @@ function updatePrinterUI(){
       ? '2px solid var(--orange)'
       : '2px solid var(--border2)';
     el.style.background = t===_printerType
-      ? 'rgba(255,106,0,0.08)'
+      ? 'rgba(24,119,242,0.08)'
       : 'transparent';
   });
   const infoEl=document.getElementById('printer-info-text');
@@ -4609,14 +4609,14 @@ function renderPOItems(){
     <td style="min-width:200px">
       ${p.is_manual
         ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-             <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
+             <span style="font-size:10px;background:rgba(24,119,242,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
              <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangPO('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
            </div>
            <input type="text" class="form-input" id="pnm-${p.rowId}" placeholder="Nama barang manual..." value="${(p.nama_barang||'').replace(/"/g,'&quot;')}" oninput="updatePOItem('${p.rowId}','nama_barang',this.value)" style="font-size:12px"/>`
         : `<div style="display:flex;flex-direction:column;gap:3px">
              <div id="ac-po-item-${p.rowId}"></div>
              <button type="button" onclick="setManualPO('${p.rowId}')"
-               style="font-size:10px;color:var(--orange);background:rgba(255,106,0,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+               style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
                ✏️ Input manual (non-gudang)
              </button>
              ${p.nama_barang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang}</div>`:''}
@@ -4915,7 +4915,7 @@ function renderBeliItems(){
       <td style="min-width:200px">
         ${tampilManual
           ? `<div style="display:flex;align-items:center;gap:5px;margin-bottom:4px">
-               <span style="font-size:10px;background:rgba(255,106,0,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
+               <span style="font-size:10px;background:rgba(24,119,242,0.15);color:var(--orange);border:1px solid rgba(255,106,0,0.3);border-radius:4px;padding:1px 6px">✏️ Manual</span>
                <button class="btn btn-outline btn-sm" style="padding:1px 6px;font-size:10px" onclick="gantiKeGudangBeli('${p.rowId}')"><i class="ti ti-arrow-back-up" style="font-size:10px"></i></button>
              </div>
              <input type="text" class="form-input" id="bnm-${p.rowId}" placeholder="Nama barang manual..."
@@ -4924,7 +4924,7 @@ function renderBeliItems(){
           : `<div style="display:flex;flex-direction:column;gap:3px">
               <div id="ac-bl-item-${p.rowId}"></div>
               <button type="button" onclick="setManualBeli('${p.rowId}')"
-                style="font-size:10px;color:var(--orange);background:rgba(255,106,0,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
+                style="font-size:10px;color:var(--orange);background:rgba(24,119,242,0.08);border:1px dashed rgba(255,106,0,0.3);border-radius:4px;padding:2px 8px;cursor:pointer;text-align:left;width:fit-content">
                 ✏️ Input manual (non-gudang)
               </button>
               ${p.nama_barang?`<div style="font-size:10px;color:var(--text3)">📦 ${p.nama_barang}</div>`:''}
