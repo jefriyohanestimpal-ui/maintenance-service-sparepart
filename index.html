@@ -2010,15 +2010,15 @@ ${modalHtml('modal-barang','Tambah / Edit Barang',`
   <div class="form-group"><label class="form-label">Kategori</label>
     <select id="f-br-kategori" class="form-input">
       <option value="">-- Pilih --</option>
-      <option>Komponen Mesin</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
+      <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
       <option>Aki & Kelistrikan</option><option>Sistem Pengereman</option><option>Sistem Kelistrikan</option>
-      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC & Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC </option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
     </select>
   </div>
   <div class="form-group"><label class="form-label">Satuan <span class="req">*</span></label>
     <select id="f-br-satuan" class="form-input">
       <option>pcs</option><option>liter</option><option>botol</option><option>set</option>
-      <option>pasang</option><option>box</option><option>roll</option><option>meter</option><option>kg</option>
+      <option>pasang</option><option>box</option><option>roll</option><option>meter</option><option>kg</option><option>assy</option>
     </select>
   </div>
   <div class="form-group"><label class="form-label">Harga Beli</label><input id="f-br-hbeli" class="form-input" type="number" min="0" placeholder="0"/></div>
@@ -2463,9 +2463,9 @@ pages['gudang'] = () => `
   <div class="section-hdr-actions">
     <select id="filter-kategori" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Kategori</option>
-      <option>Komponen Mesin</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
+      <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option<option>Sistem Transmisi</option><option>Sistem Suspensi</option>
       <option>Aki & Kelistrikan</option><option>Sistem Pengereman</option><option>Sistem Kelistrikan</option>
-      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC & Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC</option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
     </select>
     <select id="filter-stok" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Stok</option>
