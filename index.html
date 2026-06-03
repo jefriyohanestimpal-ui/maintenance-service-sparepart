@@ -2012,7 +2012,7 @@ ${modalHtml('modal-barang','Tambah / Edit Barang',`
       <option value="">-- Pilih --</option>
       <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
       <option>Kelistrikan</option><option>Aki</option><option>Sistem Pengereman</option>
-      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC</option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>liquid</option><option>lainnya</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC </option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
     </select>
   </div>
   <div class="form-group"><label class="form-label">Satuan <span class="req">*</span></label>
@@ -2451,7 +2451,7 @@ async function saveMek(){
   const id=document.getElementById('f-mek-id').value;const nama=document.getElementById('f-mek-nama').value.trim();if(!nama){showToast('Nama wajib','error');return;}
   let kode=document.getElementById('f-mek-kode').value.trim();if(!kode){const{count}=await db.from('mekanik').select('*',{count:'exact',head:true});kode='MEK'+pad((count||0)+1,3);}
   const payload={kode,nama,spesialisasi:document.getElementById('f-mek-spek').value,telepon:document.getElementById('f-mek-telp').value,aktif:document.getElementById('f-mek-aktif').value==='true'};
-  showLoading(true);try{if(id)await dbOp('mekanik','UPDATE',{id,payload});else await dbOp('mekanik','INSERT',{id:uid(),...payload});closeModal('modal-mekanik');showToast(id?'Mekanik diperbarui':'Mekanik ditambahkan');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);
+  showLoading(true);try{if(id)await dbOp('mekanik','UPDATE',{id,payload});else await dbOp('mekanik','INSERT',{id:uid(),...payload});closeModal('modal-mekanik');showToast(id?'Mekanik diperbarui':'Mekanik ditambahkan');await loadMek();if(window._addMekFromWO){window._addMekFromWO=false;await refreshMekSelectWO();}}catch(e){showToast('Gagal','error');}showLoading(false);
 }
 async function delMek(id,nama){if(!confirm2(`Hapus mekanik "${nama}"?`))return;showLoading(true);try{await dbOp('mekanik','DELETE',{id});showToast('Mekanik dihapus');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
@@ -2465,7 +2465,7 @@ pages['gudang'] = () => `
       <option value="">Semua Kategori</option>
       <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option<option>Sistem Transmisi</option><option>Sistem Suspensi</option>
       <option>Kelistrikan</option><option>Aki</option><option>Sistem Pengereman</option>
-      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC</option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>liquid</option<option>lainnya</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC</option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
     </select>
     <select id="filter-stok" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Stok</option>
@@ -3073,7 +3073,12 @@ function buildModalWO(){
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-wo-tgl" class="form-input" type="date" value="${today()}"/></div>
   <div class="form-group"><label class="form-label">Pelanggan</label><div id="ac-wo-pel"></div><input type="hidden" id="f-wo-pel"/></div>
   <div class="form-group"><label class="form-label">Kendaraan <span class="req">*</span></label><div id="ac-wo-kend"></div><input type="hidden" id="f-wo-kend"/></div>
-  <div class="form-group"><label class="form-label">Mekanik</label><select id="f-wo-mek" class="form-input"><option value="">-- Pilih Mekanik --</option></select></div>
+  <div class="form-group"><label class="form-label">Mekanik</label>
+    <div style="display:flex;gap:6px;align-items:center">
+      <select id="f-wo-mek" class="form-input" style="flex:1"><option value="">-- Pilih Mekanik --</option></select>
+      <button type="button" class="btn btn-outline btn-sm" style="white-space:nowrap;flex-shrink:0" onclick="openTambahMekanikDariWO()" title="Tambah Mekanik Baru"><i class="ti ti-plus"></i> Mekanik</button>
+    </div>
+  </div>
   <div class="form-group"><label class="form-label">Status</label><select id="f-wo-status" class="form-input"><option value="antri">Antri</option><option value="proses">Proses</option><option value="selesai">Selesai</option></select></div>
   <div class="form-group form-full"><label class="form-label">Keluhan Pelanggan</label><textarea id="f-wo-keluhan" class="form-input" rows="2"></textarea></div>
   <div class="form-group form-full"><label class="form-label">Diagnosa / Pekerjaan</label><textarea id="f-wo-diagnosa" class="form-input" rows="2"></textarea></div>
@@ -3478,6 +3483,22 @@ function hitungTotalWO(){
   if(document.getElementById('f-wo-total')) document.getElementById('f-wo-total').value=total;
   if(document.getElementById('wo-subtotal-part')) document.getElementById('wo-subtotal-part').textContent=fmt(subPart);
   if(document.getElementById('wo-biaya-jasa-val')) document.getElementById('wo-biaya-jasa-val').textContent=fmt(jasa);
+}
+
+// Tambah mekanik langsung dari form WO
+function openTambahMekanikDariWO(){
+  window._addMekFromWO = true;
+  resetFormMek();
+  openModal('modal-mekanik');
+}
+async function refreshMekSelectWO(){
+  const {data} = await db.from('mekanik').select('id,nama,spesialisasi').eq('aktif',true).order('nama');
+  if(!data) return;
+  const sel = document.getElementById('f-wo-mek');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Pilih Mekanik --</option>' +
+    data.map(m=>`<option value="${m.id}">${m.nama}${m.spesialisasi?' — '+m.spesialisasi:''}</option>`).join('');
+  if(data.length) sel.value = data[data.length-1].id;
 }
 
 async function saveWO(cetak=false){
