@@ -924,6 +924,30 @@ tr:hover td{background:#f0f2f5;}
 <!-- PRINT AREA -->
 <div id="print-area"></div>
 
+<!-- MODAL MEKANIK GLOBAL — tersedia dari halaman mana saja (WO, dll) -->
+<div class="modal-overlay" id="modal-mekanik" onclick="if(event.target===this)closeModal('modal-mekanik')">
+  <div class="modal">
+    <div class="modal-header">
+      <span class="modal-title">Tambah / Edit Mekanik</span>
+      <div class="modal-close" onclick="closeModal('modal-mekanik')"><i class="ti ti-x"></i></div>
+    </div>
+    <div class="modal-body">
+      <div class="form-grid">
+        <div class="form-group"><label class="form-label">Kode</label><input id="f-mek-kode" class="form-input" placeholder="Otomatis"/></div>
+        <div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-mek-nama" class="form-input"/></div>
+        <div class="form-group"><label class="form-label">Spesialisasi</label><input id="f-mek-spek" class="form-input" placeholder="Mesin, Kelistrikan..."/></div>
+        <div class="form-group"><label class="form-label">Telepon</label><input id="f-mek-telp" class="form-input" type="tel"/></div>
+        <div class="form-group"><label class="form-label">Status</label><select id="f-mek-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+      </div>
+      <input type="hidden" id="f-mek-id"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-mekanik')">Batal</button>
+      <button class="btn btn-primary" onclick="saveMek()"><i class="ti ti-device-floppy"></i>Simpan</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ============================================================
 // SUPABASE CONFIG — Ganti dengan credential Supabase Anda
@@ -2420,16 +2444,7 @@ pages['mekanik'] = () => `
   <table id="tbl-mek"><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Telepon</th><th>Status</th><th>Aksi</th></tr></thead>
   <tbody id="body-mek"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
-${modalHtml('modal-mekanik','Tambah / Edit Mekanik',`
-<div class="form-grid">
-  <div class="form-group"><label class="form-label">Kode</label><input id="f-mek-kode" class="form-input" placeholder="Otomatis"/></div>
-  <div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-mek-nama" class="form-input"/></div>
-  <div class="form-group"><label class="form-label">Spesialisasi</label><input id="f-mek-spek" class="form-input" placeholder="Mesin, Kelistrikan..."/></div>
-  <div class="form-group"><label class="form-label">Telepon</label><input id="f-mek-telp" class="form-input" type="tel"/></div>
-  <div class="form-group"><label class="form-label">Status</label><select id="f-mek-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
-</div><input type="hidden" id="f-mek-id"/>`,
-'',`<button class="btn btn-outline" onclick="closeModal('modal-mekanik')">Batal</button>
-<button class="btn btn-primary" onclick="saveMek()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
+`;
 
 window.init_mekanik=async function(){await loadMek();};
 async function loadMek(){
