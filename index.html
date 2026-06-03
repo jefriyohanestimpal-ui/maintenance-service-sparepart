@@ -1659,6 +1659,8 @@ async function queueOp(tabel, operasi, data) {
       el.textContent = pending + ' data pending';
     }
     updateSyncBadge();
+    // Toast informatif — data tersimpan lokal dan tampil di UI
+    showToast(`💾 Tersimpan lokal (${pending} antri sync)`, 'info');
   } catch(e){}
 }
 
@@ -1671,17 +1673,65 @@ async function dbOp(tabel, operasi, data) {
       else if (operasi === 'UPDATE') res = await db.from(tabel).update(data.payload).eq('id',data.id).select().single();
       else if (operasi === 'DELETE') res = await db.from(tabel).delete().eq('id',data.id);
       if (res.error) throw res.error;
+      // Invalidate cache agar loadTable re-fetch segar dari server
+      await invalidateTblCache(tabel);
       return res.data;
     } catch(e) {
-      // fallback to queue
       await queueOp(tabel, operasi, data);
-      showToast('Disimpan ke antrian offline','info');
+      await applyToTblCache(tabel, operasi, data);
       return data.id ? data : {...data, id: uid()};
     }
   } else {
     await queueOp(tabel, operasi, data);
+    await applyToTblCache(tabel, operasi, data);
     return data.id ? data : {...data, id: uid()};
   }
+}
+
+// Hapus semua cache entries untuk satu tabel
+async function invalidateTblCache(tabel) {
+  try {
+    if (!idbDb) return;
+    await new Promise((res) => {
+      const tx  = idbDb.transaction('tbl_cache', 'readwrite');
+      const idx = tx.objectStore('tbl_cache').index('tbl');
+      const req = idx.openCursor(IDBKeyRange.only(tabel));
+      req.onsuccess = e => {
+        const cur = e.target.result;
+        if (cur) { cur.delete(); cur.continue(); } else { res(); }
+      };
+      req.onerror = () => res();
+    });
+  } catch(e) {}
+}
+
+// Merge INSERT/UPDATE/DELETE ke semua cache entries tabel tsb — data tampil langsung saat offline
+async function applyToTblCache(tabel, operasi, data) {
+  try {
+    if (!idbDb) return;
+    const entries = await new Promise((res) => {
+      const tx  = idbDb.transaction('tbl_cache', 'readonly');
+      const idx = tx.objectStore('tbl_cache').index('tbl');
+      const req = idx.getAll(IDBKeyRange.only(tabel));
+      req.onsuccess = e => res(e.target.result || []);
+      req.onerror   = () => res([]);
+    });
+    if (!entries.length) return;
+    const tx2   = idbDb.transaction('tbl_cache', 'readwrite');
+    const store = tx2.objectStore('tbl_cache');
+    for (const entry of entries) {
+      let rows = entry.data || [];
+      if (operasi === 'INSERT') {
+        const rowData = data.id ? data : {...data};
+        if (!rows.find(r => r.id === rowData.id)) rows = [...rows, rowData];
+      } else if (operasi === 'UPDATE') {
+        rows = rows.map(r => r.id === data.id ? {...r, ...data.payload} : r);
+      } else if (operasi === 'DELETE') {
+        rows = rows.filter(r => r.id !== data.id);
+      }
+      store.put({...entry, data: rows, ts: Date.now()});
+    }
+  } catch(e) {}
 }
 
 async function syncOfflineData() {
@@ -1777,6 +1827,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 // ============================================================
 async function loadTable(table, opts={}) {
   const cacheKey = table+'_'+JSON.stringify(opts);
+  const baseCacheKey = table+'_{}'; // cache tanpa filter — fallback offline
   if (isOnline) {
     try {
       let q = db.from(table).select(opts.select||'*');
@@ -1786,18 +1837,38 @@ async function loadTable(table, opts={}) {
       const { data, error } = await q;
       if (error) throw error;
       const result = data||[];
-      // Cache to IDB for offline use
-      try { await idbAdd('tbl_cache',{key:cacheKey,tbl:table,data:result,ts:Date.now()}); } catch(e){}
+      // Simpan ke cache dengan key eksak DAN key base tabel
+      try {
+        await idbAdd('tbl_cache',{key:cacheKey, tbl:table, data:result, ts:Date.now()});
+        // Juga simpan base cache (opts={}) agar bisa jadi fallback offline
+        if (cacheKey !== baseCacheKey && !opts.limit && !opts.eq) {
+          await idbAdd('tbl_cache',{key:baseCacheKey, tbl:table, data:result, ts:Date.now()});
+        }
+      } catch(e){}
       return result;
     } catch(e) {
-      // Online but query failed - try cache
-      return await idbGetTblCache(cacheKey) || [];
+      return await idbGetTblCache(cacheKey) || await idbGetTblCache(baseCacheKey) || [];
     }
   } else {
-    // Offline - serve from cache
-    const cached = await idbGetTblCache(cacheKey);
-    if (cached) return cached;
-    return [];
+    // Offline — coba cache eksak dulu, fallback ke base, lalu filter client-side
+    let cached = await idbGetTblCache(cacheKey);
+    if (!cached) {
+      // Coba base cache, lalu filter di sisi client
+      const base = await idbGetTblCache(baseCacheKey);
+      if (base) {
+        cached = base;
+        if (opts.eq) cached = cached.filter(r => Object.entries(opts.eq).every(([k,v])=>String(r[k])===String(v)));
+        if (opts.order) {
+          const asc = opts.asc !== false;
+          cached = [...cached].sort((a,b)=> {
+            const va=a[opts.order]||'', vb=b[opts.order]||'';
+            return asc ? (va>vb?1:-1) : (va<vb?1:-1);
+          });
+        }
+        if (opts.limit) cached = cached.slice(0, opts.limit);
+      }
+    }
+    return cached || [];
   }
 }
 
@@ -1885,33 +1956,37 @@ pages['dashboard'] = () => `
 </div>`;
 
 window.init_dashboard = async function() {
-  // Helper aman: set textContent/innerHTML hanya jika elemen ada dan dashboard masih aktif
   const setTxt = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
   const setHtml = (id, val) => { const el=document.getElementById(id); if(el) el.innerHTML=val; };
   const stillHere = () => currentPage === 'dashboard';
 
+  // Helper: query dengan fallback ke cache IDB saat offline
+  async function dashQ(table, select, filterFn) {
+    try {
+      const rows = await loadTable(table, {select});
+      return filterFn ? rows.filter(filterFn) : rows;
+    } catch(e) { return []; }
+  }
+
+  const td = today();
+
   // ── Penjualan hari ini ──────────────────────────────────────
   try {
-    const td = today();
-    const { data: pj } = await db.from('penjualan').select('total').gte('tanggal',td);
+    const pj = await dashQ('penjualan','total,tanggal', r=>r.tanggal>=td);
     if(!stillHere()) return;
-    const totalPj = (pj||[]).reduce((a,r)=>a+Number(r.total),0);
-    setTxt('d-penjualan', fmt(totalPj));
-    setTxt('d-penjualan-sub', `${(pj||[]).length} transaksi`);
-  } catch(e) { console.error('dash-penjualan:',e); }
+    setTxt('d-penjualan', fmt(pj.reduce((a,r)=>a+Number(r.total),0)));
+    setTxt('d-penjualan-sub', `${pj.length} transaksi`);
+  } catch(e) {}
 
   if(!stillHere()) return;
 
   // ── Antrian WO ─────────────────────────────────────────────
   try {
-    const td = today();
-    const { data: wo } = await db.from('work_order')
-      .select('*,kendaraan(no_plat),mekanik(nama)')
-      .in('status',['antri','proses']);
+    const wo = await dashQ('work_order','*,kendaraan(no_plat),mekanik(nama)', r=>r.status==='antri'||r.status==='proses');
     if(!stillHere()) return;
-    setTxt('d-service', (wo||[]).length);
+    setTxt('d-service', wo.length);
     setTxt('d-service-sub', 'Work Order aktif');
-    const woHtml = (wo||[]).length ? (wo||[]).map(w=>`
+    const woHtml = wo.length ? wo.map(w=>`
       <div class="wo-item" onclick="showPage('service')" style="cursor:pointer">
         <span class="wo-no">${w.no_wo}</span>
         <div class="wo-info">
@@ -1922,76 +1997,71 @@ window.init_dashboard = async function() {
       </div>`).join('')
       : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="ti ti-check" style="display:block;font-size:24px;margin-bottom:6px;color:var(--green)"></i>Tidak ada antrian</div>';
     setHtml('wo-antrian', woHtml);
-  } catch(e) { console.error('dash-wo:',e); }
+  } catch(e) {}
 
   if(!stillHere()) return;
 
   // ── Stok menipis ───────────────────────────────────────────
   try {
-    const { data: allBrg } = await db.from('barang').select('stok,stok_minimum');
+    const allBrg = await dashQ('barang','stok,stok_minimum');
     if(!stillHere()) return;
-    const stokC = (allBrg||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum)).length;
-    setTxt('d-stok', stokC);
-  } catch(e) { console.error('dash-stok:',e); }
+    setTxt('d-stok', allBrg.filter(b=>Number(b.stok)<=Number(b.stok_minimum)).length);
+  } catch(e) {}
 
   if(!stillHere()) return;
 
   // ── Piutang ────────────────────────────────────────────────
   try {
-    const [{ data: piut }, { data: piutWo }] = await Promise.all([
-      db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0),
-      db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0)
+    const [piut, piutWo] = await Promise.all([
+      dashQ('penjualan','sisa_piutang', r=>Number(r.sisa_piutang)>0),
+      dashQ('work_order','sisa_piutang', r=>Number(r.sisa_piutang)>0)
     ]);
     if(!stillHere()) return;
-    const totalPiut = [...(piut||[]),...(piutWo||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
-    setTxt('d-piutang', fmt(totalPiut));
-  } catch(e) { console.error('dash-piutang:',e); }
+    setTxt('d-piutang', fmt([...piut,...piutWo].reduce((a,r)=>a+Number(r.sisa_piutang),0)));
+  } catch(e) {}
 
   if(!stillHere()) return;
-// ── Tunai & Transfer ───────────────────────────────────────
+
+  // ── Tunai & Transfer ───────────────────────────────────────
   try {
-    const td = today();
-    const [{ data: pjAll }, { data: woAll }] = await Promise.all([
-      db.from('penjualan').select('terbayar,metode_bayar').gte('tanggal',td),
-      db.from('work_order').select('terbayar,metode_bayar').gte('tanggal',td)
+    const [pjAll, woAll] = await Promise.all([
+      dashQ('penjualan','terbayar,metode_bayar,tanggal', r=>r.tanggal>=td),
+      dashQ('work_order','terbayar,metode_bayar,tanggal', r=>r.tanggal>=td)
     ]);
     if(!stillHere()) return;
-    const semua = [...(pjAll||[]), ...(woAll||[])];
-    const totalTunai    = semua.filter(r=>r.metode_bayar==='tunai').reduce((a,r)=>a+Number(r.terbayar),0);
-    const totalTransfer = semua.filter(r=>r.metode_bayar==='transfer').reduce((a,r)=>a+Number(r.terbayar),0);
-    const cTunai    = semua.filter(r=>r.metode_bayar==='tunai').length;
-    const cTransfer = semua.filter(r=>r.metode_bayar==='transfer').length;
-    setTxt('d-tunai', fmt(totalTunai));
-    setTxt('d-transfer', fmt(totalTransfer));
-    setTxt('d-tunai-sub', `${cTunai} transaksi`);
-    setTxt('d-transfer-sub', `${cTransfer} transaksi`);
-  } catch(e) { console.error('dash-kas:',e); }
+    const semua = [...pjAll, ...woAll];
+    setTxt('d-tunai', fmt(semua.filter(r=>r.metode_bayar==='tunai').reduce((a,r)=>a+Number(r.terbayar),0)));
+    setTxt('d-transfer', fmt(semua.filter(r=>r.metode_bayar==='transfer').reduce((a,r)=>a+Number(r.terbayar),0)));
+    setTxt('d-tunai-sub', `${semua.filter(r=>r.metode_bayar==='tunai').length} transaksi`);
+    setTxt('d-transfer-sub', `${semua.filter(r=>r.metode_bayar==='transfer').length} transaksi`);
+  } catch(e) {}
 
   if(!stillHere()) return;
+
   // ── Alert panel ────────────────────────────────────────────
   try {
     const alerts = [];
-    const [{ data: allBrg2 }, { data: piut2 }, { data: piutWo2 }, { data: hutang }] = await Promise.all([
-      db.from('barang').select('stok,stok_minimum,nama'),
-      db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0),
-      db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0),
-      db.from('pembelian').select('sisa_hutang').gt('sisa_hutang',0)
+    const [allBrg2, piut2, piutWo2, hutang] = await Promise.all([
+      dashQ('barang','stok,stok_minimum,nama'),
+      dashQ('penjualan','sisa_piutang', r=>Number(r.sisa_piutang)>0),
+      dashQ('work_order','sisa_piutang', r=>Number(r.sisa_piutang)>0),
+      dashQ('pembelian','sisa_hutang', r=>Number(r.sisa_hutang)>0)
     ]);
     if(!stillHere()) return;
 
-    const stokLow = (allBrg2||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum));
+    const stokLow = allBrg2.filter(b=>Number(b.stok)<=Number(b.stok_minimum));
     if(stokLow.length>0) alerts.push({type:'danger',icon:'ti-alert-triangle',text:'Stok menipis',val:`${stokLow.length} item`});
 
-    const totalPiut2 = [...(piut2||[]),...(piutWo2||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
+    const totalPiut2 = [...piut2,...piutWo2].reduce((a,r)=>a+Number(r.sisa_piutang),0);
     if(totalPiut2>0) alerts.push({type:'warn',icon:'ti-coin',text:'Piutang belum lunas',val:fmt(totalPiut2)});
 
-    const totalHutang = (hutang||[]).reduce((a,r)=>a+Number(r.sisa_hutang),0);
+    const totalHutang = hutang.reduce((a,r)=>a+Number(r.sisa_hutang),0);
     if(totalHutang>0) alerts.push({type:'info',icon:'ti-truck',text:'Hutang ke supplier',val:fmt(totalHutang)});
 
     try {
       const m1 = today().slice(0,7)+'-01';
-      const { data: opex } = await db.from('pengeluaran').select('nominal').gte('tanggal',m1).lte('tanggal',today());
-      const totalOpex = (opex||[]).reduce((a,r)=>a+Number(r.nominal),0);
+      const opex = await dashQ('pengeluaran','nominal,tanggal', r=>r.tanggal>=m1&&r.tanggal<=td);
+      const totalOpex = opex.reduce((a,r)=>a+Number(r.nominal),0);
       if(totalOpex>0) alerts.push({type:'warn',icon:'ti-cash',text:'Pengeluaran bulan ini',val:fmt(totalOpex)});
     } catch(e2) { /* tabel belum ada */ }
 
@@ -6464,6 +6534,78 @@ const html=`<style>
 ${el.innerHTML}`;
   applyPrintArea(html, true);
 }
+// ============================================================
+// SERVICE WORKER REGISTRATION — untuk offline shell (PWA)
+// ============================================================
+(function(){
+  if (!('serviceWorker' in navigator)) return;
+  // Inline Service Worker sebagai Blob URL agar tidak butuh file .js terpisah
+  const swCode = `
+const CACHE = 'wasgarage-shell-v1';
+const SHELL = [location.href]; // cache URL halaman ini sendiri
+
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(SHELL)).catch(()=>{})
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+
+self.addEventListener('fetch', e => {
+  // Hanya handle GET request
+  if (e.request.method !== 'GET') return;
+  const url = new URL(e.request.url);
+
+  // Untuk Supabase API — selalu network first, tidak di-cache
+  if (url.hostname.includes('supabase.co') || url.hostname.includes('googleapis.com') || url.hostname.includes('cloudinary.com')) {
+    return; // biarkan browser handle langsung
+  }
+
+  // Untuk asset CDN (fonts, icons) — cache first
+  if (url.hostname.includes('fonts.gstatic.com') || url.hostname.includes('jsdelivr.net')) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        if (cached) return cached;
+        return fetch(e.request).then(resp => {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+          return resp;
+        }).catch(() => cached);
+      })
+    );
+    return;
+  }
+
+  // Untuk file HTML utama — network first, fallback cache
+  e.respondWith(
+    fetch(e.request).then(resp => {
+      const clone = resp.clone();
+      caches.open(CACHE).then(c => c.put(e.request, clone));
+      return resp;
+    }).catch(() => caches.match(e.request))
+  );
+});
+`;
+  try {
+    const blob = new Blob([swCode], {type:'application/javascript'});
+    const swUrl = URL.createObjectURL(blob);
+    navigator.serviceWorker.register(swUrl, {scope:'./'}).then(reg => {
+      console.log('[SW] Registered, scope:', reg.scope);
+    }).catch(err => {
+      console.warn('[SW] Register failed (normal di file://):', err.message);
+    });
+  } catch(e) {}
+})();
+
 // ============================================================
 // PWA MANIFEST (data URI — tidak butuh blob)
 // ============================================================
