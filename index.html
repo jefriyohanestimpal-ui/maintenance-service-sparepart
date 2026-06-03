@@ -1721,6 +1721,7 @@ async function invalidateTblCache(tabel) {
 }
 
 // Merge INSERT/UPDATE/DELETE ke semua cache entries tabel tsb — data tampil langsung saat offline
+// Jika cache belum ada (belum pernah online di halaman ini), buat cache baru dari data INSERT
 async function applyToTblCache(tabel, operasi, data) {
   try {
     if (!idbDb) return;
@@ -1731,7 +1732,22 @@ async function applyToTblCache(tabel, operasi, data) {
       req.onsuccess = e => res(e.target.result || []);
       req.onerror   = () => res([]);
     });
-    if (!entries.length) return;
+
+    const baseCacheKey = tabel + '_{}';
+
+    if (!entries.length) {
+      // Cache belum ada — buat dari nol dengan data INSERT ini
+      if (operasi === 'INSERT') {
+        try {
+          await idbAdd('tbl_cache', {
+            key: baseCacheKey, tbl: tabel,
+            data: [data], ts: Date.now()
+          });
+        } catch(e) {}
+      }
+      return;
+    }
+
     const tx2   = idbDb.transaction('tbl_cache', 'readwrite');
     const store = tx2.objectStore('tbl_cache');
     for (const entry of entries) {
@@ -1842,7 +1858,7 @@ window.addEventListener('DOMContentLoaded', ()=>{
 // ============================================================
 async function loadTable(table, opts={}) {
   const cacheKey = table+'_'+JSON.stringify(opts);
-  const baseCacheKey = table+'_{}'; // cache tanpa filter — fallback offline
+  const baseCacheKey = table+'_{}';
   if (isOnline) {
     try {
       let q = db.from(table).select(opts.select||'*');
@@ -1852,23 +1868,21 @@ async function loadTable(table, opts={}) {
       const { data, error } = await q;
       if (error) throw error;
       const result = data||[];
-      // Simpan ke cache dengan key eksak DAN key base tabel
       try {
         await idbAdd('tbl_cache',{key:cacheKey, tbl:table, data:result, ts:Date.now()});
-        // Juga simpan base cache (opts={}) agar bisa jadi fallback offline
         if (cacheKey !== baseCacheKey && !opts.limit && !opts.eq) {
           await idbAdd('tbl_cache',{key:baseCacheKey, tbl:table, data:result, ts:Date.now()});
         }
       } catch(e){}
       return result;
     } catch(e) {
-      return await idbGetTblCache(cacheKey) || await idbGetTblCache(baseCacheKey) || [];
+      const fallback = await idbGetTblCache(cacheKey) || await idbGetTblCache(baseCacheKey) || [];
+      return await mergeQueueIntoRows(table, fallback);
     }
   } else {
-    // Offline — coba cache eksak dulu, fallback ke base, lalu filter client-side
+    // Offline — ambil dari cache lalu gabungkan dengan queue pending
     let cached = await idbGetTblCache(cacheKey);
     if (!cached) {
-      // Coba base cache, lalu filter di sisi client
       const base = await idbGetTblCache(baseCacheKey);
       if (base) {
         cached = base;
@@ -1883,8 +1897,50 @@ async function loadTable(table, opts={}) {
         if (opts.limit) cached = cached.slice(0, opts.limit);
       }
     }
-    return cached || [];
+    // Gabungkan dengan data pending di queue yang belum ter-sync
+    const merged = await mergeQueueIntoRows(table, cached || []);
+    // Terapkan filter/sort/limit jika dari base cache
+    let result = merged;
+    if (opts.eq) result = result.filter(r => Object.entries(opts.eq).every(([k,v])=>String(r[k])===String(v)));
+    if (opts.order) {
+      const asc = opts.asc !== false;
+      result = [...result].sort((a,b)=> {
+        const va=a[opts.order]||'', vb=b[opts.order]||'';
+        return asc ? (va>vb?1:-1) : (va<vb?1:-1);
+      });
+    }
+    if (opts.limit) result = result.slice(0, opts.limit);
+    return result;
   }
+}
+
+// Gabungkan antrian offline (INSERT/UPDATE/DELETE pending) ke dalam array rows
+// Ini memastikan data yang diinput saat offline langsung terlihat di tabel
+// meskipun tbl_cache untuk tabel tersebut belum pernah ada (belum pernah online)
+async function mergeQueueIntoRows(table, rows) {
+  try {
+    const queue = await idbGetAll('queue');
+    const pending = queue.filter(q => q.tabel === table && q.status === 'pending');
+    if (!pending.length) return rows;
+
+    let result = [...rows];
+    for (const q of pending) {
+      if (q.operasi === 'INSERT') {
+        // Tambah jika belum ada (cegah duplikat)
+        const rowData = q.data;
+        if (rowData && !result.find(r => r.id === rowData.id)) {
+          result.push(rowData);
+        }
+      } else if (q.operasi === 'UPDATE') {
+        // Patch baris yang ada
+        result = result.map(r => r.id === q.data.id ? {...r, ...q.data.payload} : r);
+      } else if (q.operasi === 'DELETE') {
+        // Buang baris yang dihapus
+        result = result.filter(r => r.id !== q.data.id);
+      }
+    }
+    return result;
+  } catch(e) { return rows; }
 }
 
 async function idbGetTblCache(key) {
