@@ -2941,69 +2941,86 @@ async function loadSPK(statusFilter=''){
 
 async function openModalSPK(spk=null){
   _spkItems=[];
-  // Load daftar WO untuk referensi
+
+  // ── 1. Buka modal DULU agar semua getElementById tidak null ──────────────
+  openModal('modal-spk');
+
+  // ── 2. Load data untuk dropdown WO dan nomor otomatis (parallel) ─────────
+  showLoading(true);
   let wos=[];
-  if(isOnline){
-    try{
-      const r=await db.from('work_order')
-        .select('id,no_wo,kendaraan(no_plat,merk,tipe),pelanggan(nama),mekanik(nama),keluhan,diagnosa,status')
-        .order('tanggal',{ascending:false}).limit(100);
-      wos=r.data||[];
-    }catch(e){}
-  } else {
-    const [_wos,_kends,_pels,_meks]=await Promise.all([
-      loadTable('work_order',{}), loadTable('kendaraan',{}),
-      loadTable('pelanggan',{}), loadTable('mekanik',{})
+  let no='';
+  let existItems=[];
+
+  try{
+    // Load WO list — pakai loadTable agar online/offline konsisten
+    const [_wos,_kends,_pels,_meks,_noResult] = await Promise.all([
+      loadTable('work_order',{order:'tanggal',asc:false}),
+      loadTable('kendaraan',{}),
+      loadTable('pelanggan',{}),
+      loadTable('mekanik',{}),
+      autoNo('SPK','surat_perintah_kerja','no_spk')
     ]);
+    no = _noResult;
     const kMap=Object.fromEntries(_kends.map(k=>[k.id,k]));
     const pMap=Object.fromEntries(_pels.map(p=>[p.id,p]));
     const mMap=Object.fromEntries(_meks.map(m=>[m.id,m]));
-    wos=_wos.slice(0,100).map(w=>({...w,
-      kendaraan:kMap[w.kendaraan_id]||null,
-      pelanggan:pMap[w.pelanggan_id]||null,
-      mekanik:mMap[w.mekanik_id]||null
+    wos=_wos.slice(0,100).map(w=>({
+      ...w,
+      kendaraan: w.kendaraan||kMap[w.kendaraan_id]||null,
+      pelanggan: w.pelanggan||pMap[w.pelanggan_id]||null,
+      mekanik:   w.mekanik  ||mMap[w.mekanik_id]  ||null
     }));
-  }
 
-  document.getElementById('f-spk-wo').innerHTML =
+    // Load items jika edit
+    if(spk?.id){
+      const _allSpkItems=await loadTable('detail_spk',{});
+      existItems=_allSpkItems
+        .filter(i=>i.spk_id===spk.id)
+        .sort((a,b)=>(a.urutan||0)-(b.urutan||0));
+    }
+  }catch(e){
+    console.error('openModalSPK load error:',e);
+  }
+  showLoading(false);
+
+  // ── 3. Isi form (modal sudah terbuka, semua elemen pasti ada) ─────────────
+  const $=id=>document.getElementById(id);
+
+  // Dropdown WO
+  $('f-spk-wo').innerHTML =
     '<option value="">-- Pilih WO (opsional) --</option>' +
-    (wos||[]).map(w=>`<option value="${w.id}"
-      data-no="${w.no_wo}"
+    wos.map(w=>`<option value="${w.id}"
+      data-no="${w.no_wo||''}"
       data-plat="${w.kendaraan?.no_plat||''}"
-      data-kend="${(w.kendaraan?.merk||'')+' '+(w.kendaraan?.tipe||'')}"
+      data-kend="${((w.kendaraan?.merk||'')+' '+(w.kendaraan?.tipe||'')).trim()}"
       data-pel="${w.pelanggan?.nama||''}"
       data-mek="${w.mekanik?.nama||''}"
       data-keluhan="${(w.keluhan||'').replace(/"/g,'&quot;')}"
       data-diagnosa="${(w.diagnosa||'').replace(/"/g,'&quot;')}">
-      ${w.no_wo} — ${w.kendaraan?.no_plat||''} (${w.status})
+      ${w.no_wo} — ${w.kendaraan?.no_plat||'-'} (${w.status||'-'})
     </option>`).join('');
 
-  // Reset form
-  const no = await autoNo('SPK','surat_perintah_kerja','no_spk');
-  document.getElementById('f-spk-id').value      = spk?.id||'';
-  document.getElementById('f-spk-no').value      = spk?.no_spk||no;
-  document.getElementById('f-spk-tgl').value     = spk?.tanggal?.slice(0,10)||today();
-  document.getElementById('f-spk-status').value  = spk?.status||'draft';
-  document.getElementById('f-spk-wo').value      = spk?.wo_id||'';
-  document.getElementById('f-spk-plat').value    = spk?.no_plat||'';
-  document.getElementById('f-spk-kend').value    = spk?.merk_tipe||'';
-  document.getElementById('f-spk-pel').value     = spk?.nama_pelanggan||'';
-  document.getElementById('f-spk-mek').value     = spk?.nama_mekanik||'';
-  document.getElementById('f-spk-keluhan').value = spk?.keluhan||'';
-  document.getElementById('f-spk-diagnosa').value= spk?.diagnosa||'';
-  document.getElementById('f-spk-catatan').value = spk?.catatan||'';
+  // Reset / isi nilai form
+  $('f-spk-id').value       = spk?.id||'';
+  $('f-spk-no').value       = spk?.no_spk||no;
+  $('f-spk-tgl').value      = spk?.tanggal?.slice(0,10)||today();
+  $('f-spk-status').value   = spk?.status||'draft';
+  $('f-spk-wo').value       = spk?.wo_id||'';
+  $('f-spk-plat').value     = spk?.no_plat||'';
+  $('f-spk-kend').value     = spk?.merk_tipe||'';
+  $('f-spk-pel').value      = spk?.nama_pelanggan||'';
+  $('f-spk-mek').value      = spk?.nama_mekanik||'';
+  $('f-spk-keluhan').value  = spk?.keluhan||'';
+  $('f-spk-diagnosa').value = spk?.diagnosa||'';
+  $('f-spk-catatan').value  = spk?.catatan||'';
 
-  // Load items SPK
-  if(spk?.id){
-    const _allSpkItems=await loadTable('detail_spk',{});
-    const items=_allSpkItems.filter(i=>i.spk_id===spk.id).sort((a,b)=>(a.urutan||0)-(b.urutan||0));
-    _spkItems = (items||[]).map(it=>({
-      rowId: 'spki_'+Date.now()+Math.random().toString(36).slice(2),
-      nama: it.nama, satuan: it.satuan||'pcs', jumlah: it.jumlah||1, keterangan: it.keterangan||''
-    }));
-  }
+  // Items SPK
+  _spkItems = existItems.map(it=>({
+    rowId: 'spki_'+Date.now()+Math.random().toString(36).slice(2),
+    nama: it.nama||'', satuan: it.satuan||'pcs',
+    jumlah: it.jumlah||1, keterangan: it.keterangan||''
+  }));
   renderSPKItems();
-  openModal('modal-spk');
 }
 
 function isiDariWO(woId){
@@ -3476,7 +3493,15 @@ async function openModalWO(wo=null){
       loadKendByPel();
     }
     if(wo.kendaraan_id) document.getElementById('f-wo-kend').value = wo.kendaraan_id;
-    if(wo.mekanik_id)   document.getElementById('f-wo-mek').value  = wo.mekanik_id;
+    // Set multi-mekanik dari data WO
+    _woMekIds = [];
+    if(wo.mekanik_ids){
+      try{ _woMekIds = Array.isArray(wo.mekanik_ids)?wo.mekanik_ids:JSON.parse(wo.mekanik_ids); }catch(e){}
+    } else if(wo.mekanik_id){
+      _woMekIds = [wo.mekanik_id];
+    }
+    fillMekList(meks);
+    renderMekTags();
 
     // Load parts existing — online query Supabase, offline dari cache IDB
     let existParts=[];
@@ -3514,10 +3539,10 @@ async function openModalWO(wo=null){
     window._woPartsOriginal = [];
     const no = await autoNo('WO','work_order','no_wo');
     document.getElementById('f-wo-no').value = no;
+    // Isi list mekanik untuk mode baru
+    fillMekList(meks);
+    renderMekTags();
   }
-
-  // Isi daftar mekanik (multi-select)
-  fillMekList(meks);
 
   showLoading(false);
   renderWOParts(window._woBrg||[]);
