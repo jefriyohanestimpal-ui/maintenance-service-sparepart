@@ -1687,14 +1687,34 @@ async function dbOp(tabel, operasi, data) {
       if (operasi === 'INSERT') res = await db.from(tabel).insert(data).select().single();
       else if (operasi === 'UPDATE') res = await db.from(tabel).update(data.payload).eq('id',data.id).select().single();
       else if (operasi === 'DELETE') res = await db.from(tabel).delete().eq('id',data.id);
-      if (res.error) throw res.error;
-      // Invalidate cache agar loadTable re-fetch segar dari server
+      if (res && res.error) {
+        // Supabase error — cek apakah ini network issue atau schema/data error
+        const msg = res.error.message||'';
+        const isNetwork = msg.includes('fetch') || msg.includes('network') || msg.includes('Failed');
+        if (isNetwork) {
+          // Network error — masuk queue
+          await queueOp(tabel, operasi, data);
+          await applyToTblCache(tabel, operasi, data);
+          return data.id ? data : {...data, id: uid()};
+        }
+        // Schema/data error — lempar agar ditangani di caller
+        console.error(`[dbOp] ${tabel} ${operasi} error:`, res.error);
+        throw new Error(res.error.message || JSON.stringify(res.error));
+      }
       await invalidateTblCache(tabel);
-      return res.data;
+      return res?.data || data;
     } catch(e) {
-      await queueOp(tabel, operasi, data);
-      await applyToTblCache(tabel, operasi, data);
-      return data.id ? data : {...data, id: uid()};
+      // Cek apakah network error atau error dari throw di atas
+      const isNetwork = !navigator.onLine ||
+        e.message?.includes('fetch') || e.message?.includes('network') ||
+        e.message?.includes('Failed') || e.name === 'TypeError';
+      if (isNetwork) {
+        await queueOp(tabel, operasi, data);
+        await applyToTblCache(tabel, operasi, data);
+        return data.id ? data : {...data, id: uid()};
+      }
+      // Re-throw untuk error schema/validasi agar muncul ke user
+      throw e;
     }
   } else {
     await queueOp(tabel, operasi, data);
@@ -1869,16 +1889,15 @@ async function loadTable(table, opts={}) {
       if (error) throw error;
       const result = data||[];
       try {
-        // Simpan cache dengan key eksak
         await idbAdd('tbl_cache',{key:cacheKey, tbl:table, data:result, ts:Date.now()});
-        // Selalu simpan baseCacheKey (tanpa filter/sort/limit) sebagai master fallback
-        // agar saat offline dengan parameter berbeda masih bisa ambil data
         if (cacheKey !== baseCacheKey) {
           await idbAdd('tbl_cache',{key:baseCacheKey, tbl:table, data:result, ts:Date.now()});
         }
       } catch(e){}
-      return result;
+      // Gabungkan dengan queue pending yang belum ter-sync
+      return await mergeQueueIntoRows(table, result);
     } catch(e) {
+      // Network/Supabase error saat online — fallback ke cache + queue
       const fallback = await idbGetTblCache(cacheKey) || await idbGetTblCache(baseCacheKey) || [];
       return await mergeQueueIntoRows(table, fallback);
     }
@@ -3112,20 +3131,22 @@ async function saveSPK(doCetak=false){
   const woId  = woSel.value||null;
   const noWo  = woSel.selectedOptions[0]?.dataset?.no||null;
 
-  const payload={
-    no_spk          : no,
-    tanggal         : document.getElementById('f-spk-tgl').value,
-    status          : document.getElementById('f-spk-status').value,
-    wo_id           : woId,
-    no_wo_ref       : noWo,
-    no_plat         : plat,
-    merk_tipe       : document.getElementById('f-spk-kend').value,
-    nama_pelanggan  : document.getElementById('f-spk-pel').value,
-    nama_mekanik    : document.getElementById('f-spk-mek').value,
-    keluhan         : document.getElementById('f-spk-keluhan').value,
-    diagnosa        : document.getElementById('f-spk-diagnosa').value,
-    catatan         : document.getElementById('f-spk-catatan').value,
+  // Bangun payload — hanya sertakan wo_id jika ada nilai (hindari FK null error)
+  const payload = {
+    no_spk         : no,
+    tanggal        : document.getElementById('f-spk-tgl').value,
+    status         : document.getElementById('f-spk-status').value,
+    no_plat        : plat,
+    merk_tipe      : document.getElementById('f-spk-kend').value,
+    nama_pelanggan : document.getElementById('f-spk-pel').value,
+    nama_mekanik   : document.getElementById('f-spk-mek').value,
+    keluhan        : document.getElementById('f-spk-keluhan').value,
+    diagnosa       : document.getElementById('f-spk-diagnosa').value,
+    catatan        : document.getElementById('f-spk-catatan').value,
   };
+  // Kolom opsional — hanya kirim jika ada nilai
+  if(woId)  payload.wo_id     = woId;
+  if(noWo)  payload.no_wo_ref = noWo;
 
   showLoading(true);
   try{
@@ -3140,7 +3161,7 @@ async function saveSPK(doCetak=false){
       if(isOnline){ try{ await db.from('detail_spk').delete().eq('spk_id',id); }catch(e){} }
     } else {
       // INSERT SPK baru — sertakan created_at agar urutan tampil benar
-      await dbOp('surat_perintah_kerja','INSERT',{id, created_at: new Date().toISOString(), ...payload});
+      await dbOp('surat_perintah_kerja','INSERT',{id, ...payload});
     }
     // Insert detail items
     for(let i=0;i<_spkItems.length;i++){
