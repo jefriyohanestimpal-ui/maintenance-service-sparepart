@@ -2186,11 +2186,10 @@ ${modalHtml('modal-barang','Tambah / Edit Barang',`
   <div class="form-group"><label class="form-label">Kategori</label>
     <select id="f-br-kategori" class="form-input">
       <option value="">-- Pilih --</option>
-     <option>Block & Head</option><option>Piston Assembly</option><option>Valve Train</option><option>Lubrication</option><option>Fuel System</option>
-      <option>Ignition</option><option>Air Intake</option><option>Manual Transmission</option>
-      <option>Automatic Transmission</option><option>Drivelinem</option><option>Transfer Case</option><option>Friction Parts</option><option>Hydraulic Parts</option></option><option>Control & Safety</option></option><option>Suspension</option><option>Linkage</option><option>Steering</option><option>Wheel Alignment</option><option>Power Supply</option><option>Lighting</option>
-      <option>Comfort Electronics</option><option>ECU & Sensors</option><option>Engine Cooling</option>
-      <option>AC System</option><option>Heating</option><option>exahaust & emmision system</option><option>Body Panels</option></option><option>Interior</option></option><option>Safety Interior</option><option>wheels & tires</option><option>oil</option><option>lainnya</option></select>
+      <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
+      <option>Kelistrikan</option><option>Aki</option><option>Sistem Pengereman</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC </option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
+    </select>
   </div>
   <div class="form-group"><label class="form-label">Satuan <span class="req">*</span></label>
     <select id="f-br-satuan" class="form-input">
@@ -2512,6 +2511,7 @@ ${modalHtml('modal-kend','Tambah / Edit Kendaraan',`
 
 window.init_kendaraan = async function(){await loadKend();};
 async function openModalKend(k=null){
+  openModal('modal-kend');
 const pls=await loadTable('pelanggan',{order:'nama'});
 const sel=document.getElementById('f-kd-pel');
 sel.innerHTML='<option value="">-- Tanpa Pemilik --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
@@ -2535,7 +2535,6 @@ if(k){
   ].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';});
   sel.value='';
 }
-openModal('modal-kend');
 }
 async function loadKend(){
 const data=await loadTable('kendaraan',{select:'*,pelanggan(nama)',order:'no_plat'});
@@ -2635,11 +2634,10 @@ pages['gudang'] = () => `
   <div class="section-hdr-actions">
     <select id="filter-kategori" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Kategori</option>
-     <option>Block & Head</option><option>Piston Assembly</option><option>Valve Train</option><option>Lubrication</option><option>Fuel System</option>
-      <option>Ignition</option><option>Air Intake</option><option>Manual Transmission</option>
-      <option>Automatic Transmission</option><option>Drivelinem</option><option>Transfer Case</option><option>Friction Parts</option><option>Hydraulic Parts</option></option><option>Control & Safety</option></option><option>Suspension</option><option>Linkage</option><option>Steering</option><option>Wheel Alignment</option><option>Power Supply</option><option>Lighting</option>
-      <option>Comfort Electronics</option><option>ECU & Sensors</option><option>Engine Cooling</option>
-      <option>AC System</option><option>Heating</option><option>exahaust & emmision system</option><option>Body Panels</option></option><option>Interior</option></option><option>Safety Interior</option><option>wheels & tires</option><option>oil</option><option>lainnya</option></select>
+      <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option<option>Sistem Transmisi</option><option>Sistem Suspensi</option>
+      <option>Kelistrikan</option><option>Aki</option><option>Sistem Pengereman</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC</option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
+    </select>
     <select id="filter-stok" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Stok</option>
       <option value="low">Stok Menipis</option>
@@ -2703,9 +2701,9 @@ function filterGudang(){
 }
 
 async function openKoreksiStok(){
+  openModal('modal-koreksi');
   const brg=await loadTable('barang',{order:'nama'});
   document.getElementById('f-kor-barang').innerHTML='<option value="">-- Pilih Barang --</option>'+brg.map(b=>`<option value="${b.id}" data-stok="${b.stok}">${b.nama} (Stok: ${b.stok} ${b.satuan})</option>`).join('');
-  openModal('modal-koreksi');
 }
 
 async function saveKoreksi(){
@@ -4899,6 +4897,7 @@ async function loadUsers(){
 }
 
 async function openModalUser(u=null){
+  openModal('modal-user');
   const isEdit=!!u;
   document.getElementById('pw-req').style.display=isEdit?'none':'inline';
   document.getElementById('pw-hint').style.display=isEdit?'inline':'none';
@@ -4911,7 +4910,6 @@ async function openModalUser(u=null){
   document.getElementById('f-usr-catatan').value=u?.catatan||'';
   // Disable username jika edit (username tidak boleh diubah)
   document.getElementById('f-usr-username').disabled=isEdit;
-  openModal('modal-user');
 }
 
 async function saveUser(){
@@ -5133,6 +5131,7 @@ let _poItems=[];
 window.init_pesanan_beli=async function(){await loadPO();};
 
 async function openModalPO(){
+  openModal('modal-po');
   _poItems=[];
   const sups=await loadTable('supplier',{order:'nama'});
   document.getElementById('f-po-id').value='';
@@ -5142,7 +5141,6 @@ async function openModalPO(){
   document.getElementById('f-po-catatan').value='';
   document.getElementById('f-po-status').value='pending';
   renderPOItems();hitungTotalPO();
-  openModal('modal-po');
   createAC({containerId:'ac-po-sup',placeholder:'Ketik nama supplier...',data:sups,searchKeys:['nama','telepon','kota'],renderItem:s=>({icon:'🏭',main:s.nama,sub:[s.kota,s.telepon].filter(Boolean).join(' | ')}),onSelect:s=>{document.getElementById('f-po-sup').value=s.id;},onClear:()=>{document.getElementById('f-po-sup').value='';},initialLabel:''});
 }
 
@@ -5372,6 +5370,7 @@ window.init_pembelian=async function(){
 };
 
 async function openModalBeli(fromPoId=null){
+  openModal('modal-beli');
   _beliItems=[];
   // Load data pendukung
   const[sups,pos]=await Promise.all([
@@ -5390,7 +5389,6 @@ async function openModalBeli(fromPoId=null){
   document.getElementById('f-bl-catatan').value='';
 
   // Buka modal dulu agar DOM tersedia
-  openModal('modal-beli');
   createAC({containerId:'ac-bl-sup',placeholder:'Ketik nama supplier...',data:sups,searchKeys:['nama','telepon','kota'],renderItem:s=>({icon:'🏭',main:s.nama,sub:[s.kota,s.telepon].filter(Boolean).join(' | ')}),onSelect:s=>{document.getElementById('f-bl-sup').value=s.id;},onClear:()=>{document.getElementById('f-bl-sup').value='';},initialLabel:''});
 
   // Setelah modal terbuka, baru isi data
@@ -5704,19 +5702,30 @@ async function loadRiwayatHutang(){
 }
 
 async function openModalBayarHutang(fakturId=null){
-  let fks=[];
-  if(isOnline){try{const r=await db.from('pembelian').select('*,supplier(nama)').neq('status_bayar','lunas');fks=r.data||[];}catch(e){}}
-  if(!fks.length){
-    const [_beli,_sup]=await Promise.all([loadTable('pembelian',{}),loadTable('supplier',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    fks=_beli.filter(b=>b.status_bayar!=='lunas').map(b=>({...b,supplier:sMap[b.supplier_id]||null}));
-  }
-  document.getElementById('f-bh-faktur').innerHTML='<option value="">-- Pilih Faktur --</option>'+(fks||[]).map(f=>`<option value="${f.id}" data-sisa="${f.sisa_hutang}" data-sup="${f.supplier_id}">${f.no_faktur} - ${f.supplier?.nama} - Sisa:${fmt(f.sisa_hutang)}</option>`).join('');
-  const no=await autoNo('BH','pembayaran_hutang','no_bayar');
-  document.getElementById('f-bh-no').value=no;document.getElementById('f-bh-tgl').value=today();
-  document.getElementById('f-bh-jumlah').value='';document.getElementById('f-bh-sisa').value='';document.getElementById('f-bh-ket').value='';
-  if(fakturId){document.getElementById('f-bh-faktur').value=fakturId;isiInfoHutang();}
+  // Buka modal DULU agar semua getElementById tidak null
   openModal('modal-bayar-hutang');
+  showLoading(true);
+  let fks=[], no='';
+  try{
+    const [_beli,_sup,_no]=await Promise.all([
+      loadTable('pembelian',{}),
+      loadTable('supplier',{}),
+      autoNo('BH','pembayaran_hutang','no_bayar')
+    ]);
+    no=_no;
+    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
+    fks=_beli.filter(b=>b.status_bayar!=='lunas').map(b=>({...b,supplier:b.supplier||sMap[b.supplier_id]||null}));
+  }catch(e){ console.error('openModalBayarHutang:',e); }
+  showLoading(false);
+  const $=id=>document.getElementById(id);
+  $('f-bh-faktur').innerHTML='<option value="">-- Pilih Faktur --</option>'+
+    fks.map(f=>`<option value="${f.id}" data-sisa="${f.sisa_hutang}" data-sup="${f.supplier_id}">${f.no_faktur} - ${f.supplier?.nama||'-'} - Sisa: ${fmt(f.sisa_hutang)}</option>`).join('');
+  $('f-bh-no').value     = no;
+  $('f-bh-tgl').value    = today();
+  $('f-bh-jumlah').value = '';
+  $('f-bh-sisa').value   = '';
+  $('f-bh-ket').value    = '';
+  if(fakturId){ $('f-bh-faktur').value=fakturId; isiInfoHutang(); }
 }
 
 function isiInfoHutang(){
@@ -5774,6 +5783,7 @@ ${modalHtml('modal-retur-beli','Retur Pembelian',`
 
 window.init_retur_beli=async function(){await loadReturBeli();};
 async function openModalReturBeli(){
+  openModal('modal-retur-beli');
   let fks=[];
   if(isOnline){try{const r=await db.from('pembelian').select('*,supplier(nama)').order('tanggal',{ascending:false}).limit(50);fks=r.data||[];}catch(e){}}
   if(!fks.length){
@@ -5785,7 +5795,6 @@ async function openModalReturBeli(){
   const no=await autoNo('RB','retur_beli','no_retur');
   document.getElementById('f-rb-no').value=no;document.getElementById('f-rb-tgl').value=today();document.getElementById('f-rb-ket').value='';
   document.getElementById('retur-beli-items').innerHTML='';document.getElementById('rb-total-val').textContent='Rp 0';
-  openModal('modal-retur-beli');
 }
 async function loadDetailBeliForRetur(){
   const fakturId=document.getElementById('f-rb-faktur').value;if(!fakturId)return;
@@ -5886,6 +5895,7 @@ ${modalHtml('modal-so','Pesanan Jual (SO)',`
 let _soItems=[];
 window.init_pesanan_jual=async function(){await loadSO();};
 async function openModalSO(){
+  openModal('modal-so');
   _soItems=[];
   const pls=await loadTable('pelanggan',{order:'nama'});
   document.getElementById('f-so-pel').innerHTML='<option value="">-- Umum --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
@@ -5895,7 +5905,6 @@ async function openModalSO(){
   document.getElementById('f-so-catatan').value='';
   document.getElementById('f-so-status').value='pending';
   document.getElementById('f-so-id').value='';
-  openModal('modal-so');
 }
 async function addSOItem(){
   if(!window._brg)window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
@@ -5981,6 +5990,7 @@ ${modalHtml('modal-retur-jual','Retur Penjualan',`
 
 window.init_retur_jual=async function(){await loadReturJual();};
 async function openModalReturJual(){
+  openModal('modal-retur-jual');
   let fks=[];
   if(isOnline){try{const r=await db.from('penjualan').select('*,pelanggan(nama)').order('tanggal',{ascending:false}).limit(80);fks=r.data||[];}catch(e){}}
   if(!fks.length){
@@ -5992,7 +6002,6 @@ async function openModalReturJual(){
   const no=await autoNo('RJ','retur_jual','no_retur');
   document.getElementById('f-rj-no').value=no;document.getElementById('f-rj-tgl').value=today();document.getElementById('f-rj-ket').value='';
   document.getElementById('retur-jual-items').innerHTML='';document.getElementById('rj-total-val').textContent='Rp 0';
-  openModal('modal-retur-jual');
 }
 async function loadDetailJualForRetur(){
   const fId=document.getElementById('f-rj-faktur').value;if(!fId)return;
@@ -6136,25 +6145,57 @@ async function loadRiwayatPiutang(){
   </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Belum ada riwayat</td></tr>';
 }
 async function openModalBayarPiutang(refId=null,refTipe=null){
-  let pjData=[],woData=[];
-  if(isOnline){
-    try{const r=await db.from('penjualan').select('*,pelanggan(nama)').gt('sisa_piutang',0);pjData=r.data||[];}catch(e){}
-    try{const r=await db.from('work_order').select('*,pelanggan(nama),kendaraan(no_plat)').gt('sisa_piutang',0);woData=r.data||[];}catch(e){}
-  }
-  if(!pjData.length&&!woData.length){
-    const [_pj,_wo,_pel,_kend]=await Promise.all([loadTable('penjualan',{}),loadTable('work_order',{}),loadTable('pelanggan',{}),loadTable('kendaraan',{})]);
+  // ── Buka modal DULU agar semua getElementById tidak null ─────────────────
+  openModal('modal-bayar-piutang');
+  showLoading(true);
+
+  // ── Load data paralel ─────────────────────────────────────────────────────
+  let pjData=[],woData=[],no='';
+  try{
+    const [_pj,_wo,_pel,_kend,_no]=await Promise.all([
+      loadTable('penjualan',{}),
+      loadTable('work_order',{}),
+      loadTable('pelanggan',{}),
+      loadTable('kendaraan',{}),
+      autoNo('BP','pembayaran_piutang','no_bayar')
+    ]);
+    no=_no;
     const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
     const kMap=Object.fromEntries(_kend.map(k=>[k.id,k]));
-    pjData=_pj.filter(j=>Number(j.sisa_piutang)>0).map(j=>({...j,pelanggan:pMap[j.pelanggan_id]||null}));
-    woData=_wo.filter(w=>Number(w.sisa_piutang)>0).map(w=>({...w,pelanggan:pMap[w.pelanggan_id]||null,kendaraan:kMap[w.kendaraan_id]||null}));
+    pjData=_pj.filter(j=>Number(j.sisa_piutang)>0).map(j=>({
+      ...j,
+      pelanggan:j.pelanggan||pMap[j.pelanggan_id]||null
+    }));
+    woData=_wo.filter(w=>Number(w.sisa_piutang)>0).map(w=>({
+      ...w,
+      pelanggan:w.pelanggan||pMap[w.pelanggan_id]||null,
+      kendaraan:w.kendaraan||kMap[w.kendaraan_id]||null
+    }));
+  }catch(e){ console.error('openModalBayarPiutang load:',e); }
+  showLoading(false);
+
+  // ── Isi form (modal sudah terbuka) ────────────────────────────────────────
+  const $=id=>document.getElementById(id);
+  const opts=[
+    ...pjData.map(r=>({value:r.id,tipe:'penjualan',label:r.no_faktur+' - '+(r.pelanggan?.nama||'Umum')+' - Sisa: '+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id||''})),
+    ...woData.map(r=>({value:r.id,tipe:'service',  label:r.no_wo+' ('+(r.kendaraan?.no_plat||'-')+') - '+(r.pelanggan?.nama||'Umum')+' - Sisa: '+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id||''}))
+  ];
+  $('f-bp-ref').innerHTML='<option value="">-- Pilih Tagihan --</option>'+
+    opts.map(o=>`<option value="${o.value}" data-tipe="${o.tipe}" data-sisa="${o.sisa}" data-pel="${o.pelId}">${o.label}</option>`).join('');
+  $('f-bp-no').value     = no;
+  $('f-bp-tgl').value    = today();
+  $('f-bp-jumlah').value = '';
+  $('f-bp-sisa').value   = '';
+  $('f-bp-ket').value    = '';
+  $('f-bp-ref-id').value    = '';
+  $('f-bp-ref-tipe').value  = '';
+  $('f-bp-pel-id').value    = '';
+
+  // Jika dipanggil dari tombol Terima di tabel piutang, langsung pilih tagihan
+  if(refId){
+    const opt=$('f-bp-ref').querySelector(`option[value="${refId}"]`);
+    if(opt){ $('f-bp-ref').value=refId; isiInfoPiutang(); }
   }
-  const opts=[...pjData.map(r=>({value:r.id,tipe:'penjualan',label:r.no_faktur+' - '+(r.pelanggan?.nama||'Umum')+' - Sisa:'+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id})),
-              ...woData.map(r=>({value:r.id,tipe:'service',label:r.no_wo+' ('+r.kendaraan?.no_plat+') - '+(r.pelanggan?.nama||'Umum')+' - Sisa:'+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id}))];
-  document.getElementById('f-bp-ref').innerHTML='<option value="">-- Pilih --</option>'+opts.map(o=>`<option value="${o.value}" data-tipe="${o.tipe}" data-sisa="${o.sisa}" data-pel="${o.pelId||''}">${o.label}</option>`).join('');
-  const no=await autoNo('BP','pembayaran_piutang','no_bayar');
-  document.getElementById('f-bp-no').value=no;document.getElementById('f-bp-tgl').value=today();document.getElementById('f-bp-jumlah').value='';document.getElementById('f-bp-sisa').value='';document.getElementById('f-bp-ket').value='';
-  if(refId){const opt=document.getElementById('f-bp-ref').querySelector('option[value="'+refId+'"]');if(opt){document.getElementById('f-bp-ref').value=refId;isiInfoPiutang();}}
-  openModal('modal-bayar-piutang');
 }
 function isiInfoPiutang(){
   const sel=document.getElementById('f-bp-ref');const opt=sel.selectedOptions[0];
@@ -6475,10 +6516,10 @@ document.getElementById('body-kat-keluar').innerHTML = data.length ? data.map(k=
 </tr>`).join('') : '<tr><td colspan="3" class="table-empty">Belum ada kategori</td></tr>';
 }
 function openModalKatKeluar(){
+  openModal('modal-kat-keluar');
 document.getElementById('f-kk-id').value='';
 document.getElementById('f-kk-nama').value='';
 document.getElementById('f-kk-aktif').value='true';
-openModal('modal-kat-keluar');
 }
 function editKatKeluar(k){
 document.getElementById('f-kk-id').value=k.id;
@@ -6567,6 +6608,7 @@ window._katKeluar = kats;
 await loadPengeluaran();
 }
 async function openModalPengeluaran(data){
+  openModal('modal-pengeluaran');
 if(!window._katKeluar) window._katKeluar = await loadTable('kategori_pengeluaran',{eq:{aktif:true},order:'nama'});
 const kats = window._katKeluar;
 document.getElementById('f-pke-kat').innerHTML =
@@ -6578,7 +6620,6 @@ document.getElementById('f-pke-kat').value = data?data.kategori_id:'';
 document.getElementById('f-pke-nominal').value = data?data.nominal:'';
 document.getElementById('f-pke-metode').value = data?data.metode:'tunai';
 document.getElementById('f-pke-ket').value = data?data.keterangan:'';
-openModal('modal-pengeluaran');
 }
 async function savePengeluaran(){
 const id = document.getElementById('f-pke-id').value;
