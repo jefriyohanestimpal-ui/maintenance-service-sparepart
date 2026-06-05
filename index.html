@@ -77,16 +77,14 @@ input,select,textarea{font-family:var(--font-body);outline:none}
   flex-shrink:0;overflow:hidden;
 }
 .sidebar-logo{
-  width:32px;height:32px;border-radius:8px;flex-shrink:0;
-  background:linear-gradient(135deg,var(--orange),var(--orange2));
-  display:flex;align-items:center;justify-content:center;
-  font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;
+  width:36px;height:36px;border-radius:8px;flex-shrink:0;
+  overflow:hidden;display:flex;align-items:center;justify-content:center;
+  background:transparent;
 }
+.sidebar-logo img{width:100%;height:100%;object-fit:contain;}
 .sidebar-title{
   font-family:var(--font-display);font-size:17px;font-weight:700;
-  color:var(--text);white-space:nowrap;overflow:hidden;
-  background:linear-gradient(90deg,var(--orange),var(--orange2),var(--text));
-  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  color:#ff6a00;white-space:nowrap;overflow:hidden;
 }
 #sidebar.collapsed .sidebar-title,
 #sidebar.collapsed .nav-label,
@@ -777,7 +775,7 @@ select.form-input option{background:#fff;color:#050505;}
 #topbar{background:#ffffff;border-bottom:1px solid #dddfe2;}
 .topbar-title,.page-title{color:#050505;}
 #sidebar{background:#ffffff;border-right:1px solid #dddfe2;}
-.sidebar-title{color:#050505;}
+.sidebar-title{color:#ff6a00;}
 .nav-label{color:#444;}
 .nav-item:hover{background:#f0f2f5;}
 .nav-section-title{color:#888;}
@@ -852,7 +850,7 @@ tr:hover td{background:#f0f2f5;}
   <!-- SIDEBAR -->
   <nav id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo">WG</div>
+      <div class="sidebar-logo"><img src="https://res.cloudinary.com/dvyswhltc/image/upload/v1780189995/logowasg-01_cdhwjk.png" alt="WAS GARAGE Logo"/></div>
       <span class="sidebar-title">WAS GARAGE</span>
     </div>
     <div class="sidebar-nav" id="sidebar-nav">
