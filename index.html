@@ -6079,8 +6079,8 @@ pages['bayar-piutang'] = () => `
 </div>
 <div class="section-hdr"><h2><i class="ti ti-history"></i>Riwayat Penerimaan</h2></div>
 <div class="table-wrap">
-  <table><thead><tr><th>No Terima</th><th>Tanggal</th><th>Pelanggan</th><th>Jumlah</th><th>Metode</th><th>Keterangan</th></tr></thead>
-  <tbody id="body-riwayat-piutang"><tr><td colspan="6" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
+  <table><thead><tr><th>No Terima</th><th>Tanggal</th><th>Pelanggan</th><th>Jumlah</th><th>Metode</th><th>Keterangan</th><th>Aksi</th></tr></thead>
+  <tbody id="body-riwayat-piutang"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
 ${modalHtml('modal-bayar-piutang','Catat Penerimaan Piutang',`
 <div class="form-grid">
@@ -6136,13 +6136,14 @@ async function loadRiwayatPiutang(){
     data=_pp.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,50).map(r=>({...r,pelanggan:pMap[r.pelanggan_id]||null}));
   }
   document.getElementById('body-riwayat-piutang').innerHTML=data.length?data.map(r=>`<tr>
-    <td><code style="color:var(--orange);font-size:12px">${r.no_terima||r.no_bayar||'-'}</code></td>
+    <td><code style="color:var(--orange);font-size:12px">${r.no_bayar||r.no_terima||'-'}</code></td>
     <td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
     <td>${r.pelanggan?.nama||'-'}</td>
     <td style="font-family:var(--font-display);color:var(--green)">${fmt(r.jumlah)}</td>
     <td>${r.metode||'-'}</td>
     <td style="font-size:12px;color:var(--text3)">${r.keterangan||'-'}</td>
-  </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Belum ada riwayat</td></tr>';
+    <td><button class="btn btn-sm" style="background:var(--red);color:#fff;padding:3px 10px" onclick="delRiwayatPiutang('${r.id}','${r.no_bayar||r.no_terima||''}')"><i class="ti ti-trash"></i></button></td>
+  </tr>`).join(''):'<tr><td colspan="7" class="table-empty">Belum ada riwayat</td></tr>';
 }
 async function openModalBayarPiutang(refId=null,refTipe=null){
   // ── Buka modal DULU agar semua getElementById tidak null ─────────────────
@@ -6157,7 +6158,7 @@ async function openModalBayarPiutang(refId=null,refTipe=null){
       loadTable('work_order',{}),
       loadTable('pelanggan',{}),
       loadTable('kendaraan',{}),
-      autoNo('BP','pembayaran_piutang','no_terima')
+      autoNo('BP','pembayaran_piutang','no_bayar')
     ]);
     no=_no;
     const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
@@ -6201,7 +6202,7 @@ function isiInfoPiutang(){
   const sel=document.getElementById('f-bp-ref');const opt=sel.selectedOptions[0];
   if(!opt||!opt.value)return;
   document.getElementById('f-bp-sisa').value=fmt(Number(opt.dataset.sisa));
-  document.getElementById('f-bp-jumlah').value=opt.dataset.sisa;
+  document.getElementById('f-bp-jumlah').value=Number(opt.dataset.sisa)||'';
   document.getElementById('f-bp-ref-tipe').value=opt.dataset.tipe;
   document.getElementById('f-bp-ref-id').value=opt.value;
   document.getElementById('f-bp-pel-id').value=opt.dataset.pel;
@@ -6210,7 +6211,7 @@ async function saveBayarPiutang(cetak=false){
   const refId=document.getElementById('f-bp-ref-id').value;if(!refId){showToast('Pilih tagihan','error');return;}
   const jumlah=Number(document.getElementById('f-bp-jumlah').value);if(!jumlah||jumlah<=0){showToast('Jumlah tidak valid','error');return;}
   const no=document.getElementById('f-bp-no').value.trim();
-  if(!no){showToast('No. Terima tidak boleh kosong','error');document.getElementById('f-bp-no').focus();return;}
+  if(!no){showToast('No. Bayar tidak boleh kosong','error');document.getElementById('f-bp-no').focus();return;}
   const refTipe=document.getElementById('f-bp-ref-tipe').value;
   const pelId=document.getElementById('f-bp-pel-id').value;
   const tgl=document.getElementById('f-bp-tgl').value;
@@ -6224,7 +6225,7 @@ async function saveBayarPiutang(cetak=false){
   showLoading(true);
   try{
     const refTipeDB = refTipe==='service'?'work_order':refTipe;
-    await dbOp('pembayaran_piutang','INSERT',{id:uid(),no_terima:no,tanggal:tgl,pelanggan_id:pelId||null,referensi_tipe:refTipeDB,referensi_id:refId,jumlah,metode,keterangan:ket});
+    await dbOp('pembayaran_piutang','INSERT',{id:uid(),no_bayar:no,tanggal:tgl,pelanggan_id:pelId||null,referensi_tipe:refTipeDB,referensi_id:refId,jumlah,metode,keterangan:ket});
     const tabelAsal=refTipe==='penjualan'?'penjualan':'work_order';
     const dok=await dbGet(tabelAsal,refId);
     const newTerbayar=(dok?.terbayar||0)+jumlah;
@@ -6253,6 +6254,18 @@ async function saveBayarPiutang(cetak=false){
   showLoading(false);
 }
 
+async function delRiwayatPiutang(id, no){
+  if(!confirm(`Hapus riwayat penerimaan ${no}?
+Perhatian: Saldo piutang pelanggan tidak otomatis dikembalikan.`)) return;
+  showLoading(true);
+  try{
+    await dbOp('pembayaran_piutang','DELETE',{id});
+    showToast('Riwayat dihapus','success');
+    await loadRiwayatPiutang();
+  }catch(e){ showToast('Gagal hapus: '+e.message,'error'); }
+  showLoading(false);
+}
+
 async function cetakTandaTerima(d){
   const s=await getSettings().catch(()=>({nama_bengkel:'AutoServ Pro',alamat:'',telepon:'',footer_nota:'Terima kasih!'}));
   const html=`
@@ -6264,7 +6277,7 @@ async function cetakTandaTerima(d){
     <hr class="nota-divider"/>
     <div style="text-align:center;font-weight:700;font-size:13px;margin:8px 0;letter-spacing:1px">TANDA TERIMA PEMBAYARAN</div>
     <hr class="nota-divider"/>
-    <div class="nota-row"><span class="label">No. Terima</span><span class="val" style="font-weight:700">${d.no}</span></div>
+    <div class="nota-row"><span class="label">No. Bayar</span><span class="val" style="font-weight:700">${d.no}</span></div>
     <div class="nota-row"><span class="label">Tanggal</span><span class="val">${new Date(d.tgl).toLocaleDateString('id-ID',{weekday:'short',day:'numeric',month:'long',year:'numeric'})}</span></div>
     <div class="nota-row"><span class="label">Pelanggan</span><span class="val" style="font-weight:600">${d.namaPel}</span></div>
     <hr class="nota-divider"/>
