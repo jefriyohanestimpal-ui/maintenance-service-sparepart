@@ -77,14 +77,16 @@ input,select,textarea{font-family:var(--font-body);outline:none}
   flex-shrink:0;overflow:hidden;
 }
 .sidebar-logo{
-  width:36px;height:36px;border-radius:8px;flex-shrink:0;
-  overflow:hidden;display:flex;align-items:center;justify-content:center;
-  background:transparent;
+  width:32px;height:32px;border-radius:8px;flex-shrink:0;
+  background:linear-gradient(135deg,var(--orange),var(--orange2));
+  display:flex;align-items:center;justify-content:center;
+  font-family:var(--font-display);font-size:16px;font-weight:700;color:#fff;
 }
-.sidebar-logo img{width:100%;height:100%;object-fit:contain;}
 .sidebar-title{
   font-family:var(--font-display);font-size:17px;font-weight:700;
-  color:#ff6a00;white-space:nowrap;overflow:hidden;
+  color:var(--text);white-space:nowrap;overflow:hidden;
+  background:linear-gradient(90deg,var(--orange),var(--orange2),var(--text));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
 }
 #sidebar.collapsed .sidebar-title,
 #sidebar.collapsed .nav-label,
@@ -775,7 +777,7 @@ select.form-input option{background:#fff;color:#050505;}
 #topbar{background:#ffffff;border-bottom:1px solid #dddfe2;}
 .topbar-title,.page-title{color:#050505;}
 #sidebar{background:#ffffff;border-right:1px solid #dddfe2;}
-.sidebar-title{color:#ff6a00;}
+.sidebar-title{color:#050505;}
 .nav-label{color:#444;}
 .nav-item:hover{background:#f0f2f5;}
 .nav-section-title{color:#888;}
@@ -850,7 +852,7 @@ tr:hover td{background:#f0f2f5;}
   <!-- SIDEBAR -->
   <nav id="sidebar">
     <div class="sidebar-header">
-      <div class="sidebar-logo"><img src="https://res.cloudinary.com/dvyswhltc/image/upload/v1780189995/logowasg-01_cdhwjk.png" alt="WAS GARAGE Logo"/></div>
+      <div class="sidebar-logo">WG</div>
       <span class="sidebar-title">WAS GARAGE</span>
     </div>
     <div class="sidebar-nav" id="sidebar-nav">
@@ -923,30 +925,6 @@ tr:hover td{background:#f0f2f5;}
 
 <!-- PRINT AREA -->
 <div id="print-area"></div>
-
-<!-- MODAL MEKANIK GLOBAL — tersedia dari halaman mana saja (WO, dll) -->
-<div class="modal-overlay" id="modal-mekanik" onclick="if(event.target===this)closeModal('modal-mekanik')">
-  <div class="modal">
-    <div class="modal-header">
-      <span class="modal-title">Tambah / Edit Mekanik</span>
-      <div class="modal-close" onclick="closeModal('modal-mekanik')"><i class="ti ti-x"></i></div>
-    </div>
-    <div class="modal-body">
-      <div class="form-grid">
-        <div class="form-group"><label class="form-label">Kode</label><input id="f-mek-kode" class="form-input" placeholder="Otomatis"/></div>
-        <div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-mek-nama" class="form-input"/></div>
-        <div class="form-group"><label class="form-label">Spesialisasi</label><input id="f-mek-spek" class="form-input" placeholder="Mesin, Kelistrikan..."/></div>
-        <div class="form-group"><label class="form-label">Telepon</label><input id="f-mek-telp" class="form-input" type="tel"/></div>
-        <div class="form-group"><label class="form-label">Status</label><select id="f-mek-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
-      </div>
-      <input type="hidden" id="f-mek-id"/>
-    </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal('modal-mekanik')">Batal</button>
-      <button class="btn btn-primary" onclick="saveMek()"><i class="ti ti-device-floppy"></i>Simpan</button>
-    </div>
-  </div>
-</div>
 
 <script>
 // ============================================================
@@ -1569,25 +1547,10 @@ function nowTs() { return new Date().toISOString(); }
 function uid() { return crypto.randomUUID(); }
 function pad(n,l=4){ return String(n).padStart(l,'0'); }
 
-// Helper: baca satu row dari cache offline
-async function dbGetOne(tabel, rowId) {
-  if (isOnline) {
-    try {
-      const {data,error} = await db.from(tabel).select('*').eq('id',rowId).single();
-      if(!error && data) return data;
-    } catch(e) {}
-  }
-  const rows = await loadTable(tabel, {});
-  return rows.find(r => r.id === rowId) || null;
-}
-
 async function autoNo(prefix, table, col) {
   const y = new Date().getFullYear().toString().slice(2);
   const m = String(new Date().getMonth()+1).padStart(2,'0');
-  let count = 0;
-  if(isOnline){ try{ const r=await db.from(table).select('*',{count:'exact',head:true}); count=r.count||0; }catch(e){} }
-  else { const rows=await loadTable(table,{}); count=rows.length; }
-  count = count; // keep for numbering
+  const { count } = await db.from(table).select('*',{count:'exact',head:true});
   const seq = pad((count||0)+1);
   // Format: WG + kode + tahun + bulan + urutan
   return `WG${prefix}${y}${m}${seq}`;
@@ -1674,8 +1637,6 @@ async function queueOp(tabel, operasi, data) {
       el.textContent = pending + ' data pending';
     }
     updateSyncBadge();
-    // Toast informatif — data tersimpan lokal dan tampil di UI
-    showToast(`💾 Tersimpan lokal (${pending} antri sync)`, 'info');
   } catch(e){}
 }
 
@@ -1687,102 +1648,18 @@ async function dbOp(tabel, operasi, data) {
       if (operasi === 'INSERT') res = await db.from(tabel).insert(data).select().single();
       else if (operasi === 'UPDATE') res = await db.from(tabel).update(data.payload).eq('id',data.id).select().single();
       else if (operasi === 'DELETE') res = await db.from(tabel).delete().eq('id',data.id);
-      if (res && res.error) {
-        // Supabase error — cek apakah ini network issue atau schema/data error
-        const msg = res.error.message||'';
-        const isNetwork = msg.includes('fetch') || msg.includes('network') || msg.includes('Failed');
-        if (isNetwork) {
-          // Network error — masuk queue
-          await queueOp(tabel, operasi, data);
-          await applyToTblCache(tabel, operasi, data);
-          return data.id ? data : {...data, id: uid()};
-        }
-        // Schema/data error — lempar agar ditangani di caller
-        console.error(`[dbOp] ${tabel} ${operasi} error:`, res.error);
-        throw new Error(res.error.message || JSON.stringify(res.error));
-      }
-      await invalidateTblCache(tabel);
-      return res?.data || data;
+      if (res.error) throw res.error;
+      return res.data;
     } catch(e) {
-      // Cek apakah network error atau error dari throw di atas
-      const isNetwork = !navigator.onLine ||
-        e.message?.includes('fetch') || e.message?.includes('network') ||
-        e.message?.includes('Failed') || e.name === 'TypeError';
-      if (isNetwork) {
-        await queueOp(tabel, operasi, data);
-        await applyToTblCache(tabel, operasi, data);
-        return data.id ? data : {...data, id: uid()};
-      }
-      // Re-throw untuk error schema/validasi agar muncul ke user
-      throw e;
+      // fallback to queue
+      await queueOp(tabel, operasi, data);
+      showToast('Disimpan ke antrian offline','info');
+      return data.id ? data : {...data, id: uid()};
     }
   } else {
     await queueOp(tabel, operasi, data);
-    await applyToTblCache(tabel, operasi, data);
     return data.id ? data : {...data, id: uid()};
   }
-}
-
-// Hapus semua cache entries untuk satu tabel
-async function invalidateTblCache(tabel) {
-  try {
-    if (!idbDb) return;
-    await new Promise((res) => {
-      const tx  = idbDb.transaction('tbl_cache', 'readwrite');
-      const idx = tx.objectStore('tbl_cache').index('tbl');
-      const req = idx.openCursor(IDBKeyRange.only(tabel));
-      req.onsuccess = e => {
-        const cur = e.target.result;
-        if (cur) { cur.delete(); cur.continue(); } else { res(); }
-      };
-      req.onerror = () => res();
-    });
-  } catch(e) {}
-}
-
-// Merge INSERT/UPDATE/DELETE ke semua cache entries tabel tsb — data tampil langsung saat offline
-// Jika cache belum ada (belum pernah online di halaman ini), buat cache baru dari data INSERT
-async function applyToTblCache(tabel, operasi, data) {
-  try {
-    if (!idbDb) return;
-    const entries = await new Promise((res) => {
-      const tx  = idbDb.transaction('tbl_cache', 'readonly');
-      const idx = tx.objectStore('tbl_cache').index('tbl');
-      const req = idx.getAll(IDBKeyRange.only(tabel));
-      req.onsuccess = e => res(e.target.result || []);
-      req.onerror   = () => res([]);
-    });
-
-    const baseCacheKey = tabel + '_{}';
-
-    if (!entries.length) {
-      // Cache belum ada — buat dari nol dengan data INSERT ini
-      if (operasi === 'INSERT') {
-        try {
-          await idbAdd('tbl_cache', {
-            key: baseCacheKey, tbl: tabel,
-            data: [data], ts: Date.now()
-          });
-        } catch(e) {}
-      }
-      return;
-    }
-
-    const tx2   = idbDb.transaction('tbl_cache', 'readwrite');
-    const store = tx2.objectStore('tbl_cache');
-    for (const entry of entries) {
-      let rows = entry.data || [];
-      if (operasi === 'INSERT') {
-        const rowData = data.id ? data : {...data};
-        if (!rows.find(r => r.id === rowData.id)) rows = [...rows, rowData];
-      } else if (operasi === 'UPDATE') {
-        rows = rows.map(r => r.id === data.id ? {...r, ...data.payload} : r);
-      } else if (operasi === 'DELETE') {
-        rows = rows.filter(r => r.id !== data.id);
-      }
-      store.put({...entry, data: rows, ts: Date.now()});
-    }
-  } catch(e) {}
 }
 
 async function syncOfflineData() {
@@ -1878,7 +1755,6 @@ window.addEventListener('DOMContentLoaded', ()=>{
 // ============================================================
 async function loadTable(table, opts={}) {
   const cacheKey = table+'_'+JSON.stringify(opts);
-  const baseCacheKey = table+'_{}';
   if (isOnline) {
     try {
       let q = db.from(table).select(opts.select||'*');
@@ -1888,70 +1764,19 @@ async function loadTable(table, opts={}) {
       const { data, error } = await q;
       if (error) throw error;
       const result = data||[];
-      try {
-        await idbAdd('tbl_cache',{key:cacheKey, tbl:table, data:result, ts:Date.now()});
-        if (cacheKey !== baseCacheKey) {
-          await idbAdd('tbl_cache',{key:baseCacheKey, tbl:table, data:result, ts:Date.now()});
-        }
-      } catch(e){}
-      // Gabungkan dengan queue pending yang belum ter-sync
-      return await mergeQueueIntoRows(table, result);
+      // Cache to IDB for offline use
+      try { await idbAdd('tbl_cache',{key:cacheKey,tbl:table,data:result,ts:Date.now()}); } catch(e){}
+      return result;
     } catch(e) {
-      // Network/Supabase error saat online — fallback ke cache + queue
-      const fallback = await idbGetTblCache(cacheKey) || await idbGetTblCache(baseCacheKey) || [];
-      return await mergeQueueIntoRows(table, fallback);
+      // Online but query failed - try cache
+      return await idbGetTblCache(cacheKey) || [];
     }
   } else {
-    // Offline — ambil dari cache lalu gabungkan dengan queue pending
-    let cached = await idbGetTblCache(cacheKey);
-    if (!cached) {
-      const base = await idbGetTblCache(baseCacheKey);
-      if (base) {
-        cached = base;
-        if (opts.eq) cached = cached.filter(r => Object.entries(opts.eq).every(([k,v])=>String(r[k])===String(v)));
-        if (opts.order) {
-          const asc = opts.asc !== false;
-          cached = [...cached].sort((a,b)=> {
-            const va=a[opts.order]||'', vb=b[opts.order]||'';
-            return asc ? (va>vb?1:-1) : (va<vb?1:-1);
-          });
-        }
-        if (opts.limit) cached = cached.slice(0, opts.limit);
-      }
-    }
-    // Gabungkan dengan data pending di queue yang belum ter-sync
-    const merged = await mergeQueueIntoRows(table, cached || []);
-    return merged;
+    // Offline - serve from cache
+    const cached = await idbGetTblCache(cacheKey);
+    if (cached) return cached;
+    return [];
   }
-}
-
-// Gabungkan antrian offline (INSERT/UPDATE/DELETE pending) ke dalam array rows
-// Ini memastikan data yang diinput saat offline langsung terlihat di tabel
-// meskipun tbl_cache untuk tabel tersebut belum pernah ada (belum pernah online)
-async function mergeQueueIntoRows(table, rows) {
-  try {
-    const queue = await idbGetAll('queue');
-    const pending = queue.filter(q => q.tabel === table && q.status === 'pending');
-    if (!pending.length) return rows;
-
-    let result = [...rows];
-    for (const q of pending) {
-      if (q.operasi === 'INSERT') {
-        // Tambah jika belum ada (cegah duplikat)
-        const rowData = q.data;
-        if (rowData && !result.find(r => r.id === rowData.id)) {
-          result.push(rowData);
-        }
-      } else if (q.operasi === 'UPDATE') {
-        // Patch baris yang ada
-        result = result.map(r => r.id === q.data.id ? {...r, ...q.data.payload} : r);
-      } else if (q.operasi === 'DELETE') {
-        // Buang baris yang dihapus
-        result = result.filter(r => r.id !== q.data.id);
-      }
-    }
-    return result;
-  } catch(e) { return rows; }
 }
 
 async function idbGetTblCache(key) {
@@ -2038,112 +1863,113 @@ pages['dashboard'] = () => `
 </div>`;
 
 window.init_dashboard = async function() {
+  // Helper aman: set textContent/innerHTML hanya jika elemen ada dan dashboard masih aktif
   const setTxt = (id, val) => { const el=document.getElementById(id); if(el) el.textContent=val; };
   const setHtml = (id, val) => { const el=document.getElementById(id); if(el) el.innerHTML=val; };
   const stillHere = () => currentPage === 'dashboard';
 
-  // Helper: query dengan fallback ke cache IDB saat offline
-  async function dashQ(table, select, filterFn) {
-    try {
-      const rows = await loadTable(table, {select});
-      return filterFn ? rows.filter(filterFn) : rows;
-    } catch(e) { return []; }
-  }
-
-  const td = today();
-
   // ── Penjualan hari ini ──────────────────────────────────────
   try {
-    const pj = await dashQ('penjualan','total,tanggal', r=>r.tanggal>=td);
+    const td = today();
+    const { data: pj } = await db.from('penjualan').select('total').gte('tanggal',td);
     if(!stillHere()) return;
-    setTxt('d-penjualan', fmt(pj.reduce((a,r)=>a+Number(r.total),0)));
-    setTxt('d-penjualan-sub', `${pj.length} transaksi`);
-  } catch(e) {}
+    const totalPj = (pj||[]).reduce((a,r)=>a+Number(r.total),0);
+    setTxt('d-penjualan', fmt(totalPj));
+    setTxt('d-penjualan-sub', `${(pj||[]).length} transaksi`);
+  } catch(e) { console.error('dash-penjualan:',e); }
 
   if(!stillHere()) return;
 
   // ── Antrian WO ─────────────────────────────────────────────
   try {
-    const wo = await dashQ('work_order','*,kendaraan(no_plat),mekanik(nama)', r=>r.status==='antri'||r.status==='proses');
+    const td = today();
+    const { data: wo } = await db.from('work_order')
+      .select('*,kendaraan(no_plat),mekanik(nama)')
+      .in('status',['antri','proses']);
     if(!stillHere()) return;
-    setTxt('d-service', wo.length);
+    setTxt('d-service', (wo||[]).length);
     setTxt('d-service-sub', 'Work Order aktif');
-    const woHtml = wo.length ? wo.map(w=>`
+    const woHtml = (wo||[]).length ? (wo||[]).map(w=>`
       <div class="wo-item" onclick="showPage('service')" style="cursor:pointer">
         <span class="wo-no">${w.no_wo}</span>
         <div class="wo-info">
           <div class="wo-plat">${w.kendaraan?.no_plat||'-'}</div>
-          <div class="wo-mekanik">${w.mekanik?.nama||(w.mekanik_ids&&JSON.parse(w.mekanik_ids||'[]').length?'Multi Mek':'Belum assign')}</div>
+          <div class="wo-mekanik">${w.mekanik?.nama||'Belum assign'}</div>
         </div>
         <span class="badge ${w.status==='proses'?'badge-orange':'badge-gray'}">${w.status}</span>
       </div>`).join('')
       : '<div style="color:var(--text3);font-size:13px;text-align:center;padding:20px"><i class="ti ti-check" style="display:block;font-size:24px;margin-bottom:6px;color:var(--green)"></i>Tidak ada antrian</div>';
     setHtml('wo-antrian', woHtml);
-  } catch(e) {}
+  } catch(e) { console.error('dash-wo:',e); }
 
   if(!stillHere()) return;
 
   // ── Stok menipis ───────────────────────────────────────────
   try {
-    const allBrg = await dashQ('barang','stok,stok_minimum');
+    const { data: allBrg } = await db.from('barang').select('stok,stok_minimum');
     if(!stillHere()) return;
-    setTxt('d-stok', allBrg.filter(b=>Number(b.stok)<=Number(b.stok_minimum)).length);
-  } catch(e) {}
+    const stokC = (allBrg||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum)).length;
+    setTxt('d-stok', stokC);
+  } catch(e) { console.error('dash-stok:',e); }
 
   if(!stillHere()) return;
 
   // ── Piutang ────────────────────────────────────────────────
   try {
-    const [piut, piutWo] = await Promise.all([
-      dashQ('penjualan','sisa_piutang', r=>Number(r.sisa_piutang)>0),
-      dashQ('work_order','sisa_piutang', r=>Number(r.sisa_piutang)>0)
+    const [{ data: piut }, { data: piutWo }] = await Promise.all([
+      db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0),
+      db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0)
     ]);
     if(!stillHere()) return;
-    setTxt('d-piutang', fmt([...piut,...piutWo].reduce((a,r)=>a+Number(r.sisa_piutang),0)));
-  } catch(e) {}
+    const totalPiut = [...(piut||[]),...(piutWo||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
+    setTxt('d-piutang', fmt(totalPiut));
+  } catch(e) { console.error('dash-piutang:',e); }
 
   if(!stillHere()) return;
-
-  // ── Tunai & Transfer ───────────────────────────────────────
+// ── Tunai & Transfer ───────────────────────────────────────
   try {
-    const [pjAll, woAll] = await Promise.all([
-      dashQ('penjualan','terbayar,metode_bayar,tanggal', r=>r.tanggal>=td),
-      dashQ('work_order','terbayar,metode_bayar,tanggal', r=>r.tanggal>=td)
+    const td = today();
+    const [{ data: pjAll }, { data: woAll }] = await Promise.all([
+      db.from('penjualan').select('terbayar,metode_bayar').gte('tanggal',td),
+      db.from('work_order').select('terbayar,metode_bayar').gte('tanggal',td)
     ]);
     if(!stillHere()) return;
-    const semua = [...pjAll, ...woAll];
-    setTxt('d-tunai', fmt(semua.filter(r=>r.metode_bayar==='tunai').reduce((a,r)=>a+Number(r.terbayar),0)));
-    setTxt('d-transfer', fmt(semua.filter(r=>r.metode_bayar==='transfer').reduce((a,r)=>a+Number(r.terbayar),0)));
-    setTxt('d-tunai-sub', `${semua.filter(r=>r.metode_bayar==='tunai').length} transaksi`);
-    setTxt('d-transfer-sub', `${semua.filter(r=>r.metode_bayar==='transfer').length} transaksi`);
-  } catch(e) {}
+    const semua = [...(pjAll||[]), ...(woAll||[])];
+    const totalTunai    = semua.filter(r=>r.metode_bayar==='tunai').reduce((a,r)=>a+Number(r.terbayar),0);
+    const totalTransfer = semua.filter(r=>r.metode_bayar==='transfer').reduce((a,r)=>a+Number(r.terbayar),0);
+    const cTunai    = semua.filter(r=>r.metode_bayar==='tunai').length;
+    const cTransfer = semua.filter(r=>r.metode_bayar==='transfer').length;
+    setTxt('d-tunai', fmt(totalTunai));
+    setTxt('d-transfer', fmt(totalTransfer));
+    setTxt('d-tunai-sub', `${cTunai} transaksi`);
+    setTxt('d-transfer-sub', `${cTransfer} transaksi`);
+  } catch(e) { console.error('dash-kas:',e); }
 
   if(!stillHere()) return;
-
   // ── Alert panel ────────────────────────────────────────────
   try {
     const alerts = [];
-    const [allBrg2, piut2, piutWo2, hutang] = await Promise.all([
-      dashQ('barang','stok,stok_minimum,nama'),
-      dashQ('penjualan','sisa_piutang', r=>Number(r.sisa_piutang)>0),
-      dashQ('work_order','sisa_piutang', r=>Number(r.sisa_piutang)>0),
-      dashQ('pembelian','sisa_hutang', r=>Number(r.sisa_hutang)>0)
+    const [{ data: allBrg2 }, { data: piut2 }, { data: piutWo2 }, { data: hutang }] = await Promise.all([
+      db.from('barang').select('stok,stok_minimum,nama'),
+      db.from('penjualan').select('sisa_piutang').gt('sisa_piutang',0),
+      db.from('work_order').select('sisa_piutang').gt('sisa_piutang',0),
+      db.from('pembelian').select('sisa_hutang').gt('sisa_hutang',0)
     ]);
     if(!stillHere()) return;
 
-    const stokLow = allBrg2.filter(b=>Number(b.stok)<=Number(b.stok_minimum));
+    const stokLow = (allBrg2||[]).filter(b=>Number(b.stok)<=Number(b.stok_minimum));
     if(stokLow.length>0) alerts.push({type:'danger',icon:'ti-alert-triangle',text:'Stok menipis',val:`${stokLow.length} item`});
 
-    const totalPiut2 = [...piut2,...piutWo2].reduce((a,r)=>a+Number(r.sisa_piutang),0);
+    const totalPiut2 = [...(piut2||[]),...(piutWo2||[])].reduce((a,r)=>a+Number(r.sisa_piutang),0);
     if(totalPiut2>0) alerts.push({type:'warn',icon:'ti-coin',text:'Piutang belum lunas',val:fmt(totalPiut2)});
 
-    const totalHutang = hutang.reduce((a,r)=>a+Number(r.sisa_hutang),0);
+    const totalHutang = (hutang||[]).reduce((a,r)=>a+Number(r.sisa_hutang),0);
     if(totalHutang>0) alerts.push({type:'info',icon:'ti-truck',text:'Hutang ke supplier',val:fmt(totalHutang)});
 
     try {
       const m1 = today().slice(0,7)+'-01';
-      const opex = await dashQ('pengeluaran','nominal,tanggal', r=>r.tanggal>=m1&&r.tanggal<=td);
-      const totalOpex = opex.reduce((a,r)=>a+Number(r.nominal),0);
+      const { data: opex } = await db.from('pengeluaran').select('nominal').gte('tanggal',m1).lte('tanggal',today());
+      const totalOpex = (opex||[]).reduce((a,r)=>a+Number(r.nominal),0);
       if(totalOpex>0) alerts.push({type:'warn',icon:'ti-cash',text:'Pengeluaran bulan ini',val:fmt(totalOpex)});
     } catch(e2) { /* tabel belum ada */ }
 
@@ -2186,15 +2012,15 @@ ${modalHtml('modal-barang','Tambah / Edit Barang',`
   <div class="form-group"><label class="form-label">Kategori</label>
     <select id="f-br-kategori" class="form-input">
       <option value="">-- Pilih --</option>
-      <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
-      <option>Kelistrikan</option><option>Aki</option><option>Sistem Pengereman</option>
-      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC </option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
+      <option>Komponen Mesin</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
+      <option>Aki & Kelistrikan</option><option>Sistem Pengereman</option><option>Sistem Kelistrikan</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC & Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
     </select>
   </div>
   <div class="form-group"><label class="form-label">Satuan <span class="req">*</span></label>
     <select id="f-br-satuan" class="form-input">
       <option>pcs</option><option>liter</option><option>botol</option><option>set</option>
-      <option>pasang</option><option>box</option><option>roll</option><option>meter</option><option>inch</option><option>kg</option><option>assy</option><option>only</option>
+      <option>pasang</option><option>box</option><option>roll</option><option>meter</option><option>kg</option>
     </select>
   </div>
   <div class="form-group"><label class="form-label">Harga Beli</label><input id="f-br-hbeli" class="form-input" type="number" min="0" placeholder="0"/></div>
@@ -2270,8 +2096,8 @@ async function saveBarang() {
   if (!nama) { showToast('Nama barang wajib diisi','error'); return; }
   let kode = document.getElementById('f-br-kode').value.trim();
   if (!kode) {
-    const _br=await loadTable('barang',{});
-    kode = 'BRG'+pad((_br.length||0)+1,5);
+    const {count} = await db.from('barang').select('*',{count:'exact',head:true});
+    kode = 'BRG'+pad((count||0)+1,5);
   }
   const payload = {
     kode, nama,
@@ -2322,7 +2148,7 @@ pages['supplier'] = () => `
     <div style="font-size:12px;color:var(--text3)" id="count-supplier"></div>
   </div>
   <table id="tbl-supplier"><thead><tr>
-    <th>Kode</th><th>Nama</th><th>Kontak</th><th>Telepon</th><th>Bank</th><th>No. Rekening</th><th>Saldo Hutang</th><th>Status</th><th>Aksi</th>
+    <th>Kode</th><th>Nama</th><th>Kontak</th><th>Telepon</th><th>Saldo Hutang</th><th>Status</th><th>Aksi</th>
   </tr></thead><tbody id="body-supplier"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
 ${modalHtml('modal-supplier','Tambah / Edit Supplier',`
@@ -2332,8 +2158,6 @@ ${modalHtml('modal-supplier','Tambah / Edit Supplier',`
   <div class="form-group"><label class="form-label">Kontak Person</label><input id="f-sp-kontak" class="form-input"/></div>
   <div class="form-group"><label class="form-label">Telepon</label><input id="f-sp-telp" class="form-input" type="tel"/></div>
   <div class="form-group form-full"><label class="form-label">Alamat</label><textarea id="f-sp-alamat" class="form-input" rows="2"></textarea></div>
-  <div class="form-group"><label class="form-label">Nama Bank</label><input id="f-sp-bank" class="form-input" placeholder="BCA, BRI, Mandiri..."/></div>
-  <div class="form-group"><label class="form-label">No. Rekening</label><input id="f-sp-norek" class="form-input" placeholder="Nomor rekening"/></div>
 </div><input type="hidden" id="f-sp-id"/>`,
 '',`<button class="btn btn-outline" onclick="closeModal('modal-supplier')">Batal</button>
 <button class="btn btn-primary" onclick="saveSupplier()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
@@ -2346,25 +2170,23 @@ async function loadSupplier() {
     <td><code style="color:var(--orange);font-size:12px">${s.kode}</code></td>
     <td style="font-weight:500;color:var(--text)">${s.nama}</td>
     <td>${s.kontak||'-'}</td><td>${s.telepon||'-'}</td>
-    <td style="font-size:12px">${s.nama_bank||'-'}</td>
-    <td><code style="font-size:11px;color:var(--text2)">${s.no_rekening||'-'}</code></td>
     <td style="color:${s.saldo_hutang>0?'var(--red)':'var(--text2)'};font-weight:${s.saldo_hutang>0?'600':'400'}">${fmt(s.saldo_hutang)}</td>
     <td>${s.aktif?'<span class="badge badge-green">Aktif</span>':'<span class="badge badge-gray">Nonaktif</span>'}</td>
     <td><div style="display:flex;gap:4px">
       <button class="btn btn-outline btn-sm" onclick='editSupplier(${JSON.stringify(s)})'><i class="ti ti-edit"></i></button>
       <button class="btn btn-danger btn-sm" onclick="delSupplier('${s.id}','${s.nama}')"><i class="ti ti-trash"></i></button>
     </div></td>
-  </tr>`).join('') : '<tr><td colspan="9" class="table-empty"><i class="ti ti-truck-off"></i>Belum ada supplier</td></tr>';
+  </tr>`).join('') : '<tr><td colspan="7" class="table-empty"><i class="ti ti-truck-off"></i>Belum ada supplier</td></tr>';
 }
-function resetFormSupplier(){ ['f-sp-id','f-sp-kode','f-sp-nama','f-sp-kontak','f-sp-telp','f-sp-alamat','f-sp-bank','f-sp-norek'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); }
-function editSupplier(s){ document.getElementById('f-sp-id').value=s.id;document.getElementById('f-sp-kode').value=s.kode;document.getElementById('f-sp-nama').value=s.nama;document.getElementById('f-sp-kontak').value=s.kontak||'';document.getElementById('f-sp-telp').value=s.telepon||'';document.getElementById('f-sp-alamat').value=s.alamat||'';document.getElementById('f-sp-bank').value=s.nama_bank||'';document.getElementById('f-sp-norek').value=s.no_rekening||'';openModal('modal-supplier');}
+function resetFormSupplier(){ ['f-sp-id','f-sp-kode','f-sp-nama','f-sp-kontak','f-sp-telp','f-sp-alamat'].forEach(i=>{const e=document.getElementById(i);if(e)e.value='';}); }
+function editSupplier(s){ document.getElementById('f-sp-id').value=s.id;document.getElementById('f-sp-kode').value=s.kode;document.getElementById('f-sp-nama').value=s.nama;document.getElementById('f-sp-kontak').value=s.kontak||'';document.getElementById('f-sp-telp').value=s.telepon||'';document.getElementById('f-sp-alamat').value=s.alamat||'';openModal('modal-supplier');}
 async function saveSupplier(){
   const id=document.getElementById('f-sp-id').value;
   const nama=document.getElementById('f-sp-nama').value.trim();
   if(!nama){showToast('Nama supplier wajib','error');return;}
   let kode=document.getElementById('f-sp-kode').value.trim();
-  if(!kode){const _sp=await loadTable('supplier',{});kode='SUP'+pad((_sp.length||0)+1,4);}
-  const payload={kode,nama,kontak:document.getElementById('f-sp-kontak').value,telepon:document.getElementById('f-sp-telp').value,alamat:document.getElementById('f-sp-alamat').value,nama_bank:document.getElementById('f-sp-bank').value,no_rekening:document.getElementById('f-sp-norek').value};
+  if(!kode){const{count}=await db.from('supplier').select('*',{count:'exact',head:true});kode='SUP'+pad((count||0)+1,4);}
+  const payload={kode,nama,kontak:document.getElementById('f-sp-kontak').value,telepon:document.getElementById('f-sp-telp').value,alamat:document.getElementById('f-sp-alamat').value};
   showLoading(true);
   try{
     if(id)await dbOp('supplier','UPDATE',{id,payload});else await dbOp('supplier','INSERT',{id:uid(),...payload});
@@ -2419,7 +2241,7 @@ async function savePelanggan(){
   const id=document.getElementById('f-pel-id').value;const nama=document.getElementById('f-pel-nama').value.trim();
   if(!nama){showToast('Nama wajib','error');return;}
   let kode=document.getElementById('f-pel-kode').value.trim();
-  if(!kode){const _pl=await loadTable('pelanggan',{});kode='PLG'+pad((_pl.length||0)+1,4);}
+  if(!kode){const{count}=await db.from('pelanggan').select('*',{count:'exact',head:true});kode='PLG'+pad((count||0)+1,4);}
   const payload={kode,nama,telepon:document.getElementById('f-pel-telp').value,alamat:document.getElementById('f-pel-alamat').value};
   showLoading(true);
   try{if(id)await dbOp('pelanggan','UPDATE',{id,payload});else await dbOp('pelanggan','INSERT',{id:uid(),...payload});closeModal('modal-pelanggan');showToast(id?'Pelanggan diperbarui':'Pelanggan ditambahkan');await loadPelanggan();}
@@ -2600,7 +2422,16 @@ pages['mekanik'] = () => `
   <table id="tbl-mek"><thead><tr><th>Kode</th><th>Nama</th><th>Spesialisasi</th><th>Telepon</th><th>Status</th><th>Aksi</th></tr></thead>
   <tbody id="body-mek"><tr><td colspan="7" class="table-empty"><i class="ti ti-loader"></i>Memuat...</td></tr></tbody></table>
 </div>
-`;
+${modalHtml('modal-mekanik','Tambah / Edit Mekanik',`
+<div class="form-grid">
+  <div class="form-group"><label class="form-label">Kode</label><input id="f-mek-kode" class="form-input" placeholder="Otomatis"/></div>
+  <div class="form-group"><label class="form-label">Nama <span class="req">*</span></label><input id="f-mek-nama" class="form-input"/></div>
+  <div class="form-group"><label class="form-label">Spesialisasi</label><input id="f-mek-spek" class="form-input" placeholder="Mesin, Kelistrikan..."/></div>
+  <div class="form-group"><label class="form-label">Telepon</label><input id="f-mek-telp" class="form-input" type="tel"/></div>
+  <div class="form-group"><label class="form-label">Status</label><select id="f-mek-aktif" class="form-input"><option value="true">Aktif</option><option value="false">Nonaktif</option></select></div>
+</div><input type="hidden" id="f-mek-id"/>`,
+'',`<button class="btn btn-outline" onclick="closeModal('modal-mekanik')">Batal</button>
+<button class="btn btn-primary" onclick="saveMek()"><i class="ti ti-device-floppy"></i>Simpan</button>`)}`;
 
 window.init_mekanik=async function(){await loadMek();};
 async function loadMek(){
@@ -2620,9 +2451,9 @@ function resetFormMek(){['f-mek-id','f-mek-kode','f-mek-nama','f-mek-spek','f-me
 function editMek(m){document.getElementById('f-mek-id').value=m.id;document.getElementById('f-mek-kode').value=m.kode;document.getElementById('f-mek-nama').value=m.nama;document.getElementById('f-mek-spek').value=m.spesialisasi||'';document.getElementById('f-mek-telp').value=m.telepon||'';document.getElementById('f-mek-aktif').value=String(m.aktif);openModal('modal-mekanik');}
 async function saveMek(){
   const id=document.getElementById('f-mek-id').value;const nama=document.getElementById('f-mek-nama').value.trim();if(!nama){showToast('Nama wajib','error');return;}
-  let kode=document.getElementById('f-mek-kode').value.trim();if(!kode){const _mk=await loadTable('mekanik',{});kode='MEK'+pad((_mk.length||0)+1,3);}
+  let kode=document.getElementById('f-mek-kode').value.trim();if(!kode){const{count}=await db.from('mekanik').select('*',{count:'exact',head:true});kode='MEK'+pad((count||0)+1,3);}
   const payload={kode,nama,spesialisasi:document.getElementById('f-mek-spek').value,telepon:document.getElementById('f-mek-telp').value,aktif:document.getElementById('f-mek-aktif').value==='true'};
-  showLoading(true);try{if(id)await dbOp('mekanik','UPDATE',{id,payload});else await dbOp('mekanik','INSERT',{id:uid(),...payload});closeModal('modal-mekanik');showToast(id?'Mekanik diperbarui':'Mekanik ditambahkan');await loadMek();if(window._addMekFromWO){window._addMekFromWO=false;await refreshMekSelectWO();}}catch(e){showToast('Gagal','error');}showLoading(false);
+  showLoading(true);try{if(id)await dbOp('mekanik','UPDATE',{id,payload});else await dbOp('mekanik','INSERT',{id:uid(),...payload});closeModal('modal-mekanik');showToast(id?'Mekanik diperbarui':'Mekanik ditambahkan');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);
 }
 async function delMek(id,nama){if(!confirm2(`Hapus mekanik "${nama}"?`))return;showLoading(true);try{await dbOp('mekanik','DELETE',{id});showToast('Mekanik dihapus');await loadMek();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
@@ -2634,9 +2465,9 @@ pages['gudang'] = () => `
   <div class="section-hdr-actions">
     <select id="filter-kategori" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Kategori</option>
-      <option>Komponen Mesin</option><option>Kopling</option><option>Sistem Fuel</option<option>Sistem Transmisi</option><option>Sistem Suspensi</option>
-      <option>Kelistrikan</option><option>Aki</option><option>Sistem Pengereman</option>
-      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC</option><option>Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
+      <option>Komponen Mesin</option><option>Sistem Transmisi</option><option>Sistem Suspensi</option>
+      <option>Aki & Kelistrikan</option><option>Sistem Pengereman</option><option>Sistem Kelistrikan</option>
+      <option>Sistem Pendingin</option><option>Sistem Bahan Bakar</option><option>Sistem Knalpot</option><option>Sistem AC & Pemanas</option></option><option>Body dan Interior</option></option><option>Roda dan Ban</option><option>lainnya</option>
     </select>
     <select id="filter-stok" class="form-input" style="width:auto" onchange="filterGudang()">
       <option value="">Semua Stok</option>
@@ -2714,7 +2545,7 @@ async function saveKoreksi(){
   if(!bId||!jml){showToast('Lengkapi data koreksi','error');return;}
   showLoading(true);
   try{
-    const br=await dbGetOne('barang',bId)||{stok:0};
+    const {data:br}=await db.from('barang').select('stok').eq('id',bId).single();
     const stokBaru=jenis==='masuk'?br.stok+jml:Math.max(0,br.stok-jml);
     await dbOp('barang','UPDATE',{id:bId,payload:{stok:stokBaru}});
     await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:bId,jenis:'koreksi',jumlah:jenis==='masuk'?jml:-jml,stok_sebelum:br.stok,stok_sesudah:stokBaru,referensi_tipe:'manual',keterangan:ket||'Koreksi manual'});
@@ -2751,19 +2582,10 @@ async function loadMutasi(){
   if(!bId)return;
   const dari=document.getElementById('f-mutasi-dari').value;
   const sampai=document.getElementById('f-mutasi-sampai').value;
-  let data=[];
-  if(isOnline){
-    try{
-      let q=db.from('mutasi_stok').select('*').eq('barang_id',bId).order('tanggal',{ascending:false});
-      if(dari) q=q.gte('tanggal',dari);
-      if(sampai) q=q.lte('tanggal',sampai+'T23:59:59');
-      const r=await q; data=r.data||[];
-    }catch(e){ data=[]; }
-  } else {
-    const all=await loadTable('mutasi_stok',{});
-    data=all.filter(m=>m.barang_id===bId&&(!dari||m.tanggal>=dari)&&(!sampai||m.tanggal<=sampai+'T23:59:59'));
-    data.sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
-  }
+  let q=db.from('mutasi_stok').select('*').eq('barang_id',bId).order('tanggal',{ascending:false});
+  if(dari) q=q.gte('tanggal',dari);
+  if(sampai) q=q.lte('tanggal',sampai+'T23:59:59');
+  const{data}=await q;
   const jmlMasuk=(data||[]).filter(m=>m.jumlah>0).reduce((a,m)=>a+m.jumlah,0);
   const jmlKeluar=(data||[]).filter(m=>m.jumlah<0).reduce((a,m)=>a+Math.abs(m.jumlah),0);
   document.getElementById('mutasi-stok-info').innerHTML=`
@@ -2927,15 +2749,15 @@ let _spkItems = [];
 async function loadSPK(statusFilter=''){
   const tbody = document.getElementById('body-spk');
   if(!tbody) return;
-  // Selalu pakai loadTable — handle online/offline + cache + queue merge otomatis
-  let data = await loadTable('surat_perintah_kerja', {order:'tanggal', asc:false});
-  if(statusFilter) data = data.filter(s=>s.status===statusFilter);
-  document.getElementById('count-spk').textContent = `${data.length} SPK`;
-  if(!data.length){
+  let q = db.from('surat_perintah_kerja').select('*').order('tanggal',{ascending:false});
+  if(statusFilter) q = q.eq('status', statusFilter);
+  const{data} = await q;
+  document.getElementById('count-spk').textContent = `${(data||[]).length} SPK`;
+  if(!(data||[]).length){
     tbody.innerHTML='<tr><td colspan="9" class="table-empty"><i class="ti ti-clipboard-off"></i>Belum ada SPK</td></tr>';
     return;
   }
-  tbody.innerHTML = data.map(s=>{
+  tbody.innerHTML = (data||[]).map(s=>{
     const badgeCls = s.status==='selesai'?'badge-green':s.status==='proses'?'badge-orange':
       s.status==='disetujui'?'badge-blue':s.status==='batal'?'badge-red':'badge-gray';
     return `<tr>
@@ -2960,86 +2782,49 @@ async function loadSPK(statusFilter=''){
 
 async function openModalSPK(spk=null){
   _spkItems=[];
+  // Load daftar WO untuk referensi
+  const{data:wos}=await db.from('work_order')
+    .select('id,no_wo,kendaraan(no_plat,merk,tipe),pelanggan(nama),mekanik(nama),keluhan,diagnosa,status')
+    .order('tanggal',{ascending:false}).limit(100);
 
-  // ── 1. Buka modal DULU agar semua getElementById tidak null ──────────────
-  openModal('modal-spk');
-
-  // ── 2. Load data untuk dropdown WO dan nomor otomatis (parallel) ─────────
-  showLoading(true);
-  let wos=[];
-  let no='';
-  let existItems=[];
-
-  try{
-    // Load WO list — pakai loadTable agar online/offline konsisten
-    const [_wos,_kends,_pels,_meks,_noResult] = await Promise.all([
-      loadTable('work_order',{order:'tanggal',asc:false}),
-      loadTable('kendaraan',{}),
-      loadTable('pelanggan',{}),
-      loadTable('mekanik',{}),
-      autoNo('SPK','surat_perintah_kerja','no_spk')
-    ]);
-    no = _noResult;
-    const kMap=Object.fromEntries(_kends.map(k=>[k.id,k]));
-    const pMap=Object.fromEntries(_pels.map(p=>[p.id,p]));
-    const mMap=Object.fromEntries(_meks.map(m=>[m.id,m]));
-    wos=_wos.slice(0,100).map(w=>({
-      ...w,
-      kendaraan: w.kendaraan||kMap[w.kendaraan_id]||null,
-      pelanggan: w.pelanggan||pMap[w.pelanggan_id]||null,
-      mekanik:   w.mekanik  ||mMap[w.mekanik_id]  ||null
-    }));
-
-    // Load items jika edit
-    if(spk?.id){
-      const _allSpkItems=await loadTable('detail_spk',{});
-      existItems=_allSpkItems
-        .filter(i=>i.spk_id===spk.id)
-        .sort((a,b)=>(a.urutan||0)-(b.urutan||0));
-    }
-  }catch(e){
-    console.error('openModalSPK load error:',e);
-  }
-  showLoading(false);
-
-  // ── 3. Isi form (modal sudah terbuka, semua elemen pasti ada) ─────────────
-  const $=id=>document.getElementById(id);
-
-  // Dropdown WO
-  $('f-spk-wo').innerHTML =
+  document.getElementById('f-spk-wo').innerHTML =
     '<option value="">-- Pilih WO (opsional) --</option>' +
-    wos.map(w=>`<option value="${w.id}"
-      data-no="${w.no_wo||''}"
+    (wos||[]).map(w=>`<option value="${w.id}"
+      data-no="${w.no_wo}"
       data-plat="${w.kendaraan?.no_plat||''}"
-      data-kend="${((w.kendaraan?.merk||'')+' '+(w.kendaraan?.tipe||'')).trim()}"
+      data-kend="${(w.kendaraan?.merk||'')+' '+(w.kendaraan?.tipe||'')}"
       data-pel="${w.pelanggan?.nama||''}"
       data-mek="${w.mekanik?.nama||''}"
       data-keluhan="${(w.keluhan||'').replace(/"/g,'&quot;')}"
       data-diagnosa="${(w.diagnosa||'').replace(/"/g,'&quot;')}">
-      ${w.no_wo} — ${w.kendaraan?.no_plat||'-'} (${w.status||'-'})
+      ${w.no_wo} — ${w.kendaraan?.no_plat||''} (${w.status})
     </option>`).join('');
 
-  // Reset / isi nilai form
-  $('f-spk-id').value       = spk?.id||'';
-  $('f-spk-no').value       = spk?.no_spk||no;
-  $('f-spk-tgl').value      = spk?.tanggal?.slice(0,10)||today();
-  $('f-spk-status').value   = spk?.status||'draft';
-  $('f-spk-wo').value       = spk?.wo_id||'';
-  $('f-spk-plat').value     = spk?.no_plat||'';
-  $('f-spk-kend').value     = spk?.merk_tipe||'';
-  $('f-spk-pel').value      = spk?.nama_pelanggan||'';
-  $('f-spk-mek').value      = spk?.nama_mekanik||'';
-  $('f-spk-keluhan').value  = spk?.keluhan||'';
-  $('f-spk-diagnosa').value = spk?.diagnosa||'';
-  $('f-spk-catatan').value  = spk?.catatan||'';
+  // Reset form
+  const no = await autoNo('SPK','surat_perintah_kerja','no_spk');
+  document.getElementById('f-spk-id').value      = spk?.id||'';
+  document.getElementById('f-spk-no').value      = spk?.no_spk||no;
+  document.getElementById('f-spk-tgl').value     = spk?.tanggal?.slice(0,10)||today();
+  document.getElementById('f-spk-status').value  = spk?.status||'draft';
+  document.getElementById('f-spk-wo').value      = spk?.wo_id||'';
+  document.getElementById('f-spk-plat').value    = spk?.no_plat||'';
+  document.getElementById('f-spk-kend').value    = spk?.merk_tipe||'';
+  document.getElementById('f-spk-pel').value     = spk?.nama_pelanggan||'';
+  document.getElementById('f-spk-mek').value     = spk?.nama_mekanik||'';
+  document.getElementById('f-spk-keluhan').value = spk?.keluhan||'';
+  document.getElementById('f-spk-diagnosa').value= spk?.diagnosa||'';
+  document.getElementById('f-spk-catatan').value = spk?.catatan||'';
 
-  // Items SPK
-  _spkItems = existItems.map(it=>({
-    rowId: 'spki_'+Date.now()+Math.random().toString(36).slice(2),
-    nama: it.nama||'', satuan: it.satuan||'pcs',
-    jumlah: it.jumlah||1, keterangan: it.keterangan||''
-  }));
+  // Load items SPK
+  if(spk?.id){
+    const{data:items}=await db.from('detail_spk').select('*').eq('spk_id',spk.id).order('urutan');
+    _spkItems = (items||[]).map(it=>({
+      rowId: 'spki_'+Date.now()+Math.random().toString(36).slice(2),
+      nama: it.nama, satuan: it.satuan||'pcs', jumlah: it.jumlah||1, keterangan: it.keterangan||''
+    }));
+  }
   renderSPKItems();
+  openModal('modal-spk');
 }
 
 function isiDariWO(woId){
@@ -3061,16 +2846,11 @@ function isiDariWO(woId){
 async function loadPartsFromWO(woId){
   let parts=[];
   try{
-    if(isOnline){
-      const{data:p1}=await db.from('detail_wo_part').select('*').eq('work_order_id',woId);
-      if(p1&&p1.length) parts=p1;
-      else{
-        const{data:p2}=await db.from('detail_wo_part').select('*').eq('wo_id',woId);
-        if(p2) parts=p2;
-      }
-    } else {
-      const cached=await loadTable('detail_wo_part',{});
-      parts=cached.filter(p=>(p.work_order_id||p.wo_id)===woId);
+    const{data:p1}=await db.from('detail_wo_part').select('*').eq('work_order_id',woId);
+    if(p1&&p1.length) parts=p1;
+    else{
+      const{data:p2}=await db.from('detail_wo_part').select('*').eq('wo_id',woId);
+      if(p2) parts=p2;
     }
   }catch(e){}
   _spkItems = parts.map(p=>({
@@ -3131,55 +2911,38 @@ async function saveSPK(doCetak=false){
   const woId  = woSel.value||null;
   const noWo  = woSel.selectedOptions[0]?.dataset?.no||null;
 
-  // Bangun payload — hanya sertakan wo_id jika ada nilai (hindari FK null error)
-  const payload = {
-    no_spk         : no,
-    tanggal        : document.getElementById('f-spk-tgl').value,
-    status         : document.getElementById('f-spk-status').value,
-    no_plat        : plat,
-    merk_tipe      : document.getElementById('f-spk-kend').value,
-    nama_pelanggan : document.getElementById('f-spk-pel').value,
-    nama_mekanik   : document.getElementById('f-spk-mek').value,
-    keluhan        : document.getElementById('f-spk-keluhan').value,
-    diagnosa       : document.getElementById('f-spk-diagnosa').value,
-    catatan        : document.getElementById('f-spk-catatan').value,
+  const payload={
+    no_spk          : no,
+    tanggal         : document.getElementById('f-spk-tgl').value,
+    status          : document.getElementById('f-spk-status').value,
+    wo_id           : woId,
+    no_wo_ref       : noWo,
+    no_plat         : plat,
+    merk_tipe       : document.getElementById('f-spk-kend').value,
+    nama_pelanggan  : document.getElementById('f-spk-pel').value,
+    nama_mekanik    : document.getElementById('f-spk-mek').value,
+    keluhan         : document.getElementById('f-spk-keluhan').value,
+    diagnosa        : document.getElementById('f-spk-diagnosa').value,
+    catatan         : document.getElementById('f-spk-catatan').value,
   };
-  // Kolom opsional — hanya kirim jika ada nilai
-  if(woId)  payload.wo_id     = woId;
-  if(noWo)  payload.no_wo_ref = noWo;
 
   showLoading(true);
   try{
     if(isEdit){
       await dbOp('surat_perintah_kerja','UPDATE',{id,payload});
-      // Hapus detail lama — ambil dari loadTable (sudah include queue merge)
-      const _oldItems = await loadTable('detail_spk',{});
-      for(const _oi of _oldItems.filter(x=>x.spk_id===id)){
-        await dbOp('detail_spk','DELETE',{id:_oi.id});
-      }
-      // Direct delete di Supabase jika online untuk bersihkan sisa
-      if(isOnline){ try{ await db.from('detail_spk').delete().eq('spk_id',id); }catch(e){} }
+      await db.from('detail_spk').delete().eq('spk_id',id);
     } else {
-      // INSERT SPK baru — sertakan created_at agar urutan tampil benar
-      await dbOp('surat_perintah_kerja','INSERT',{id, ...payload});
+      await dbOp('surat_perintah_kerja','INSERT',{id,...payload});
     }
-    // Insert detail items
     for(let i=0;i<_spkItems.length;i++){
       const p=_spkItems[i]; if(!p.nama) continue;
-      await dbOp('detail_spk','INSERT',{
-        id:uid(), spk_id:id,
-        nama:p.nama, satuan:p.satuan||'', jumlah:p.jumlah||1,
-        keterangan:p.keterangan||'', urutan:i
-      });
+      await dbOp('detail_spk','INSERT',{id:uid(),spk_id:id,nama:p.nama,satuan:p.satuan,jumlah:p.jumlah,keterangan:p.keterangan,urutan:i});
     }
     closeModal('modal-spk');
     showToast(isEdit?'SPK berhasil diperbarui':'SPK berhasil disimpan','success');
     await loadSPK();
     if(doCetak) await cetakSPKById(id);
-  }catch(e){
-    console.error('saveSPK error:',e);
-    showToast('Gagal simpan SPK: '+e.message,'error');
-  }
+  }catch(e){showToast('Gagal: '+e.message,'error');}
   showLoading(false);
 }
 
@@ -3190,9 +2953,7 @@ async function cetakSPK(){
 async function editSPK(id){
   showLoading(true);
   try{
-    let spk=null;
-    if(isOnline){try{const{data}=await db.from('surat_perintah_kerja').select('*').eq('id',id).single();spk=data;}catch(e){}}
-    if(!spk){const all=await loadTable('surat_perintah_kerja',{});spk=all.find(r=>r.id===id)||null;}
+    const{data:spk}=await db.from('surat_perintah_kerja').select('*').eq('id',id).single();
     showLoading(false);
     if(spk) openModalSPK(spk);
     else showToast('SPK tidak ditemukan','error');
@@ -3203,12 +2964,8 @@ async function delSPK(id,no){
   if(!confirm(`Hapus SPK "${no}"?`))return;
   showLoading(true);
   try{
-    // Hapus detail via dbOp agar masuk antrian saat offline
-    const _sd=await loadTable('detail_spk',{});
-    for(const _si of _sd.filter(x=>x.spk_id===id)) await dbOp('detail_spk','DELETE',{id:_si.id});
-    // Juga direct delete saat online agar tidak ada sisa
-    if(isOnline){try{await db.from('detail_spk').delete().eq('spk_id',id);}catch(e){}}
-    await dbOp('surat_perintah_kerja','DELETE',{id});
+    await db.from('detail_spk').delete().eq('spk_id',id);
+    await db.from('surat_perintah_kerja').delete().eq('id',id);
     showToast('SPK dihapus','success'); await loadSPK();
   }catch(e){showToast('Gagal hapus','error');}
   showLoading(false);
@@ -3217,14 +2974,8 @@ async function delSPK(id,no){
 async function cetakSPKById(id){
   showLoading(true);
   try{
-    let spk=null,items=[];
-    // Online: query Supabase; Offline: fallback cache
-    if(isOnline){
-      try{const{data}=await db.from('surat_perintah_kerja').select('*').eq('id',id).single();spk=data;}catch(e){}
-      try{const{data}=await db.from('detail_spk').select('*').eq('spk_id',id).order('urutan');items=data||[];}catch(e){}
-    }
-    if(!spk){const all=await loadTable('surat_perintah_kerja',{});spk=all.find(r=>r.id===id)||null;}
-    if(!items.length){const all=await loadTable('detail_spk',{});items=all.filter(x=>x.spk_id===id).sort((a,b)=>(a.urutan||0)-(b.urutan||0));}
+    const{data:spk}=await db.from('surat_perintah_kerja').select('*').eq('id',id).single();
+    const{data:items}=await db.from('detail_spk').select('*').eq('spk_id',id).order('urutan');
     const s=await getSettings().catch(()=>({nama_bengkel:'AutoServ Pro',alamat:'',telepon:'',footer_nota:''}));
     const html=`
       <style>
@@ -3324,20 +3075,7 @@ function buildModalWO(){
   <div class="form-group"><label class="form-label">Tanggal</label><input id="f-wo-tgl" class="form-input" type="date" value="${today()}"/></div>
   <div class="form-group"><label class="form-label">Pelanggan</label><div id="ac-wo-pel"></div><input type="hidden" id="f-wo-pel"/></div>
   <div class="form-group"><label class="form-label">Kendaraan <span class="req">*</span></label><div id="ac-wo-kend"></div><input type="hidden" id="f-wo-kend"/></div>
-  <div class="form-group"><label class="form-label">Mekanik <span style="font-size:10px;color:var(--text3)">(bisa lebih dari 1)</span></label>
-    <div style="display:flex;gap:6px;align-items:flex-start">
-      <div id="f-wo-mek-wrap" style="flex:1;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;min-height:40px;background:var(--input-bg,var(--bg2));cursor:pointer" onclick="toggleMekDropdown()">
-        <div id="f-wo-mek-tags" style="display:flex;flex-wrap:wrap;gap:4px;min-height:22px">
-          <span style="color:var(--text3);font-size:13px;line-height:22px">-- Pilih Mekanik --</span>
-        </div>
-        <div id="f-wo-mek-dropdown" style="display:none;margin-top:8px;border-top:1px solid var(--border);padding-top:8px" onclick="event.stopPropagation()">
-          <div id="f-wo-mek-list" style="display:flex;flex-direction:column;gap:6px;max-height:160px;overflow-y:auto"></div>
-        </div>
-      </div>
-      <button type="button" class="btn btn-outline btn-sm" style="white-space:nowrap;flex-shrink:0;margin-top:2px" onclick="openTambahMekanikDariWO()" title="Tambah Mekanik Baru"><i class="ti ti-plus"></i> Mekanik</button>
-    </div>
-    <input type="hidden" id="f-wo-mek"/>
-  </div>
+  <div class="form-group"><label class="form-label">Mekanik</label><select id="f-wo-mek" class="form-input"><option value="">-- Pilih Mekanik --</option></select></div>
   <div class="form-group"><label class="form-label">Status</label><select id="f-wo-status" class="form-input"><option value="antri">Antri</option><option value="proses">Proses</option><option value="selesai">Selesai</option></select></div>
   <div class="form-group form-full"><label class="form-label">Keluhan Pelanggan</label><textarea id="f-wo-keluhan" class="form-input" rows="2"></textarea></div>
   <div class="form-group form-full"><label class="form-label">Diagnosa / Pekerjaan</label><textarea id="f-wo-diagnosa" class="form-input" rows="2"></textarea></div>
@@ -3370,84 +3108,12 @@ function buildModalWO(){
 }
 
 let _woParts = [];
-let _woMekIds = []; // array ID mekanik yang dipilih
-
-function toggleMekDropdown(){
-  const dd = document.getElementById('f-wo-mek-dropdown');
-  if(dd) dd.style.display = dd.style.display==='none' ? 'block' : 'none';
-}
-
-// Tutup dropdown mekanik jika klik di luar
-document.addEventListener('click', function(e){
-  const wrap = document.getElementById('f-wo-mek-wrap');
-  if(wrap && !wrap.contains(e.target)){
-    const dd = document.getElementById('f-wo-mek-dropdown');
-    if(dd) dd.style.display='none';
-  }
-});
-
-function renderMekTags(){
-  const tagsEl = document.getElementById('f-wo-mek-tags');
-  if(!tagsEl) return;
-  if(!_woMekIds.length){
-    tagsEl.innerHTML='<span style="color:var(--text3);font-size:13px;line-height:22px">-- Pilih Mekanik --</span>';
-    document.getElementById('f-wo-mek').value='';
-    return;
-  }
-  // Cari nama dari checkbox list
-  const allChecks = document.querySelectorAll('#f-wo-mek-list input[type=checkbox]');
-  const nameMap = {};
-  allChecks.forEach(cb=>{ nameMap[cb.value]=cb.dataset.nama; });
-  tagsEl.innerHTML = _woMekIds.map(id=>`
-    <span style="display:inline-flex;align-items:center;gap:4px;background:var(--orange);color:#fff;border-radius:5px;padding:2px 8px;font-size:12px;font-weight:500">
-      ${nameMap[id]||id}
-      <i class="ti ti-x" style="font-size:11px;cursor:pointer" onclick="removeMek('${id}');event.stopPropagation()"></i>
-    </span>`).join('');
-  // Simpan mekanik utama (pertama) ke hidden input untuk kompatibilitas
-  document.getElementById('f-wo-mek').value = _woMekIds[0]||'';
-}
-
-function removeMek(id){
-  _woMekIds = _woMekIds.filter(x=>x!==id);
-  // uncheck di list
-  const cb = document.querySelector('#f-wo-mek-list input[value="'+id+'"]');
-  if(cb) cb.checked=false;
-  renderMekTags();
-}
-
-function fillMekList(meks){
-  const list = document.getElementById('f-wo-mek-list');
-  if(!list) return;
-  if(!meks.length){
-    list.innerHTML='<span style="color:var(--text3);font-size:12px">Belum ada mekanik</span>';
-    return;
-  }
-  list.innerHTML = meks.map(m=>`
-    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:background 0.15s" onmouseover="this.style.background='var(--bg3)'" onmouseout="this.style.background=''">
-      <input type="checkbox" value="${m.id}" data-nama="${m.nama}"
-        style="width:16px;height:16px;accent-color:var(--orange);cursor:pointer"
-        onchange="onMekCheck(this)"
-        ${_woMekIds.includes(m.id)?'checked':''}>
-      <span style="font-size:13px;font-weight:500">${m.nama}</span>
-      ${m.spesialisasi?`<span style="font-size:11px;color:var(--text3);margin-left:auto">${m.spesialisasi}</span>`:''}
-    </label>`).join('');
-}
-
-function onMekCheck(cb){
-  if(cb.checked){
-    if(!_woMekIds.includes(cb.value)) _woMekIds.push(cb.value);
-  } else {
-    _woMekIds = _woMekIds.filter(x=>x!==cb.value);
-  }
-  renderMekTags();
-}
 
 
 window.init_service = async function(){await loadWO();};
 
 async function openModalWO(wo=null){
   _woParts=[];
-  _woMekIds=[];
   const isEdit = !!wo;
 
   // Reset semua field
@@ -3489,9 +3155,7 @@ async function openModalWO(wo=null){
   window._woBrg = brg;
 
   document.getElementById('f-wo-pel').innerHTML='<option value="">-- Tanpa Pelanggan --</option>'+pls.map(p=>`<option value="${p.id}">${p.nama}</option>`).join('');
-  _woMekIds=[];
-  fillMekList(meks);
-  renderMekTags();
+  document.getElementById('f-wo-mek').innerHTML='<option value="">-- Pilih Mekanik --</option>'+meks.map(m=>`<option value="${m.id}">${m.nama}</option>`).join('');
   window._allKend = kends;
   document.getElementById('f-wo-kend').innerHTML='<option value="">-- Pilih Kendaraan --</option>'+kends.map(k=>`<option value="${k.id}">${k.no_plat} - ${k.merk||''} ${k.tipe||''}</option>`).join('');
 
@@ -3514,29 +3178,17 @@ async function openModalWO(wo=null){
       loadKendByPel();
     }
     if(wo.kendaraan_id) document.getElementById('f-wo-kend').value = wo.kendaraan_id;
-    // Set multi-mekanik dari data WO
-    _woMekIds = [];
-    if(wo.mekanik_ids){
-      try{ _woMekIds = Array.isArray(wo.mekanik_ids)?wo.mekanik_ids:JSON.parse(wo.mekanik_ids); }catch(e){}
-    } else if(wo.mekanik_id){
-      _woMekIds = [wo.mekanik_id];
-    }
-    fillMekList(meks);
-    renderMekTags();
+    if(wo.mekanik_id)   document.getElementById('f-wo-mek').value  = wo.mekanik_id;
 
-    // Load parts existing — online query Supabase, offline dari cache IDB
+    // Load parts existing dari database
+    // Load parts — support kolom work_order_id DAN wo_id (data lama)
     let existParts=[];
     try{
-      if(isOnline){
-        const{data:p1}=await db.from('detail_wo_part').select('*').eq('work_order_id',wo.id);
-        if(p1&&p1.length) existParts=p1;
-        else{
-          const{data:p2}=await db.from('detail_wo_part').select('*').eq('wo_id',wo.id);
-          if(p2&&p2.length) existParts=p2;
-        }
-      } else {
-        const all=await loadTable('detail_wo_part',{});
-        existParts=all.filter(p=>(p.work_order_id||p.wo_id)===wo.id);
+      const{data:p1}=await db.from('detail_wo_part').select('*').eq('work_order_id',wo.id);
+      if(p1&&p1.length) existParts=p1;
+      else{
+        const{data:p2}=await db.from('detail_wo_part').select('*').eq('wo_id',wo.id);
+        if(p2&&p2.length) existParts=p2;
       }
     }catch(e){ existParts=[]; }
     _woParts=(existParts||[]).map(p=>({
@@ -3560,10 +3212,12 @@ async function openModalWO(wo=null){
     window._woPartsOriginal = [];
     const no = await autoNo('WO','work_order','no_wo');
     document.getElementById('f-wo-no').value = no;
-    // Isi list mekanik untuk mode baru
-    fillMekList(meks);
-    renderMekTags();
   }
+
+  // Isi select mekanik (tetap select biasa)
+  document.getElementById('f-wo-mek').innerHTML =
+    '<option value="">-- Pilih Mekanik --</option>' +
+    meks.map(m=>`<option value="${m.id}">${m.nama}${m.spesialisasi?' — '+m.spesialisasi:''}</option>`).join('');
 
   showLoading(false);
   renderWOParts(window._woBrg||[]);
@@ -3622,42 +3276,18 @@ async function openModalWO(wo=null){
       document.getElementById('ac-wo-kend')._acSetLabel?.(wo.kendaraan.no_plat+(sub?' — '+sub:''));
       document.getElementById('f-wo-kend').value=wo.kendaraan_id||'';
     }
-    // Set mekanik yang sudah dipilih (support multi dari mekanik_ids atau single mekanik_id)
-    _woMekIds = wo.mekanik_ids ? (Array.isArray(wo.mekanik_ids)?wo.mekanik_ids:JSON.parse(wo.mekanik_ids||'[]'))
-                               : (wo.mekanik_id?[wo.mekanik_id]:[]);
-    fillMekList(meks);
-    renderMekTags();
+    if(wo.mekanik_id){
+      document.getElementById('f-wo-mek').value=wo.mekanik_id;
+    }
   }
 }
 
 async function editWO(id){
   showLoading(true);
   try{
-    let wo = null;
-    if(isOnline){
-      try{
-        const{data}=await db.from('work_order')
-          .select('*,kendaraan(no_plat,merk,tipe),pelanggan(nama),mekanik(nama)')
-          .eq('id',id).single();
-        wo = data;
-      }catch(e){}
-    }
-    if(!wo){
-      // Offline atau gagal: cari dari cache + enrichment manual
-      const all = await loadTable('work_order',{});
-      wo = all.find(r=>r.id===id) || null;
-      if(wo){
-        const [kendaraans, pelList, mekList] = await Promise.all([
-          loadTable('kendaraan',{}), loadTable('pelanggan',{}), loadTable('mekanik',{})
-        ]);
-        wo = {
-          ...wo,
-          kendaraan: kendaraans.find(k=>k.id===wo.kendaraan_id)||null,
-          pelanggan: pelList.find(p=>p.id===wo.pelanggan_id)||null,
-          mekanik:   mekList.find(m=>m.id===wo.mekanik_id)||null
-        };
-      }
-    }
+    const{data:wo}=await db.from('work_order')
+      .select('*,kendaraan(no_plat,merk,tipe),pelanggan(nama),mekanik(nama)')
+      .eq('id',id).single();
     showLoading(false);
     if(wo) openModalWO(wo);
     else showToast('Data WO tidak ditemukan','error');
@@ -3852,24 +3482,6 @@ function hitungTotalWO(){
   if(document.getElementById('wo-biaya-jasa-val')) document.getElementById('wo-biaya-jasa-val').textContent=fmt(jasa);
 }
 
-// Tambah mekanik langsung dari form WO
-function openTambahMekanikDariWO(){
-  window._addMekFromWO = true;
-  resetFormMek();
-  openModal('modal-mekanik');
-}
-async function refreshMekSelectWO(){
-  const data = await loadTable('mekanik',{eq:{aktif:true},order:'nama'});
-  if(!data||!data.length) return;
-  fillMekList(data);
-  // Otomatis pilih mekanik yang baru ditambahkan (terakhir di list)
-  const newest = data[data.length-1];
-  if(newest && !_woMekIds.includes(newest.id)){
-    _woMekIds.push(newest.id);
-  }
-  renderMekTags();
-}
-
 async function saveWO(cetak=false){
   const kendId=document.getElementById('f-wo-kend').value;
   if(!kendId){showToast('Pilih kendaraan','error');return;}
@@ -3890,9 +3502,7 @@ async function saveWO(cetak=false){
   const payload={
     no_wo:no, tanggal:document.getElementById('f-wo-tgl').value,
     pelanggan_id:document.getElementById('f-wo-pel').value||null,
-    kendaraan_id:kendId,
-    mekanik_id:_woMekIds[0]||null,
-    mekanik_ids:_woMekIds.length?JSON.stringify(_woMekIds):null,
+    kendaraan_id:kendId, mekanik_id:document.getElementById('f-wo-mek').value||null,
     keluhan:document.getElementById('f-wo-keluhan').value,
     diagnosa:document.getElementById('f-wo-diagnosa').value,
     status:document.getElementById('f-wo-status').value,
@@ -3905,51 +3515,30 @@ async function saveWO(cetak=false){
 
   showLoading(true);
   try{
-    // Helper: baca satu baris dari tabel — pakai cache lokal saat offline
-    async function dbGet(tabel, rowId) {
-      if (isOnline) {
-        try {
-          const {data,error} = await db.from(tabel).select('*').eq('id',rowId).single();
-          if(error) throw error;
-          return data;
-        } catch(e) {}
-      }
-      // Offline atau gagal: cari di cache IDB
-      const rows = await loadTable(tabel, {});
-      return rows.find(r => r.id === rowId) || null;
-    }
-
     if(isEdit){
       // ── MODE EDIT ─────────────────────────────────────
       // 1. Update header WO
       await dbOp('work_order','UPDATE',{id, payload});
 
-      // 2. Kembalikan stok dari parts LAMA
+      // 2. Kembalikan stok dari parts LAMA (yang ada di DB sebelum edit)
       const original = window._woPartsOriginal||[];
       for(const op of original){
         if(op.barang_id && !op.is_non_gudang){
-          const br = await dbGet('barang', op.barang_id);
+          const{data:br}=await db.from('barang').select('stok').eq('id',op.barang_id).single();
           const stokKembali=(br?.stok||0)+op.jumlah;
           await dbOp('barang','UPDATE',{id:op.barang_id,payload:{stok:stokKembali}});
           await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:op.barang_id,jenis:'masuk',jumlah:op.jumlah,stok_sebelum:br?.stok||0,stok_sesudah:stokKembali,referensi_tipe:'koreksi_wo',referensi_id:id,referensi_no:no,keterangan:'Koreksi edit WO '+no});
         }
       }
 
-      // 3. Hapus detail parts lama — via dbOp agar masuk queue saat offline
-      const oldParts = await loadTable('detail_wo_part',{});
-      for(const op of oldParts.filter(p=>(p.work_order_id||p.wo_id)===id)){
-        await dbOp('detail_wo_part','DELETE',{id:op.id});
-      }
-      // Coba juga direct delete kalau online
-      if(isOnline){
-        try{ await db.from('detail_wo_part').delete().eq('work_order_id',id); }catch(e){}
-        try{ await db.from('detail_wo_part').delete().eq('wo_id',id); }catch(e){}
-      }
+      // 3. Hapus semua detail parts lama dari DB (support kedua nama kolom)
+      try{ await db.from('detail_wo_part').delete().eq('work_order_id',id); }catch(e){}
+      try{ await db.from('detail_wo_part').delete().eq('wo_id',id); }catch(e){}
 
-      // 4. Sesuaikan piutang pelanggan lama
-      const woLama = await dbGet('work_order', id);
+      // 4. Sesuaikan piutang pelanggan lama jika ada
+      const{data:woLama}=await db.from('work_order').select('sisa_piutang,pelanggan_id').eq('id',id).single();
       if(woLama?.sisa_piutang>0 && woLama?.pelanggan_id){
-        const pel = await dbGet('pelanggan', woLama.pelanggan_id);
+        const{data:pel}=await db.from('pelanggan').select('saldo_piutang').eq('id',woLama.pelanggan_id).single();
         const silaLama=Math.max(0,(pel?.saldo_piutang||0)-(woLama?.sisa_piutang||0));
         await dbOp('pelanggan','UPDATE',{id:woLama.pelanggan_id,payload:{saldo_piutang:silaLama}});
       }
@@ -3969,7 +3558,7 @@ async function saveWO(cetak=false){
         is_non_gudang:p.is_non_gudang||false
       });
       if(p.barang_id&&!p.is_non_gudang){
-        const br = await dbGet('barang', p.barang_id);
+        const{data:br}=await db.from('barang').select('stok').eq('id',p.barang_id).single();
         const stokBaru=Math.max(0,(br?.stok||0)-p.jumlah);
         await dbOp('barang','UPDATE',{id:p.barang_id,payload:{stok:stokBaru}});
         await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:p.barang_id,jenis:'keluar',jumlah:-p.jumlah,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'service',referensi_id:id,referensi_no:no,keterangan:'Part WO '+no});
@@ -3978,74 +3567,45 @@ async function saveWO(cetak=false){
 
     // 6. Update piutang pelanggan BARU
     if(sisa>0 && payload.pelanggan_id){
-      const pel = await dbGet('pelanggan', payload.pelanggan_id);
+      const{data:pel}=await db.from('pelanggan').select('saldo_piutang').eq('id',payload.pelanggan_id).single();
       await dbOp('pelanggan','UPDATE',{id:payload.pelanggan_id,payload:{saldo_piutang:(pel?.saldo_piutang||0)+sisa}});
     }
+
 
     closeModal('modal-wo');
     showToast(isEdit?'Work Order berhasil diperbarui':'Work Order disimpan','success');
     await loadWO();
     if(cetak){
-      // Cetak: gunakan data lokal (payload+relasi dari cache) agar bisa cetak saat offline
-      const kendData = await dbGet('kendaraan', payload.kendaraan_id);
-      const pelData  = payload.pelanggan_id ? await dbGet('pelanggan', payload.pelanggan_id) : null;
-      const mekData  = payload.mekanik_id   ? await dbGet('mekanik',   payload.mekanik_id)   : null;
-      const woForCetak = {id,...payload, kendaraan:kendData, pelanggan:pelData, mekanik:mekData};
-      cetakWO(woForCetak, _woParts);
+      const{data:woFull}=await db.from('work_order').select('*,kendaraan(no_plat,merk,tipe,tahun),pelanggan(nama,telepon),mekanik(nama)').eq('id',id).single();
+      cetakWO(woFull||{id,...payload}, _woParts);
     }
   }catch(e){showToast('Gagal simpan WO: '+e.message,'error');console.error(e);}
   showLoading(false);
 }
 
 async function loadWO(statusFilter='semua'){
-  // Ambil data WO — pakai loadTable agar ada fallback cache saat offline
-  let data = await loadTable('work_order', {order:'tanggal', asc:false});
-  // Filter status di sisi client (aman online maupun offline)
-  if(statusFilter && statusFilter!=='semua') data = data.filter(w=>w.status===statusFilter);
-
-  // Enrichment relasi (join) — ambil dari cache tabel terkait saat offline
-  if(!isOnline && data.length){
-    const [kendaraans, pelangganList, mekanikList] = await Promise.all([
-      loadTable('kendaraan',{}),
-      loadTable('pelanggan',{}),
-      loadTable('mekanik',{})
-    ]);
-    const kMap = Object.fromEntries(kendaraans.map(k=>[k.id,k]));
-    const pMap = Object.fromEntries(pelangganList.map(p=>[p.id,p]));
-    const mMap = Object.fromEntries(mekanikList.map(m=>[m.id,m]));
-    data = data.map(w=>({
-      ...w,
-      kendaraan: w.kendaraan || kMap[w.kendaraan_id] || null,
-      pelanggan: w.pelanggan || pMap[w.pelanggan_id] || null,
-      mekanik:   w.mekanik   || mMap[w.mekanik_id]   || null
-    }));
-  }
-
-  if(!data.length){
+  let q=db.from('work_order').select('*,kendaraan(no_plat,merk,tipe),pelanggan(nama),mekanik(nama)').order('tanggal',{ascending:false});
+  if(statusFilter&&statusFilter!=='semua') q=q.eq('status',statusFilter);
+  const{data}=await q;
+  if(!(data||[]).length){
     document.getElementById('body-wo').innerHTML='<tr><td colspan="11" class="table-empty"><i class="ti ti-engine-off"></i>Tidak ada work order</td></tr>';
     return;
   }
-
   // Load semua parts WO sekaligus — support kolom work_order_id DAN wo_id (data lama)
-  const woIds = data.map(w=>w.id);
-  let allParts = [];
+  const woIds=(data||[]).map(w=>w.id);
+  let allParts=[];
   try{
-    if(isOnline){
-      // Online: query langsung ke Supabase dengan filter IN
-      const{data:p1}=await db.from('detail_wo_part')
+    // Coba dengan work_order_id dulu
+    const{data:p1}=await db.from('detail_wo_part')
+      .select('work_order_id,wo_id,nama_barang,jumlah,satuan,is_non_gudang')
+      .in('work_order_id',woIds);
+    if(p1&&p1.length) allParts=p1;
+    else {
+      // Fallback: coba dengan wo_id (nama kolom lama)
+      const{data:p2}=await db.from('detail_wo_part')
         .select('work_order_id,wo_id,nama_barang,jumlah,satuan,is_non_gudang')
-        .in('work_order_id',woIds);
-      if(p1&&p1.length) allParts=p1;
-      else {
-        const{data:p2}=await db.from('detail_wo_part')
-          .select('work_order_id,wo_id,nama_barang,jumlah,satuan,is_non_gudang')
-          .in('wo_id',woIds);
-        if(p2&&p2.length) allParts=p2;
-      }
-    } else {
-      // Offline: ambil dari cache lokal lalu filter client-side
-      const cachedParts = await loadTable('detail_wo_part',{});
-      allParts = cachedParts.filter(p => woIds.includes(p.work_order_id||p.wo_id));
+        .in('wo_id',woIds);
+      if(p2&&p2.length) allParts=p2;
     }
   }catch(e){ allParts=[]; }
 
@@ -4082,10 +3642,7 @@ async function loadWO(statusFilter='semua'){
       <td style="white-space:nowrap">${new Date(w.tanggal).toLocaleDateString('id-ID')}</td>
       <td><span style="font-family:var(--font-display);font-size:13px;font-weight:700;background:var(--bg3);padding:2px 7px;border-radius:4px">${w.kendaraan?.no_plat||'-'}</span></td>
       <td>${w.pelanggan?.nama||'Umum'}</td>
-      <td style="font-size:12px">${(()=>{
-        if(w.mekanik_ids){try{const ids=Array.isArray(w.mekanik_ids)?w.mekanik_ids:JSON.parse(w.mekanik_ids);if(ids.length>1)return (w.mekanik?.nama||'Mek')+' <span style="background:var(--orange);color:#fff;border-radius:4px;padding:1px 5px;font-size:10px">+'.concat(ids.length-1,'</span>');} catch(e){}}
-        return w.mekanik?.nama||'-';
-      })()}</td>
+      <td>${w.mekanik?.nama||'-'}</td>
       <td style="max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:12px;color:var(--text3)">${w.keluhan||'-'}</td>
       <td style="min-width:140px">${namaPart}</td>
       <td style="font-family:var(--font-display);font-size:14px;font-weight:600;color:var(--orange);white-space:nowrap">${fmt(w.total)}</td>
@@ -4197,61 +3754,24 @@ async function simpanStatusWO() {
 // CETAK NOTA
 // ============================================================
 async function getSettings(){
-  try{
-    if(isOnline){
-      const{data}=await db.from('pengaturan').select('*').limit(1).single();
-      if(data) return data;
-    }
-    // Offline: cari dari cache
-    const rows = await loadTable('pengaturan',{});
-    return rows[0]||{nama_bengkel:'AutoServ Pro',alamat:'-',telepon:'-',footer_nota:'Terima kasih!'};
-  }catch(e){
-    return {nama_bengkel:'AutoServ Pro',alamat:'-',telepon:'-',footer_nota:'Terima kasih!'};
-  }
+  const{data}=await db.from('pengaturan').select('*').limit(1).single();
+  return data||{nama_bengkel:'AutoServ Pro',alamat:'-',telepon:'-',footer_nota:'Terima kasih!'};
 }
 
 async function cetakWOById(woId){
   showLoading(true);
   try{
-    let wo = null;
-    if(isOnline){
-      try{
-        const{data}=await db.from('work_order').select('*,kendaraan(no_plat,merk,tipe,tahun),pelanggan(nama,telepon),mekanik(nama)').eq('id',woId).single();
-        wo = data;
-      }catch(e){}
-    }
-    if(!wo){
-      // Offline: ambil dari cache + enrichment
-      const all = await loadTable('work_order',{});
-      wo = all.find(r=>r.id===woId)||null;
-      if(wo){
-        const [kendaraans,pelList,mekList] = await Promise.all([
-          loadTable('kendaraan',{}), loadTable('pelanggan',{}), loadTable('mekanik',{})
-        ]);
-        wo = {
-          ...wo,
-          kendaraan: kendaraans.find(k=>k.id===wo.kendaraan_id)||null,
-          pelanggan: pelList.find(p=>p.id===wo.pelanggan_id)||null,
-          mekanik:   mekList.find(m=>m.id===wo.mekanik_id)||null
-        };
-      }
-    }
+    const{data:wo}=await db.from('work_order').select('*,kendaraan(no_plat,merk,tipe,tahun),pelanggan(nama,telepon),mekanik(nama)').eq('id',woId).single();
     let parts=[];
-    if(isOnline){
-      try{
-        const{data:p1}=await db.from('detail_wo_part').select('*').eq('work_order_id',woId);
-        if(p1&&p1.length) parts=p1;
-        else{
-          const{data:p2}=await db.from('detail_wo_part').select('*').eq('wo_id',woId);
-          if(p2) parts=p2;
-        }
-      }catch(e){ parts=[]; }
-    } else {
-      const cachedParts = await loadTable('detail_wo_part',{});
-      parts = cachedParts.filter(p=>(p.work_order_id||p.wo_id)===woId);
-    }
-    if(wo) cetakWO(wo, parts);
-    else showToast('Data WO tidak ditemukan','error');
+    try{
+      const{data:p1}=await db.from('detail_wo_part').select('*').eq('work_order_id',woId);
+      if(p1&&p1.length) parts=p1;
+      else{
+        const{data:p2}=await db.from('detail_wo_part').select('*').eq('wo_id',woId);
+        if(p2) parts=p2;
+      }
+    }catch(e){ parts=[]; }
+    cetakWO(wo, parts);
   }catch(e){showToast('Gagal cetak','error');}
   showLoading(false);
 }
@@ -4274,13 +3794,7 @@ async function cetakWO(wo, parts){
     <div class="nota-row"><span class="label">Tanggal</span><span class="val">${new Date(wo.tanggal).toLocaleDateString('id-ID')}</span></div>
     <div class="nota-row"><span class="label">Pelanggan</span><span class="val">${wo.pelanggan?.nama||'Umum'}</span></div>
     <div class="nota-row"><span class="label">Kendaraan</span><span class="val">${wo.kendaraan?.no_plat||''} ${wo.kendaraan?.merk||''} ${wo.kendaraan?.tipe||''}</span></div>
-    <div class="nota-row"><span class="label">Mekanik</span><span class="val">${(()=>{
-      if(wo.mekanik_ids){try{
-        const ids=Array.isArray(wo.mekanik_ids)?wo.mekanik_ids:JSON.parse(wo.mekanik_ids);
-        if(ids.length>1) return wo.mekanik?.nama+' & lainnya ('+ids.length+' mekanik)';
-      }catch(e){}}
-      return wo.mekanik?.nama||'-';
-    })()}</span></div>
+    <div class="nota-row"><span class="label">Mekanik</span><span class="val">${wo.mekanik?.nama||'-'}</span></div>
     <div class="nota-row"><span class="label">Keluhan</span><span class="val" style="max-width:150px;text-align:right;font-size:10px">${wo.keluhan||'-'}</span></div>
     <hr class="nota-divider"/>
     <div style="font-weight:700;font-size:11px;margin-bottom:4px">SPAREPART :</div>
@@ -4504,13 +4018,13 @@ async function saveJual(cetak=false){
       if(!p.nama_barang&&!p.barang_id)continue;
       await dbOp('detail_penjualan','INSERT',{id:uid(),penjualan_id:id,barang_id:p.barang_id||null,nama_barang:p.nama_barang,satuan:p.satuan,jumlah:p.jumlah,harga_jual:p.harga_jual,diskon_item:p.diskon_item,subtotal:p.subtotal,is_non_gudang:p.is_non_gudang});
       if(p.barang_id&&!p.is_non_gudang){
-        const br=await dbGetOne('barang',p.barang_id)||{stok:0};
+        const{data:br}=await db.from('barang').select('stok').eq('id',p.barang_id).single();
         const stokBaru=Math.max(0,(br?.stok||0)-p.jumlah);
         await dbOp('barang','UPDATE',{id:p.barang_id,payload:{stok:stokBaru}});
         await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:p.barang_id,jenis:'keluar',jumlah:-p.jumlah,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'penjualan',referensi_id:id,referensi_no:no,keterangan:'Penjualan '+no});
       }
     }
-    if(sisa>0&&payload.pelanggan_id){const pel=await dbGetOne('pelanggan',payload.pelanggan_id)||{saldo_piutang:0};await dbOp('pelanggan','UPDATE',{id:payload.pelanggan_id,payload:{saldo_piutang:(pel?.saldo_piutang||0)+sisa}});}
+    if(sisa>0&&payload.pelanggan_id){const{data:pel}=await db.from('pelanggan').select('saldo_piutang').eq('id',payload.pelanggan_id).single();await dbOp('pelanggan','UPDATE',{id:payload.pelanggan_id,payload:{saldo_piutang:(pel?.saldo_piutang||0)+sisa}});}
     closeModal('modal-jual');showToast('Penjualan disimpan');await loadPenjualan();
     if(cetak) await cetakPenjualan({id,...payload},_jualItems);
   }catch(e){showToast('Gagal: '+e.message,'error');console.error(e);}
@@ -4518,29 +4032,18 @@ async function saveJual(cetak=false){
 }
 
 async function loadPenjualan(){
-  const dari=document.getElementById('f-jual-dari')?.value||'';
-  const sampai=document.getElementById('f-jual-sampai')?.value||'';
-  let data=[], allDet=[];
-  if(isOnline){
-    try{
-      let q=db.from('penjualan').select('*,pelanggan(nama)').order('tanggal',{ascending:false});
-      if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
-      const r=await q; data=r.data||[];
-      if(data.length){
-        try{const ids=data.map(j=>j.id);const r2=await db.from('detail_penjualan').select('penjualan_id,nama_barang,jumlah,satuan').in('penjualan_id',ids);allDet=r2.data||[];}catch(e){}
-      }
-    }catch(e){}
-  } else {
-    const [_pj,_pel,_det]=await Promise.all([loadTable('penjualan',{}),loadTable('pelanggan',{}),loadTable('detail_penjualan',{})]);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    data=_pj.filter(j=>(!dari||j.tanggal>=dari)&&(!sampai||j.tanggal<=sampai)).sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
-    data=data.map(j=>({...j,pelanggan:pMap[j.pelanggan_id]||null}));
-    allDet=_det;
-  }
-  if(!data.length){
+  const dari=document.getElementById('f-jual-dari')?.value;
+  const sampai=document.getElementById('f-jual-sampai')?.value;
+  let q=db.from('penjualan').select('*,pelanggan(nama)').order('tanggal',{ascending:false});
+  if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
+  const{data}=await q;
+  if(!(data||[]).length){
     document.getElementById('body-jual').innerHTML='<tr><td colspan="10" class="table-empty"><i class="ti ti-file-off"></i>Belum ada penjualan</td></tr>';
     return;
   }
+  // Load detail item sekaligus
+  const ids=(data||[]).map(j=>j.id);
+  const{data:allDet}=await db.from('detail_penjualan').select('penjualan_id,nama_barang,jumlah,satuan').in('penjualan_id',ids);
   const detMap={};(allDet||[]).forEach(d=>{if(!detMap[d.penjualan_id])detMap[d.penjualan_id]=[];detMap[d.penjualan_id].push(d);});
 
   document.getElementById('body-jual').innerHTML=(data||[]).map(j=>{
@@ -4567,18 +4070,8 @@ async function loadPenjualan(){
 
 async function cetakJualById(jId){
   showLoading(true);
-  let j=null,items=[];
-  if(isOnline){
-    try{const{data}=await db.from('penjualan').select('*,pelanggan(nama)').eq('id',jId).single();j=data;}catch(e){}
-    try{const{data}=await db.from('detail_penjualan').select('*').eq('penjualan_id',jId);items=data||[];}catch(e){}
-  }
-  if(!j){
-    const [_pj,_pel]=await Promise.all([loadTable('penjualan',{}),loadTable('pelanggan',{})]);
-    const found=_pj.find(r=>r.id===jId);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    j=found?{...found,pelanggan:pMap[found.pelanggan_id]||null}:null;
-  }
-  if(!items.length){const all=await loadTable('detail_penjualan',{});items=all.filter(d=>d.penjualan_id===jId);}
+  const{data:j}=await db.from('penjualan').select('*,pelanggan(nama)').eq('id',jId).single();
+  const{data:items}=await db.from('detail_penjualan').select('*').eq('penjualan_id',jId);
   await cetakPenjualan(j,items||[]);showLoading(false);
 }
 
@@ -4730,11 +4223,7 @@ function updatePrinterUI(){
 }
 
 window.init_pengaturan = async function(){
-  let data=null;
-  try{
-    if(isOnline){const r=await db.from('pengaturan').select('*').limit(1).single();data=r.data||null;}
-    if(!data){const rows=await loadTable('pengaturan',{});data=rows[0]||null;}
-  }catch(e){const rows=await loadTable('pengaturan',{});data=rows[0]||null;}
+  const{data}=await db.from('pengaturan').select('*').limit(1).single();
   if(data){
     document.getElementById('s-nama').value=data.nama_bengkel||'';
     document.getElementById('s-alamat').value=data.alamat||'';
@@ -4788,9 +4277,8 @@ async function savePengaturan(){
   if(window._logoB64)payload.logo_base64=window._logoB64;
   showLoading(true);
   try{
-    const sid=window._settingsId;
-    if(sid){await dbOp('pengaturan','UPDATE',{id:sid,payload});}
-    else{const nid=uid();window._settingsId=nid;await dbOp('pengaturan','INSERT',{id:nid,...payload});}
+    if(window._settingsId)await db.from('pengaturan').update(payload).eq('id',window._settingsId);
+    else await db.from('pengaturan').insert({id:uid(),...payload});
     showToast('Pengaturan disimpan');
   }catch(e){showToast('Gagal simpan','error');}
   showLoading(false);
@@ -4862,10 +4350,6 @@ window.init_user_management = async function(){ await loadUsers(); };
 async function loadUsers(){
   const tbody = document.getElementById('body-users');
   if(!tbody) return;
-  if(!isOnline){
-    tbody.innerHTML='<tr><td colspan="7" class="table-empty"><i class="ti ti-wifi-off"></i>Kelola User membutuhkan koneksi internet</td></tr>';
-    return;
-  }
   try{
     const{data}=await db.from('app_users').select('*').order('created_at',{ascending:false});
     if(!(data||[]).length){
@@ -5239,25 +4723,16 @@ async function savePO(){
 
 async function loadPO(){
   const sf=document.getElementById('f-po-status-filter')?.value||'';
-  let data=[], allDetails=[];
-  if(isOnline){
-    try{
-      let q=db.from('pesanan_beli').select('*,supplier(nama)').order('tanggal',{ascending:false});
-      if(sf)q=q.eq('status',sf);
-      const r=await q; data=r.data||[];
-      if(data.length){try{const ids=data.map(p=>p.id);const r2=await db.from('detail_pesanan_beli').select('pesanan_beli_id,nama_barang,jumlah,satuan').in('pesanan_beli_id',ids);allDetails=r2.data||[];}catch(e){}}
-    }catch(e){}
-  } else {
-    const [_po,_sup,_det]=await Promise.all([loadTable('pesanan_beli',{}),loadTable('supplier',{}),loadTable('detail_pesanan_beli',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    data=(_po.filter(p=>!sf||p.status===sf)).sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
-    data=data.map(p=>({...p,supplier:sMap[p.supplier_id]||null}));
-    allDetails=_det;
-  }
-  if(!data.length){
+  let q=db.from('pesanan_beli').select('*,supplier(nama)').order('tanggal',{ascending:false});
+  if(sf)q=q.eq('status',sf);
+  const{data}=await q;
+  if(!(data||[]).length){
     document.getElementById('body-po').innerHTML='<tr><td colspan="8" class="table-empty"><i class="ti ti-file-off"></i>Belum ada PO</td></tr>';
     return;
   }
+  // Load semua detail item PO sekaligus
+  const poIds=(data||[]).map(p=>p.id);
+  const{data:allDetails}=await db.from('detail_pesanan_beli').select('pesanan_beli_id,nama_barang,jumlah,satuan').in('pesanan_beli_id',poIds);
   const detailMap={};
   (allDetails||[]).forEach(d=>{
     if(!detailMap[d.pesanan_beli_id])detailMap[d.pesanan_beli_id]=[];
@@ -5310,7 +4785,7 @@ async function prosesPOkePembelian(poId,no){
   showPage('pembelian');
   setTimeout(()=>openModalBeli(poId),600);
 }
-async function delPO(id,no){if(!confirm2('Hapus PO '+no+'?'))return;showLoading(true);try{if(isOnline){try{await db.from('detail_pesanan_beli').delete().eq('pesanan_beli_id',id);}catch(e){}}else{const _d=await loadTable('detail_pesanan_beli',{});for(const _i of _d.filter(x=>x.pesanan_beli_id===id))await dbOp('detail_pesanan_beli','DELETE',{id:_i.id});}await dbOp('pesanan_beli','DELETE',{id});showToast('PO dihapus');await loadPO();}catch(e){showToast('Gagal','error');}showLoading(false);}
+async function delPO(id,no){if(!confirm2('Hapus PO '+no+'?'))return;showLoading(true);try{await db.from('detail_pesanan_beli').delete().eq('pesanan_beli_id',id);await dbOp('pesanan_beli','DELETE',{id});showToast('PO dihapus');await loadPO();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
 // ============================================================
 // PAGE: PEMBELIAN
@@ -5413,18 +4888,10 @@ async function isiDariPO(){
     // Pastikan data barang gudang sudah loaded
     if(!window._brg) window._brg=await loadTable('barang',{eq:{aktif:true},order:'nama'});
 
-    let details=[], po=null;
-    if(isOnline){
-      try{
-        const[r1,r2]=await Promise.all([
-          db.from('detail_pesanan_beli').select('*').eq('pesanan_beli_id',poId),
-          db.from('pesanan_beli').select('*').eq('id',poId).single()
-        ]);
-        details=r1.data||[]; po=r2.data;
-      }catch(e){}
-    }
-    if(!po){const all=await loadTable('pesanan_beli',{});po=all.find(r=>r.id===poId)||null;}
-    if(!details.length){const all=await loadTable('detail_pesanan_beli',{});details=all.filter(d=>d.pesanan_beli_id===poId);}
+    const[{data:details},{data:po}]=await Promise.all([
+      db.from('detail_pesanan_beli').select('*').eq('pesanan_beli_id',poId),
+      db.from('pesanan_beli').select('*').eq('id',poId).single()
+    ]);
 
     // Set supplier dari PO
     if(po && po.supplier_id){
@@ -5575,13 +5042,13 @@ async function saveBeli(){
       await dbOp('detail_pembelian','INSERT',{id:uid(),pembelian_id:id,barang_id:p.barang_id||null,nama_barang:p.nama_barang,satuan:p.satuan,jumlah:p.jumlah,harga_beli:p.harga_beli,subtotal:p.subtotal});
       // Update stok hanya untuk barang gudang (yang punya barang_id)
       if(p.barang_id){
-        const br=await dbGetOne('barang',p.barang_id)||{stok:0};
+        const{data:br}=await db.from('barang').select('stok').eq('id',p.barang_id).single();
         const stokBaru=(br?.stok||0)+p.jumlah;
         await dbOp('barang','UPDATE',{id:p.barang_id,payload:{stok:stokBaru,harga_beli:p.harga_beli}});
         await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:p.barang_id,jenis:'masuk',jumlah:p.jumlah,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'pembelian',referensi_id:id,referensi_no:no,keterangan:'Pembelian '+no});
       }
     }
-    if(sisa>0){const sp=await dbGetOne('supplier',supId)||{saldo_hutang:0};await dbOp('supplier','UPDATE',{id:supId,payload:{saldo_hutang:(sp?.saldo_hutang||0)+sisa}});}
+    if(sisa>0){const{data:sp}=await db.from('supplier').select('saldo_hutang').eq('id',supId).single();await dbOp('supplier','UPDATE',{id:supId,payload:{saldo_hutang:(sp?.saldo_hutang||0)+sisa}});}
     closeModal('modal-beli');showToast('Pembelian disimpan & stok diperbarui');await loadBeli();
   }catch(e){showToast('Gagal: '+e.message,'error');}
   showLoading(false);
@@ -5590,25 +5057,16 @@ async function saveBeli(){
 async function loadBeli(){
   const dari=document.getElementById('f-beli-dari')?.value||'';
   const sampai=document.getElementById('f-beli-sampai')?.value||'';
-  let data=[], allDet=[];
-  if(isOnline){
-    try{
-      let q=db.from('pembelian').select('*,supplier(nama)').order('tanggal',{ascending:false});
-      if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
-      const r=await q; data=r.data||[];
-      if(data.length){try{const ids=data.map(b=>b.id);const r2=await db.from('detail_pembelian').select('pembelian_id,nama_barang,jumlah,satuan').in('pembelian_id',ids);allDet=r2.data||[];}catch(e){}}
-    }catch(e){}
-  } else {
-    const [_beli,_sup,_det]=await Promise.all([loadTable('pembelian',{}),loadTable('supplier',{}),loadTable('detail_pembelian',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    data=_beli.filter(b=>(!dari||b.tanggal>=dari)&&(!sampai||b.tanggal<=sampai)).sort((a,b)=>b.tanggal.localeCompare(a.tanggal));
-    data=data.map(b=>({...b,supplier:sMap[b.supplier_id]||null}));
-    allDet=_det;
-  }
-  if(!data.length){
+  let q=db.from('pembelian').select('*,supplier(nama)').order('tanggal',{ascending:false});
+  if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
+  const{data}=await q;
+  if(!(data||[]).length){
     document.getElementById('body-beli').innerHTML='<tr><td colspan="9" class="table-empty"><i class="ti ti-receipt-off"></i>Belum ada pembelian</td></tr>';
     return;
   }
+  // Load detail item sekaligus
+  const ids=(data||[]).map(b=>b.id);
+  const{data:allDet}=await db.from('detail_pembelian').select('pembelian_id,nama_barang,jumlah,satuan').in('pembelian_id',ids);
   const detMap={};(allDet||[]).forEach(d=>{if(!detMap[d.pembelian_id])detMap[d.pembelian_id]=[];detMap[d.pembelian_id].push(d);});
 
   document.getElementById('body-beli').innerHTML=(data||[]).map(b=>{
@@ -5629,7 +5087,7 @@ async function loadBeli(){
     </tr>`;
   }).join('');
 }
-async function delBeli(id,no){if(!confirm2('Hapus faktur '+no+'?'))return;showLoading(true);try{if(isOnline){try{await db.from('detail_pembelian').delete().eq('pembelian_id',id);}catch(e){}}else{const _d=await loadTable('detail_pembelian',{});for(const _i of _d.filter(x=>x.pembelian_id===id))await dbOp('detail_pembelian','DELETE',{id:_i.id});}await dbOp('pembelian','DELETE',{id});showToast('Pembelian dihapus');await loadBeli();}catch(e){showToast('Gagal','error');}showLoading(false);}
+async function delBeli(id,no){if(!confirm2('Hapus faktur '+no+'?'))return;showLoading(true);try{await db.from('detail_pembelian').delete().eq('pembelian_id',id);await dbOp('pembelian','DELETE',{id});showToast('Pembelian dihapus');await loadBeli();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
 // ============================================================
 // PAGE: BAYAR HUTANG
@@ -5664,14 +5122,8 @@ ${modalHtml('modal-bayar-hutang','Bayar Hutang',`
 window.init_bayar_hutang=async function(){await loadHutangList();await loadRiwayatHutang();};
 
 async function loadHutangList(){
-  let data=[];
-  if(isOnline){try{const r=await db.from('pembelian').select('*,supplier(nama)').neq('status_bayar','lunas').order('tanggal',{ascending:false});data=r.data||[];}catch(e){}}
-  if(!data.length){
-    const [_beli,_sup]=await Promise.all([loadTable('pembelian',{}),loadTable('supplier',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    data=_beli.filter(b=>b.status_bayar!=='lunas').sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).map(b=>({...b,supplier:sMap[b.supplier_id]||null}));
-  }
-  document.getElementById('body-hutang').innerHTML=data.length?data.map(b=>`<tr>
+  const{data}=await db.from('pembelian').select('*,supplier(nama)').neq('status_bayar','lunas').order('tanggal',{ascending:false});
+  document.getElementById('body-hutang').innerHTML=(data||[]).length?(data||[]).map(b=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${b.no_faktur}</code></td>
     <td>${new Date(b.tanggal).toLocaleDateString('id-ID')}</td>
     <td>${b.supplier?.nama||'-'}</td>
@@ -5683,15 +5135,8 @@ async function loadHutangList(){
 }
 
 async function loadRiwayatHutang(){
-  let data=[];
-  if(isOnline){try{const r=await db.from('pembayaran_hutang').select('*,supplier(nama),pembelian(no_faktur)').order('tanggal',{ascending:false}).limit(50);data=r.data||[];}catch(e){}}
-  if(!data.length){
-    const [_ph,_sup,_beli]=await Promise.all([loadTable('pembayaran_hutang',{}),loadTable('supplier',{}),loadTable('pembelian',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    const bMap=Object.fromEntries(_beli.map(b=>[b.id,b]));
-    data=_ph.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,50).map(r=>({...r,supplier:sMap[r.supplier_id]||null,pembelian:bMap[r.pembelian_id]||null}));
-  }
-  document.getElementById('body-riwayat-hutang').innerHTML=data.length?data.map(r=>`<tr>
+  const{data}=await db.from('pembayaran_hutang').select('*,supplier(nama),pembelian(no_faktur)').order('tanggal',{ascending:false}).limit(50);
+  document.getElementById('body-riwayat-hutang').innerHTML=(data||[]).length?(data||[]).map(r=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${r.no_bayar}</code></td>
     <td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
     <td>${r.supplier?.nama||'-'}</td>
@@ -5702,13 +5147,7 @@ async function loadRiwayatHutang(){
 }
 
 async function openModalBayarHutang(fakturId=null){
-  let fks=[];
-  if(isOnline){try{const r=await db.from('pembelian').select('*,supplier(nama)').neq('status_bayar','lunas');fks=r.data||[];}catch(e){}}
-  if(!fks.length){
-    const [_beli,_sup]=await Promise.all([loadTable('pembelian',{}),loadTable('supplier',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    fks=_beli.filter(b=>b.status_bayar!=='lunas').map(b=>({...b,supplier:sMap[b.supplier_id]||null}));
-  }
+  const{data:fks}=await db.from('pembelian').select('*,supplier(nama)').neq('status_bayar','lunas');
   document.getElementById('f-bh-faktur').innerHTML='<option value="">-- Pilih Faktur --</option>'+(fks||[]).map(f=>`<option value="${f.id}" data-sisa="${f.sisa_hutang}" data-sup="${f.supplier_id}">${f.no_faktur} - ${f.supplier?.nama} - Sisa:${fmt(f.sisa_hutang)}</option>`).join('');
   const no=await autoNo('BH','pembayaran_hutang','no_bayar');
   document.getElementById('f-bh-no').value=no;document.getElementById('f-bh-tgl').value=today();
@@ -5734,10 +5173,10 @@ async function saveBayarHutang(){
   showLoading(true);
   try{
     await dbOp('pembayaran_hutang','INSERT',{id:uid(),no_bayar:no,tanggal:document.getElementById('f-bh-tgl').value,supplier_id:supId,pembelian_id:fakturId,jumlah,metode:document.getElementById('f-bh-metode').value,keterangan:document.getElementById('f-bh-ket').value});
-    const fk=await dbGet('pembelian',fakturId);
+    const{data:fk}=await db.from('pembelian').select('terbayar,sisa_hutang,total').eq('id',fakturId).single();
     const newTerbayar=(fk?.terbayar||0)+jumlah;const newSisa=Math.max(0,(fk?.total||0)-newTerbayar);const newStatus=newSisa<=0?'lunas':newTerbayar>0?'sebagian':'belum';
     await dbOp('pembelian','UPDATE',{id:fakturId,payload:{terbayar:newTerbayar,sisa_hutang:newSisa,status_bayar:newStatus}});
-    const sp=await dbGet('supplier',supId);
+    const{data:sp}=await db.from('supplier').select('saldo_hutang').eq('id',supId).single();
     await dbOp('supplier','UPDATE',{id:supId,payload:{saldo_hutang:Math.max(0,(sp?.saldo_hutang||0)-jumlah)}});
     closeModal('modal-bayar-hutang');showToast('Pembayaran hutang berhasil');await loadHutangList();await loadRiwayatHutang();
   }catch(e){showToast('Gagal: '+e.message,'error');}
@@ -5772,14 +5211,8 @@ ${modalHtml('modal-retur-beli','Retur Pembelian',`
 
 window.init_retur_beli=async function(){await loadReturBeli();};
 async function openModalReturBeli(){
-  let fks=[];
-  if(isOnline){try{const r=await db.from('pembelian').select('*,supplier(nama)').order('tanggal',{ascending:false}).limit(50);fks=r.data||[];}catch(e){}}
-  if(!fks.length){
-    const [_beli,_sup]=await Promise.all([loadTable('pembelian',{}),loadTable('supplier',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    fks=_beli.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,50).map(b=>({...b,supplier:sMap[b.supplier_id]||null}));
-  }
-  document.getElementById('f-rb-faktur').innerHTML='<option value="">-- Pilih --</option>'+fks.map(f=>`<option value="${f.id}" data-sup="${f.supplier_id}">${f.no_faktur} - ${f.supplier?.nama||'-'}</option>`).join('');
+  const{data:fks}=await db.from('pembelian').select('*,supplier(nama)').order('tanggal',{ascending:false}).limit(50);
+  document.getElementById('f-rb-faktur').innerHTML='<option value="">-- Pilih --</option>'+(fks||[]).map(f=>`<option value="${f.id}" data-sup="${f.supplier_id}">${f.no_faktur} - ${f.supplier?.nama}</option>`).join('');
   const no=await autoNo('RB','retur_beli','no_retur');
   document.getElementById('f-rb-no').value=no;document.getElementById('f-rb-tgl').value=today();document.getElementById('f-rb-ket').value='';
   document.getElementById('retur-beli-items').innerHTML='';document.getElementById('rb-total-val').textContent='Rp 0';
@@ -5789,9 +5222,7 @@ async function loadDetailBeliForRetur(){
   const fakturId=document.getElementById('f-rb-faktur').value;if(!fakturId)return;
   const opt=document.getElementById('f-rb-faktur').selectedOptions[0];
   document.getElementById('f-rb-sup-id').value=opt.dataset.sup;
-  let data=[];
-  if(isOnline){try{const r=await db.from('detail_pembelian').select('*').eq('pembelian_id',fakturId);data=r.data||[];}catch(e){}}
-  if(!data.length){const all=await loadTable('detail_pembelian',{});data=all.filter(d=>d.pembelian_id===fakturId);}
+  const{data}=await db.from('detail_pembelian').select('*').eq('pembelian_id',fakturId);
   document.getElementById('retur-beli-items').innerHTML=`
     <table class="trx-items"><thead><tr><th>Barang</th><th>Satuan</th><th>Qty Beli</th><th>Qty Retur</th><th>Harga</th><th>Sub</th></tr></thead>
     <tbody>${(data||[]).map(d=>`<tr>
@@ -5821,7 +5252,7 @@ async function saveReturBeli(){
     for(const d of items){
       const qty=Number(document.getElementById('rb-qty-'+d.id).value);
       await dbOp('detail_retur_beli','INSERT',{id:uid(),retur_beli_id:id,barang_id:d.barang_id,nama_barang:d.nama_barang,satuan:d.satuan,jumlah:qty,harga_beli:d.harga_beli,subtotal:qty*d.harga_beli});
-      const br=await dbGet('barang',d.barang_id);
+      const{data:br}=await db.from('barang').select('stok').eq('id',d.barang_id).single();
       const stokBaru=Math.max(0,(br?.stok||0)-qty);
       await dbOp('barang','UPDATE',{id:d.barang_id,payload:{stok:stokBaru}});
       await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:d.barang_id,jenis:'keluar',jumlah:-qty,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'retur_beli',referensi_id:id,referensi_no:no,keterangan:'Retur beli '+no});
@@ -5831,15 +5262,8 @@ async function saveReturBeli(){
   showLoading(false);
 }
 async function loadReturBeli(){
-  let data=[];
-  if(isOnline){try{const r=await db.from('retur_beli').select('*,supplier(nama),pembelian(no_faktur)').order('tanggal',{ascending:false});data=r.data||[];}catch(e){}}
-  if(!data.length){
-    const [_rb,_sup,_beli]=await Promise.all([loadTable('retur_beli',{}),loadTable('supplier',{}),loadTable('pembelian',{})]);
-    const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-    const bMap=Object.fromEntries(_beli.map(b=>[b.id,b]));
-    data=_rb.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).map(r=>({...r,supplier:sMap[r.supplier_id]||null,pembelian:bMap[r.pembelian_id]||null}));
-  }
-  document.getElementById('body-rbeli').innerHTML=data.length?data.map(r=>`<tr>
+  const{data}=await db.from('retur_beli').select('*,supplier(nama),pembelian(no_faktur)').order('tanggal',{ascending:false});
+  document.getElementById('body-rbeli').innerHTML=(data||[]).length?(data||[]).map(r=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${r.no_retur}</code></td>
     <td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
     <td style="color:var(--text3);font-size:12px">${r.pembelian?.no_faktur||'-'}</td>
@@ -5849,7 +5273,7 @@ async function loadReturBeli(){
     <td><button class="btn btn-danger btn-sm" onclick="delReturBeli('${r.id}','${r.no_retur}')"><i class="ti ti-trash"></i></button></td>
   </tr>`).join(''):'<tr><td colspan="7" class="table-empty">Belum ada retur pembelian</td></tr>';
 }
-async function delReturBeli(id,no){if(!confirm2('Hapus retur '+no+'?'))return;showLoading(true);try{const _d=await loadTable('detail_retur_beli',{});for(const _i of _d.filter(x=>x.retur_beli_id===id))await dbOp('detail_retur_beli','DELETE',{id:_i.id});if(isOnline){try{await db.from('detail_retur_beli').delete().eq('retur_beli_id',id);}catch(e){}}await dbOp('retur_beli','DELETE',{id});showToast('Retur dihapus');await loadReturBeli();}catch(e){showToast('Gagal','error');}showLoading(false);}
+async function delReturBeli(id,no){if(!confirm2('Hapus retur '+no+'?'))return;showLoading(true);try{await db.from('detail_retur_beli').delete().eq('retur_beli_id',id);await dbOp('retur_beli','DELETE',{id});showToast('Retur dihapus');await loadReturBeli();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
 // ============================================================
 // PAGE: PESANAN JUAL (SO)
@@ -5949,7 +5373,7 @@ async function loadSO(){
     <td><button class="btn btn-danger btn-sm" onclick="delSO('${s.id}','${s.no_so}')"><i class="ti ti-trash"></i></button></td>
   </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Belum ada SO</td></tr>';
 }
-async function delSO(id,no){if(!confirm2('Hapus SO '+no+'?'))return;showLoading(true);try{const _d=await loadTable('detail_pesanan_jual',{});for(const _i of _d.filter(x=>x.pesanan_jual_id===id))await dbOp('detail_pesanan_jual','DELETE',{id:_i.id});if(isOnline){try{await db.from('detail_pesanan_jual').delete().eq('pesanan_jual_id',id);}catch(e){}}await dbOp('pesanan_jual','DELETE',{id});showToast('SO dihapus');await loadSO();}catch(e){showToast('Gagal','error');}showLoading(false);}
+async function delSO(id,no){if(!confirm2('Hapus SO '+no+'?'))return;showLoading(true);try{await db.from('detail_pesanan_jual').delete().eq('pesanan_jual_id',id);await dbOp('pesanan_jual','DELETE',{id});showToast('SO dihapus');await loadSO();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
 // ============================================================
 // PAGE: RETUR PENJUALAN
@@ -5979,14 +5403,8 @@ ${modalHtml('modal-retur-jual','Retur Penjualan',`
 
 window.init_retur_jual=async function(){await loadReturJual();};
 async function openModalReturJual(){
-  let fks=[];
-  if(isOnline){try{const r=await db.from('penjualan').select('*,pelanggan(nama)').order('tanggal',{ascending:false}).limit(80);fks=r.data||[];}catch(e){}}
-  if(!fks.length){
-    const [_pj,_pel]=await Promise.all([loadTable('penjualan',{}),loadTable('pelanggan',{})]);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    fks=_pj.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,80).map(j=>({...j,pelanggan:pMap[j.pelanggan_id]||null}));
-  }
-  document.getElementById('f-rj-faktur').innerHTML='<option value="">-- Pilih --</option>'+fks.map(f=>`<option value="${f.id}" data-pel="${f.pelanggan_id||''}">${f.no_faktur} - ${f.pelanggan?.nama||'Umum'}</option>`).join('');
+  const{data:fks}=await db.from('penjualan').select('*,pelanggan(nama)').order('tanggal',{ascending:false}).limit(80);
+  document.getElementById('f-rj-faktur').innerHTML='<option value="">-- Pilih --</option>'+(fks||[]).map(f=>`<option value="${f.id}" data-pel="${f.pelanggan_id||''}">${f.no_faktur} - ${f.pelanggan?.nama||'Umum'}</option>`).join('');
   const no=await autoNo('RJ','retur_jual','no_retur');
   document.getElementById('f-rj-no').value=no;document.getElementById('f-rj-tgl').value=today();document.getElementById('f-rj-ket').value='';
   document.getElementById('retur-jual-items').innerHTML='';document.getElementById('rj-total-val').textContent='Rp 0';
@@ -5996,9 +5414,7 @@ async function loadDetailJualForRetur(){
   const fId=document.getElementById('f-rj-faktur').value;if(!fId)return;
   const opt=document.getElementById('f-rj-faktur').selectedOptions[0];
   document.getElementById('f-rj-pel-id').value=opt.dataset.pel;
-  let data=[];
-  if(isOnline){try{const r=await db.from('detail_penjualan').select('*').eq('penjualan_id',fId);data=r.data||[];}catch(e){}}
-  if(!data.length){const all=await loadTable('detail_penjualan',{});data=all.filter(d=>d.penjualan_id===fId);}
+  const{data}=await db.from('detail_penjualan').select('*').eq('penjualan_id',fId);
   document.getElementById('retur-jual-items').innerHTML=`
     <table class="trx-items"><thead><tr><th>Barang</th><th>Satuan</th><th>Qty Jual</th><th>Qty Retur</th><th>Harga</th><th>Sub</th></tr></thead>
     <tbody>${(data||[]).map(d=>`<tr>
@@ -6028,22 +5444,15 @@ async function saveReturJual(){
     for(const d of items){
       const qty=Number(document.getElementById('rj-qty-'+d.id).value);
       await dbOp('detail_retur_jual','INSERT',{id:uid(),retur_jual_id:id,barang_id:d.barang_id,nama_barang:d.nama_barang,satuan:d.satuan,jumlah:qty,harga_jual:d.harga_jual,subtotal:qty*d.harga_jual});
-      if(d.barang_id){const br=await dbGet('barang',d.barang_id);const stokBaru=(br?.stok||0)+qty;await dbOp('barang','UPDATE',{id:d.barang_id,payload:{stok:stokBaru}});await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:d.barang_id,jenis:'masuk',jumlah:qty,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'retur_jual',referensi_id:id,referensi_no:no,keterangan:'Retur jual '+no});}
+      if(d.barang_id){const{data:br}=await db.from('barang').select('stok').eq('id',d.barang_id).single();const stokBaru=(br?.stok||0)+qty;await dbOp('barang','UPDATE',{id:d.barang_id,payload:{stok:stokBaru}});await dbOp('mutasi_stok','INSERT',{id:uid(),barang_id:d.barang_id,jenis:'masuk',jumlah:qty,stok_sebelum:br?.stok||0,stok_sesudah:stokBaru,referensi_tipe:'retur_jual',referensi_id:id,referensi_no:no,keterangan:'Retur jual '+no});}
     }
     closeModal('modal-retur-jual');showToast('Retur penjualan disimpan');await loadReturJual();
   }catch(e){showToast('Gagal: '+e.message,'error');}
   showLoading(false);
 }
 async function loadReturJual(){
-  let data=[];
-  if(isOnline){try{const r=await db.from('retur_jual').select('*,pelanggan(nama),penjualan(no_faktur)').order('tanggal',{ascending:false});data=r.data||[];}catch(e){}}
-  if(!data.length){
-    const [_rj,_pel,_pj]=await Promise.all([loadTable('retur_jual',{}),loadTable('pelanggan',{}),loadTable('penjualan',{})]);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    const jMap=Object.fromEntries(_pj.map(j=>[j.id,j]));
-    data=_rj.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).map(r=>({...r,pelanggan:pMap[r.pelanggan_id]||null,penjualan:jMap[r.penjualan_id]||null}));
-  }
-  document.getElementById('body-rjual').innerHTML=data.length?data.map(r=>`<tr>
+  const{data}=await db.from('retur_jual').select('*,pelanggan(nama),penjualan(no_faktur)').order('tanggal',{ascending:false});
+  document.getElementById('body-rjual').innerHTML=(data||[]).length?(data||[]).map(r=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${r.no_retur}</code></td>
     <td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
     <td style="color:var(--text3);font-size:12px">${r.penjualan?.no_faktur||'-'}</td>
@@ -6053,7 +5462,7 @@ async function loadReturJual(){
     <td><button class="btn btn-danger btn-sm" onclick="delReturJual('${r.id}','${r.no_retur}')"><i class="ti ti-trash"></i></button></td>
   </tr>`).join(''):'<tr><td colspan="7" class="table-empty">Belum ada retur</td></tr>';
 }
-async function delReturJual(id,no){if(!confirm2('Hapus retur '+no+'?'))return;showLoading(true);try{const _d=await loadTable('detail_retur_jual',{});for(const _i of _d.filter(x=>x.retur_jual_id===id))await dbOp('detail_retur_jual','DELETE',{id:_i.id});if(isOnline){try{await db.from('detail_retur_jual').delete().eq('retur_jual_id',id);}catch(e){}}await dbOp('retur_jual','DELETE',{id});showToast('Retur dihapus');await loadReturJual();}catch(e){showToast('Gagal','error');}showLoading(false);}
+async function delReturJual(id,no){if(!confirm2('Hapus retur '+no+'?'))return;showLoading(true);try{await db.from('detail_retur_jual').delete().eq('retur_jual_id',id);await dbOp('retur_jual','DELETE',{id});showToast('Retur dihapus');await loadReturJual();}catch(e){showToast('Gagal','error');}showLoading(false);}
 
 // ============================================================
 // PAGE: BAYAR PIUTANG
@@ -6091,21 +5500,12 @@ ${modalHtml('modal-bayar-piutang','Catat Penerimaan Piutang',`
 
 window.init_bayar_piutang=async function(){await loadPiutangList();await loadRiwayatPiutang();};
 async function loadPiutangList(){
-  let pjData=[],woData=[];
-  if(isOnline){
-    try{const r=await db.from('penjualan').select('*,pelanggan(nama)').gt('sisa_piutang',0).order('tanggal',{ascending:false});pjData=r.data||[];}catch(e){}
-    try{const r=await db.from('work_order').select('*,pelanggan(nama),kendaraan(no_plat)').gt('sisa_piutang',0).order('tanggal',{ascending:false});woData=r.data||[];}catch(e){}
-  }
-  if(!pjData.length&&!woData.length){
-    const [_pj,_wo,_pel,_kend]=await Promise.all([loadTable('penjualan',{}),loadTable('work_order',{}),loadTable('pelanggan',{}),loadTable('kendaraan',{})]);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    const kMap=Object.fromEntries(_kend.map(k=>[k.id,k]));
-    pjData=_pj.filter(j=>Number(j.sisa_piutang)>0).map(j=>({...j,pelanggan:pMap[j.pelanggan_id]||null}));
-    woData=_wo.filter(w=>Number(w.sisa_piutang)>0).map(w=>({...w,pelanggan:pMap[w.pelanggan_id]||null,kendaraan:kMap[w.kendaraan_id]||null}));
-  }
-  const rows=[...pjData.map(r=>({...r,tipe:'penjualan',label:r.no_faktur})),...woData.map(r=>({...r,tipe:'service',label:r.no_wo+' ('+r.kendaraan?.no_plat+')'}))].sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
-  // override sort below
-
+  const[pj,wo]=await Promise.all([
+    db.from('penjualan').select('*,pelanggan(nama)').gt('sisa_piutang',0).order('tanggal',{ascending:false}),
+    db.from('work_order').select('*,pelanggan(nama),kendaraan(no_plat)').gt('sisa_piutang',0).order('tanggal',{ascending:false})
+  ]);
+  const rows=[...(pj.data||[]).map(r=>({...r,tipe:'penjualan',label:r.no_faktur})),...(wo.data||[]).map(r=>({...r,tipe:'service',label:r.no_wo+' ('+r.kendaraan?.no_plat+')'}))]
+    .sort((a,b)=>new Date(b.tanggal)-new Date(a.tanggal));
   document.getElementById('body-piutang').innerHTML=rows.length?rows.map(r=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${r.label}</code></td>
     <td><span class="badge ${r.tipe==='service'?'badge-orange':'badge-blue'}">${r.tipe}</span></td>
@@ -6117,14 +5517,8 @@ async function loadPiutangList(){
   </tr>`).join(''):'<tr><td colspan="7" class="table-empty" style="color:var(--green)"><i class="ti ti-check" style="font-size:28px;display:block;margin-bottom:8px"></i>Tidak ada piutang</td></tr>';
 }
 async function loadRiwayatPiutang(){
-  let data=[];
-  if(isOnline){try{const r=await db.from('pembayaran_piutang').select('*,pelanggan(nama)').order('tanggal',{ascending:false}).limit(50);data=r.data||[];}catch(e){}}
-  if(!data.length){
-    const [_pp,_pel]=await Promise.all([loadTable('pembayaran_piutang',{}),loadTable('pelanggan',{})]);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    data=_pp.sort((a,b)=>b.tanggal.localeCompare(a.tanggal)).slice(0,50).map(r=>({...r,pelanggan:pMap[r.pelanggan_id]||null}));
-  }
-  document.getElementById('body-riwayat-piutang').innerHTML=data.length?data.map(r=>`<tr>
+  const{data}=await db.from('pembayaran_piutang').select('*,pelanggan(nama)').order('tanggal',{ascending:false}).limit(50);
+  document.getElementById('body-riwayat-piutang').innerHTML=(data||[]).length?(data||[]).map(r=>`<tr>
     <td><code style="color:var(--orange);font-size:12px">${r.no_bayar}</code></td>
     <td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td>
     <td>${r.pelanggan?.nama||'-'}</td>
@@ -6134,20 +5528,12 @@ async function loadRiwayatPiutang(){
   </tr>`).join(''):'<tr><td colspan="6" class="table-empty">Belum ada riwayat</td></tr>';
 }
 async function openModalBayarPiutang(refId=null,refTipe=null){
-  let pjData=[],woData=[];
-  if(isOnline){
-    try{const r=await db.from('penjualan').select('*,pelanggan(nama)').gt('sisa_piutang',0);pjData=r.data||[];}catch(e){}
-    try{const r=await db.from('work_order').select('*,pelanggan(nama),kendaraan(no_plat)').gt('sisa_piutang',0);woData=r.data||[];}catch(e){}
-  }
-  if(!pjData.length&&!woData.length){
-    const [_pj,_wo,_pel,_kend]=await Promise.all([loadTable('penjualan',{}),loadTable('work_order',{}),loadTable('pelanggan',{}),loadTable('kendaraan',{})]);
-    const pMap=Object.fromEntries(_pel.map(p=>[p.id,p]));
-    const kMap=Object.fromEntries(_kend.map(k=>[k.id,k]));
-    pjData=_pj.filter(j=>Number(j.sisa_piutang)>0).map(j=>({...j,pelanggan:pMap[j.pelanggan_id]||null}));
-    woData=_wo.filter(w=>Number(w.sisa_piutang)>0).map(w=>({...w,pelanggan:pMap[w.pelanggan_id]||null,kendaraan:kMap[w.kendaraan_id]||null}));
-  }
-  const opts=[...pjData.map(r=>({value:r.id,tipe:'penjualan',label:r.no_faktur+' - '+(r.pelanggan?.nama||'Umum')+' - Sisa:'+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id})),
-              ...woData.map(r=>({value:r.id,tipe:'service',label:r.no_wo+' ('+r.kendaraan?.no_plat+') - '+(r.pelanggan?.nama||'Umum')+' - Sisa:'+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id}))];
+  const[pj,wo]=await Promise.all([
+    db.from('penjualan').select('*,pelanggan(nama)').gt('sisa_piutang',0),
+    db.from('work_order').select('*,pelanggan(nama),kendaraan(no_plat)').gt('sisa_piutang',0)
+  ]);
+  const opts=[...(pj.data||[]).map(r=>({value:r.id,tipe:'penjualan',label:r.no_faktur+' - '+(r.pelanggan?.nama||'Umum')+' - Sisa:'+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id})),
+              ...(wo.data||[]).map(r=>({value:r.id,tipe:'service',label:r.no_wo+' ('+r.kendaraan?.no_plat+') - '+(r.pelanggan?.nama||'Umum')+' - Sisa:'+fmt(r.sisa_piutang),sisa:r.sisa_piutang,pelId:r.pelanggan_id}))];
   document.getElementById('f-bp-ref').innerHTML='<option value="">-- Pilih --</option>'+opts.map(o=>`<option value="${o.value}" data-tipe="${o.tipe}" data-sisa="${o.sisa}" data-pel="${o.pelId||''}">${o.label}</option>`).join('');
   const no=await autoNo('BP','pembayaran_piutang','no_bayar');
   document.getElementById('f-bp-no').value=no;document.getElementById('f-bp-tgl').value=today();document.getElementById('f-bp-jumlah').value='';document.getElementById('f-bp-sisa').value='';document.getElementById('f-bp-ket').value='';
@@ -6182,13 +5568,13 @@ async function saveBayarPiutang(cetak=false){
   try{
     await dbOp('pembayaran_piutang','INSERT',{id:uid(),no_bayar:no,tanggal:tgl,pelanggan_id:pelId||null,referensi_tipe:refTipe,referensi_id:refId,jumlah,metode,keterangan:ket});
     const tabelAsal=refTipe==='penjualan'?'penjualan':'work_order';
-    const dok=await dbGet(tabelAsal,refId);
+    const{data:dok}=await db.from(tabelAsal).select('terbayar,sisa_piutang,total').eq('id',refId).single();
     const newTerbayar=(dok?.terbayar||0)+jumlah;
     const newSisa=Math.max(0,(dok?.total||0)-newTerbayar);
     const newStatus=newSisa<=0?'lunas':newTerbayar>0?'sebagian':'belum';
     await dbOp(tabelAsal,'UPDATE',{id:refId,payload:{terbayar:newTerbayar,sisa_piutang:newSisa,status_bayar:newStatus}});
     if(pelId){
-      const pel=await dbGet('pelanggan',pelId);
+      const{data:pel}=await db.from('pelanggan').select('saldo_piutang,nama').eq('id',pelId).single();
       await dbOp('pelanggan','UPDATE',{id:pelId,payload:{saldo_piutang:Math.max(0,(pel?.saldo_piutang||0)-jumlah)}});
     }
     closeModal('modal-bayar-piutang');
@@ -6196,8 +5582,9 @@ async function saveBayarPiutang(cetak=false){
     await loadPiutangList();await loadRiwayatPiutang();
 
     if(cetak){
+      // Ambil nama pelanggan
       let namaPel='-';
-      if(pelId){const pl=await dbGet('pelanggan',pelId);namaPel=pl?.nama||'-';}
+      if(pelId){const{data:pl}=await db.from('pelanggan').select('nama').eq('id',pelId).single();namaPel=pl?.nama||'-';}
       cetakTandaTerima({
         no, tgl, namaPel, labelTagihan,
         jumlah, metode, ket,
@@ -6296,31 +5683,16 @@ async function switchLapBeli(tipe,el){
     html=`<table><thead><tr><th>No Faktur</th><th>Tanggal</th><th>Supplier</th><th>Total</th><th>Terbayar</th><th>Sisa</th><th>Status</th></tr></thead><tbody>
       ${d.length?d.map(r=>`<tr><td><code>${r.no_faktur}</code></td><td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td><td>${r.supplier?.nama||'-'}</td><td style="color:var(--orange)">${fmt(r.total)}</td><td style="color:var(--green)">${fmt(r.terbayar)}</td><td style="color:var(--red)">${fmt(r.sisa_hutang)}</td><td><span class="badge ${r.status_bayar==='lunas'?'badge-green':r.status_bayar==='sebagian'?'badge-yellow':'badge-red'}">${r.status_bayar}</span></td></tr>`).join(''):'<tr><td colspan="7" class="table-empty">Tidak ada data</td></tr>'}</tbody></table>`;
   }else if(tipe==='hutang'){
-    let sp=[];
-    if(isOnline){try{const r=await db.from('supplier').select('*').gt('saldo_hutang',0);sp=r.data||[];}catch(e){}}
-    if(!sp.length){sp=(await loadTable('supplier',{})).filter(s=>Number(s.saldo_hutang)>0);}
+    const{data:sp}=await db.from('supplier').select('*').gt('saldo_hutang',0);
     html=`<table><thead><tr><th>Supplier</th><th>Telepon</th><th>Total Hutang</th></tr></thead><tbody>
-      ${sp.length?sp.map(s=>`<tr><td style="font-weight:500">${s.nama}</td><td>${s.telepon||'-'}</td><td style="color:var(--red)">${fmt(s.saldo_hutang)}</td></tr>`).join(''):'<tr><td colspan="3" class="table-empty">Tidak ada hutang</td></tr>'}</tbody></table>`;
+      ${(sp||[]).length?(sp||[]).map(s=>`<tr><td style="font-weight:500">${s.nama}</td><td>${s.telepon||'-'}</td><td style="color:var(--red)">${fmt(s.saldo_hutang)}</td></tr>`).join(''):'<tr><td colspan="3" class="table-empty">Tidak ada hutang</td></tr>'}</tbody></table>`;
   }else if(tipe==='retur'){
     const dari=document.getElementById('lb-dari').value;const sampai=document.getElementById('lb-sampai').value;
-    let rb=[];
-    if(isOnline){
-      try{
-        let q=db.from('retur_beli').select('*,supplier(nama),pembelian(no_faktur)').order('tanggal',{ascending:false});
-        if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
-        const r=await q;rb=r.data||[];
-      }catch(e){}
-    }
-    if(!rb.length){
-      const [_rb,_sup,_beli]=await Promise.all([loadTable('retur_beli',{}),loadTable('supplier',{}),loadTable('pembelian',{})]);
-      const sMap=Object.fromEntries(_sup.map(s=>[s.id,s]));
-      const bMap=Object.fromEntries(_beli.map(b=>[b.id,b]));
-      rb=_rb.filter(r=>(!dari||r.tanggal>=dari)&&(!sampai||r.tanggal<=sampai))
-            .sort((a,b)=>b.tanggal.localeCompare(a.tanggal))
-            .map(r=>({...r,supplier:sMap[r.supplier_id]||null,pembelian:bMap[r.pembelian_id]||null}));
-    }
+    let q=db.from('retur_beli').select('*,supplier(nama),pembelian(no_faktur)').order('tanggal',{ascending:false});
+    if(dari)q=q.gte('tanggal',dari);if(sampai)q=q.lte('tanggal',sampai);
+    const{data:rb}=await q;
     html=`<table><thead><tr><th>No Retur</th><th>Tanggal</th><th>Supplier</th><th>Faktur Asal</th><th>Total</th></tr></thead><tbody>
-      ${rb.length?rb.map(r=>`<tr><td><code>${r.no_retur}</code></td><td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td><td>${r.supplier?.nama||'-'}</td><td>${r.pembelian?.no_faktur||'-'}</td><td style="color:var(--red)">${fmt(r.total)}</td></tr>`).join(''):'<tr><td colspan="5" class="table-empty">Tidak ada retur</td></tr>'}</tbody></table>`;
+      ${(rb||[]).length?(rb||[]).map(r=>`<tr><td><code>${r.no_retur}</code></td><td>${new Date(r.tanggal).toLocaleDateString('id-ID')}</td><td>${r.supplier?.nama||'-'}</td><td>${r.pembelian?.no_faktur||'-'}</td><td style="color:var(--red)">${fmt(r.total)}</td></tr>`).join(''):'<tr><td colspan="5" class="table-empty">Tidak ada retur</td></tr>'}</tbody></table>`;
   }
   document.getElementById('lb-table-wrap').innerHTML=html;
 }
@@ -7059,102 +6431,6 @@ ${el.innerHTML}`;
   applyPrintArea(html, true);
 }
 // ============================================================
-// SERVICE WORKER REGISTRATION — kompatibel Android & semua browser
-// Menggunakan script tag inject + postMessage karena blob: URL
-// tidak didukung untuk SW di Android Chrome / mobile browsers
-// ============================================================
-(function(){
-  if (!('serviceWorker' in navigator)) return;
-  if (!('caches' in window)) return;
-
-  // SW code sebagai string — akan di-register via script tag di <head>
-  // Teknik: buat element <script> dengan id khusus, lalu SW me-importScripts dirinya sendiri
-  // Cara paling kompatibel untuk single-file HTML adalah via cache API langsung dari halaman utama
-  // tanpa Service Worker (karena SW butuh file .js terpisah di server nyata)
-
-  // Strategi: simpan HTML ke Cache API langsung dari halaman (tanpa SW)
-  // sehingga browser bisa load dari cache saat offline
-  async function cacheAppShell() {
-    try {
-      const CACHE = 'wasgarage-shell-v2';
-      const cache = await caches.open(CACHE);
-      // Cache halaman saat ini
-      const url = location.href.split('?')[0].split('#')[0];
-      try {
-        const resp = await fetch(url, {cache: 'no-cache'});
-        if (resp.ok) {
-          await cache.put(url, resp);
-          console.log('[Cache] HTML cached:', url);
-        }
-      } catch(e) {
-        // Sudah offline, tidak bisa cache ulang — tidak masalah jika sudah ada
-      }
-      // Cache CDN assets yang sering dipakai
-      const assets = [
-        'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css',
-        'https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Inter:wght@400;500;600&display=swap'
-      ];
-      for (const a of assets) {
-        try {
-          const r = await fetch(a, {mode:'no-cors'});
-          await cache.put(a, r);
-        } catch(e) {}
-      }
-    } catch(e) {}
-  }
-
-  // Intercept fetch via SW jika browser mendukung register dengan URL asli
-  // (hanya berjalan saat file dihosting di server http/https, bukan file://)
-  if (location.protocol === 'https:' || location.protocol === 'http:') {
-    // Coba register SW dengan membuat file SW on-the-fly via blob
-    // Di Android, blob: tidak didukung → fallback ke cache manual
-    const swCode = `
-const CACHE='wasgarage-shell-v2';
-self.addEventListener('install',e=>{self.skipWaiting();});
-self.addEventListener('activate',e=>{
-  e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))));
-  self.clients.claim();
-});
-self.addEventListener('fetch',e=>{
-  if(e.request.method!=='GET')return;
-  const u=new URL(e.request.url);
-  if(u.hostname.includes('supabase.co')||u.hostname.includes('googleapis.com'))return;
-  if(u.hostname.includes('fonts.gstatic.com')||u.hostname.includes('jsdelivr.net')){
-    e.respondWith(caches.match(e.request).then(c=>{
-      if(c)return c;
-      return fetch(e.request).then(r=>{caches.open(CACHE).then(cc=>cc.put(e.request,r.clone()));return r;}).catch(()=>c);
-    }));return;
-  }
-  e.respondWith(fetch(e.request).then(r=>{
-    caches.open(CACHE).then(c=>c.put(e.request,r.clone()));return r;
-  }).catch(()=>caches.match(e.request)));
-});`;
-    try {
-      // Gunakan data URI — didukung Chrome desktop, Firefox
-      const b64 = btoa(unescape(encodeURIComponent(swCode)));
-      navigator.serviceWorker.register('data:application/javascript;base64,'+b64)
-        .then(r=>console.log('[SW] Registered via data URI'))
-        .catch(()=>{
-          // Fallback: blob URL (tidak jalan di Android tapi coba dulu)
-          try {
-            const url = URL.createObjectURL(new Blob([swCode],{type:'application/javascript'}));
-            navigator.serviceWorker.register(url)
-              .then(r=>console.log('[SW] Registered via blob'))
-              .catch(()=>{ /* Tidak didukung, pakai cache manual */ cacheAppShell(); });
-          } catch(e2) { cacheAppShell(); }
-        });
-    } catch(e) { cacheAppShell(); }
-  } else {
-    // file:// protocol — langsung cache manual
-    cacheAppShell();
-  }
-
-  // Selalu jalankan cache manual juga sebagai backup
-  if (document.readyState === 'complete') cacheAppShell();
-  else window.addEventListener('load', cacheAppShell);
-})();
-
-// ============================================================
 // PWA MANIFEST (data URI — tidak butuh blob)
 // ============================================================
 (function(){
@@ -7198,7 +6474,6 @@ async function initApp(){
     if(saved){
       currentUser=JSON.parse(saved);
       // Verifikasi ulang user masih aktif di DB
-      if(!isOnline){return;} // skip sesi check saat offline
       const{data:u}=await db.from('app_users').select('id,aktif,role').eq('id',currentUser.id).single();
       if(u && u.aktif){
         currentUser.role=u.role; // refresh role dari DB
